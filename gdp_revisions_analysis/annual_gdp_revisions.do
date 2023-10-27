@@ -141,7 +141,7 @@ use "annual_gdp_revisions", clear
 	twoway (line revision year_numeric, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
 	xtitle("", axis(1)) ///
 	ytitle("Revisiones del crecimiento del PBI") ///
-	title("Revisiones (diferencia entre estimado definitivo y primer estimado) del crecimiento anual del PBI de Perú", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
+	title("Revisiones del crecimiento del PBI (anual)", size(*0.55) box bexpand bcolor("`r(p1)'") color(white), subtitle("Información Adicional") ) ///
 	graphregion(color(white)) ///
 	bgcolor(white)
 	
