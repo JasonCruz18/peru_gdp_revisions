@@ -141,10 +141,48 @@ use "annual_gdp_revisions", clear
 	twoway (line revision year_numeric, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
 	xtitle("", axis(1)) ///
 	ytitle("Revisiones del crecimiento del PBI") ///
-	title("Revisiones del crecimiento del PBI (anual)", size(*0.55) box bexpand bcolor("`r(p1)'") color(white), subtitle("Información Adicional") ) ///
+	title("Revisiones del crecimiento del PBI (anual)", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
 	graphregion(color(white)) ///
 	bgcolor(white)
 	
 	
+	graph export "annual_gdp_revisions.pdf", as(pdf) replace
+	graph export "annual_gdp_revisions.eps", as(eps) replace
+	graph export "annual_gdp_revisions.png", as(png) replace
+	
+	
+	** Second graph
+	** -----------		
+
+	
+	rename mean mean_revisions
+	
+	grstyle init
+	
+	grstyle set plain, horizontal grid dotted
+	
+	** Set up the color palette
+	
+	
+	colorpalette ///
+	"25 57 65" ///
+	"0 180 140" ///
+	, n(2) nograph
+
+	twoway (line revision year_numeric, lcolor("`r(p1)'%100") fintensity(*0.8)) ///
+	(line mean_revisions year_numeric, bcolor("`r(p2)'")), ///
+	xtitle("", axis(1)) ///
+	legend(title("(%)", size(*0.55) position(12)) cols(1) label(1 "Revisiones (estimado definitivo menos primer estimado o preliminar)") label(2 "Promedio de las revisiones") size(*0.5) ring(0) position(3) bmargin(zero) color(gs1) order(1 2) region(col(white)) /*placement(s)*/ rowgap(0) colgap(*0.8)) ///
+	ytitle("Revisiones del crecimiento del PBI") ///
+	title("Revisiones del crecimiento del PBI (anual)", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
+	graphregion(color(white)) ///
+	bgcolor(blue)
+	
+	
+	graph export "annual_gdp_revisions_mean.pdf", as(pdf) replace
+	graph export "annual_gdp_revisions_mean.eps", as(eps) replace
+	graph export "annual_gdp_revisions_mean.png", as(png) replace
+	 
+	 tabulate ss
 	
 	

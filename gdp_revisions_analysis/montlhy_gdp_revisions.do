@@ -123,6 +123,9 @@ use "monthly_gdp_revisions", clear
 //format fulldate %td
 
 
+	generate year_date = year(vintage_year)
+	
+	rename mean mean_revision
 
 	** First graph
 	** -----------		
@@ -135,7 +138,8 @@ use "monthly_gdp_revisions", clear
 	"0 180 140" ///
 	, n(2) nograph
 
-	twoway (line revision vintage_year, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	twoway (line mean_revision vintage_year, lcolor("`r(p2)'%100") fintensity(*0.8)) ///
+	(line revision vintage_year, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
 	xtitle("", axis(1)) ///
 	ytitle("Revisiones del crecimiento del PBI") ///
 	title("Revisiones del crecimiento del PBI (mensual)", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
@@ -143,6 +147,8 @@ use "monthly_gdp_revisions", clear
 	bgcolor(white)
 		
 	
+	graph export "monthly_gdp_revisions.pdf", as(pdf) replace
+	graph export "monthly_gdp_revisions.eps", as(eps) replace
+	graph export "monthly_gdp_revisions.png", as(png) replace
 	
-	
-	
+	// (scatteri 0 1992 .1 1992 .1 1994 0 1994, recast(area) color("`r(p1)'%40")) 
