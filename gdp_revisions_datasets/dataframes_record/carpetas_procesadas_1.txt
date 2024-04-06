@@ -5,3 +5,8 @@ pseudo_raw_pdf\2016:48
 pseudo_raw_pdf\2017:49
 pseudo_raw_pdf\2018:49
 pseudo_raw_pdf\2019:39
+pseudo_raw_pdf\2020:47
+pseudo_raw_pdf\2021:46
+pseudo_raw_pdf\2022:44
+pseudo_raw_pdf\2023:43
+pseudo_raw_pdf\2024:8
