@@ -1,0 +1,422 @@
+#
+# A fatal error has been detected by the Java Runtime Environment:
+#
+#  Internal Error (os_windows_x86.cpp:144), pid=37272, tid=0x000000000000755c
+#  guarantee(result == EXCEPTION_CONTINUE_EXECUTION) failed: Unexpected result from topLevelExceptionFilter
+#
+# JRE version: Java(TM) SE Runtime Environment (8.0_401) (build 1.8.0_401-b10)
+# Java VM: Java HotSpot(TM) 64-Bit Server VM (25.401-b10 mixed mode windows-amd64 compressed oops)
+# Failed to write core dump. Minidumps are not enabled by default on client versions of Windows
+#
+# If you would like to submit a bug report, please visit:
+#   http://bugreport.java.com/bugreport/crash.jsp
+# The crash happened outside the Java Virtual Machine in native code.
+# See problematic frame for where to report the bug.
+#
+
+---------------  T H R E A D  ---------------
+
+Current thread (0x000001b57314e000):  JavaThread "Python Reference Queue" daemon [_thread_in_native, id=30044, stack(0x000000184c970000,0x000000184cb60000)]
+
+Stack: [0x000000184c970000,0x000000184cb60000]
+Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+C  0x00007ffed53830d9
+C  0x00007ffed52c0072
+C  0x00007ffed52c0c3d
+C  0x00007ffed52b51f7
+C  0x00007ffed5382d5c
+C  [ntdll.dll+0xa23af]
+C  [ntdll.dll+0x514b4]
+C  [ntdll.dll+0xa0ebe]
+C  0x00007ffeb2a48b9d
+C  0x00007ffeb2a48bd2
+C  0x00007ffeb2972de4
+C  0x00007ffeb29754f3
+C  0x00007fff0dcb4653
+C  [python312.dll+0x178a5b]
+C  [python312.dll+0x1378cd]
+C  [python312.dll+0x2cc3bb]
+C  [python312.dll+0x2cc3a0]
+C  [python312.dll+0x2cc3a0]
+C  [python312.dll+0x12a107]
+C  [python312.dll+0x84250]
+C  [python312.dll+0x848b5]
+C  [python312.dll+0x85887]
+C  0x00007ffef0b69574
+C  0x000001b5003156d3
+
+Java frames: (J=compiled Java code, j=interpreted, Vv=VM code)
+J 4941  org.jpype.ref.JPypeReferenceNative.wake()V (0 bytes) @ 0x000001b50031563e [0x000001b500315600+0x3e]
+J 5946% C2 org.jpype.ref.JPypeReferenceQueue$Worker.run()V (120 bytes) @ 0x000001b5007699c0 [0x000001b500769820+0x1a0]
+j  java.lang.Thread.run()V+11
+v  ~StubRoutines::call_stub
+
+---------------  P R O C E S S  ---------------
+
+Java Threads: ( => current thread )
+  0x000001b57314a800 JavaThread "Java2D Disposer" daemon [_thread_blocked, id=19452, stack(0x000000184cb60000,0x000000184cd50000)]
+=>0x000001b57314e000 JavaThread "Python Reference Queue" daemon [_thread_in_native, id=30044, stack(0x000000184c970000,0x000000184cb60000)]
+  0x000001b573142000 JavaThread "Service Thread" daemon [_thread_blocked, id=36552, stack(0x000000184c590000,0x000000184c780000)]
+  0x000001b573149000 JavaThread "C1 CompilerThread3" daemon [_thread_blocked, id=3880, stack(0x000000184c3a0000,0x000000184c590000)]
+  0x000001b573148000 JavaThread "C2 CompilerThread2" daemon [_thread_blocked, id=29024, stack(0x000000184c1b0000,0x000000184c3a0000)]
+  0x000001b573146000 JavaThread "C2 CompilerThread1" daemon [_thread_blocked, id=25156, stack(0x000000184bfc0000,0x000000184c1b0000)]
+  0x000001b573145000 JavaThread "C2 CompilerThread0" daemon [_thread_blocked, id=20320, stack(0x000000184bdd0000,0x000000184bfc0000)]
+  0x000001b573144800 JavaThread "Attach Listener" daemon [_thread_blocked, id=25368, stack(0x000000184bbe0000,0x000000184bdd0000)]
+  0x000001b573143000 JavaThread "Signal Dispatcher" daemon [_thread_blocked, id=3324, stack(0x000000184b9f0000,0x000000184bbe0000)]
+  0x000001b573141800 JavaThread "Finalizer" daemon [_thread_blocked, id=40024, stack(0x000000184b800000,0x000000184b9f0000)]
+  0x000001b573143800 JavaThread "Reference Handler" daemon [_thread_blocked, id=39216, stack(0x000000184b610000,0x000000184b800000)]
+  0x000001b573147800 JavaThread "main" [_thread_in_native, id=41976, stack(0x0000001846a00000,0x0000001846bf0000)]
+
+Other Threads:
+  0x000001b573e2d800 VMThread [stack: 0x000000184b420000,0x000000184b610000] [id=3180]
+  0x000001b573e2b800 WatcherThread [stack: 0x000000184c780000,0x000000184c970000] [id=44632]
+
+VM state:not at safepoint (normal execution)
+
+VM Mutex/Monitor currently owned by a thread: None
+
+heap address: 0x00000006c4c00000, size: 4020 MB, Compressed Oops mode: Zero based, Oop shift amount: 3
+Narrow klass base: 0x0000000000000000, Narrow klass shift: 3
+Compressed class space size: 1073741824 Address: 0x00000007c0000000
+
+Heap:
+ PSYoungGen      total 122880K, used 56408K [0x000000076c400000, 0x0000000774d80000, 0x00000007c0000000)
+  eden space 114176K, 41% used [0x000000076c400000,0x000000076f2d4290,0x0000000773380000)
+  from space 8704K, 97% used [0x0000000773680000,0x0000000773ec1fc8,0x0000000773f00000)
+  to   space 13312K, 0% used [0x0000000774080000,0x0000000774080000,0x0000000774d80000)
+ ParOldGen       total 147968K, used 85589K [0x00000006c4c00000, 0x00000006cdc80000, 0x000000076c400000)
+  object space 147968K, 57% used [0x00000006c4c00000,0x00000006c9f956f8,0x00000006cdc80000)
+ Metaspace       used 15492K, capacity 15800K, committed 16000K, reserved 1062912K
+  class space    used 1459K, capacity 1590K, committed 1664K, reserved 1048576K
+
+Card table byte_map: [0x000001b57f630000,0x000001b57fe10000] byte_map_base: 0x000001b57c00a000
+
+Marking Bits: (ParMarkBitMap*) 0x00007ffed5865fc0
+ Begin Bits: [0x000001b50f540000, 0x000001b513410000)
+ End Bits:   [0x000001b513410000, 0x000001b5172e0000)
+
+Polling page: 0x000001b570520000
+
+CodeCache: size=245760Kb used=17714Kb max_used=18236Kb free=228045Kb
+ bounds [0x000001b500000000, 0x000001b501200000, 0x000001b50f000000]
+ total_blobs=5005 nmethods=4490 adapters=426
+ compilation: enabled
+
+Compilation events (10 events):
+Event: 38016.880 Thread 0x000001b573149000 6539       3       sun.java2d.SunGraphics2D::setRenderingHint (555 bytes)
+Event: 38016.882 Thread 0x000001b573149000 nmethod 6539 0x000001b500821e90 code [0x000001b5008221c0, 0x000001b500824310]
+Event: 38018.843 Thread 0x000001b573146000 6540       4       java.awt.geom.AffineTransform::translate (547 bytes)
+Event: 38018.844 Thread 0x000001b573146000 nmethod 6540 0x000001b500f8ce90 code [0x000001b500f8d040, 0x000001b500f8d468]
+Event: 38020.096 Thread 0x000001b573145000 6541       4       org.locationtech.jts.index.strtree.AbstractSTRtree::query (53 bytes)
+Event: 38020.116 Thread 0x000001b573145000 nmethod 6541 0x000001b500bc3c50 code [0x000001b500bc3f40, 0x000001b500bc5e58]
+Event: 38024.486 Thread 0x000001b573149000 6542       3       sun.java2d.SurfaceData::validatePipe (785 bytes)
+Event: 38024.487 Thread 0x000001b573149000 nmethod 6542 0x000001b50051ef50 code [0x000001b50051f280, 0x000001b500521370]
+Event: 38026.495 Thread 0x000001b573148000 6543   !   4       sun.java2d.SunGraphics2D::fill (64 bytes)
+Event: 38026.499 Thread 0x000001b573148000 nmethod 6543 0x000001b5001f8510 code [0x000001b5001f8720, 0x000001b5001f8ec0]
+
+GC Heap History (10 events):
+Event: 38024.978 GC heap before
+{Heap before GC invocations=2775 (full 940):
+ PSYoungGen      total 140288K, used 135206K [0x000000076c400000, 0x0000000775d00000, 0x00000007c0000000)
+  eden space 132096K, 100% used [0x000000076c400000,0x0000000774500000,0x0000000774500000)
+  from space 8192K, 37% used [0x0000000775500000,0x00000007758099b8,0x0000000775d00000)
+  to   space 12288K, 0% used [0x0000000774500000,0x0000000774500000,0x0000000775100000)
+ ParOldGen       total 147968K, used 81497K [0x00000006c4c00000, 0x00000006cdc80000, 0x000000076c400000)
+  object space 147968K, 55% used [0x00000006c4c00000,0x00000006c9b967f8,0x00000006cdc80000)
+ Metaspace       used 15492K, capacity 15800K, committed 16000K, reserved 1062912K
+  class space    used 1459K, capacity 1590K, committed 1664K, reserved 1048576K
+Event: 38024.980 GC heap after
+Heap after GC invocations=2775 (full 940):
+ PSYoungGen      total 130560K, used 2163K [0x000000076c400000, 0x0000000775900000, 0x00000007c0000000)
+  eden space 128000K, 0% used [0x000000076c400000,0x000000076c400000,0x0000000774100000)
+  from space 2560K, 84% used [0x0000000774500000,0x000000077471cc98,0x0000000774780000)
+  to   space 12288K, 0% used [0x0000000774d00000,0x0000000774d00000,0x0000000775900000)
+ ParOldGen       total 147968K, used 82340K [0x00000006c4c00000, 0x00000006cdc80000, 0x000000076c400000)
+  object space 147968K, 55% used [0x00000006c4c00000,0x00000006c9c691d8,0x00000006cdc80000)
+ Metaspace       used 15492K, capacity 15800K, committed 16000K, reserved 1062912K
+  class space    used 1459K, capacity 1590K, committed 1664K, reserved 1048576K
+}
+Event: 38025.255 GC heap before
+{Heap before GC invocations=2776 (full 940):
+ PSYoungGen      total 130560K, used 130163K [0x000000076c400000, 0x0000000775900000, 0x00000007c0000000)
+  eden space 128000K, 100% used [0x000000076c400000,0x0000000774100000,0x0000000774100000)
+  from space 2560K, 84% used [0x0000000774500000,0x000000077471cc98,0x0000000774780000)
+  to   space 12288K, 0% used [0x0000000774d00000,0x0000000774d00000,0x0000000775900000)
+ ParOldGen       total 147968K, used 82340K [0x00000006c4c00000, 0x00000006cdc80000, 0x000000076c400000)
+  object space 147968K, 55% used [0x00000006c4c00000,0x00000006c9c691d8,0x00000006cdc80000)
+ Metaspace       used 15492K, capacity 15800K, committed 16000K, reserved 1062912K
+  class space    used 1459K, capacity 1590K, committed 1664K, reserved 1048576K
+Event: 38025.258 GC heap after
+Heap after GC invocations=2776 (full 940):
+ PSYoungGen      total 133120K, used 7304K [0x000000076c400000, 0x0000000775580000, 0x00000007c0000000)
+  eden space 124416K, 0% used [0x000000076c400000,0x000000076c400000,0x0000000773d80000)
+  from space 8704K, 83% used [0x0000000774d00000,0x00000007754223c8,0x0000000775580000)
+  to   space 12288K, 0% used [0x0000000773d80000,0x0000000773d80000,0x0000000774980000)
+ ParOldGen       total 147968K, used 83521K [0x00000006c4c00000, 0x00000006cdc80000, 0x000000076c400000)
+  object space 147968K, 56% used [0x00000006c4c00000,0x00000006c9d90590,0x00000006cdc80000)
+ Metaspace       used 15492K, capacity 15800K, committed 16000K, reserved 1062912K
+  class space    used 1459K, capacity 1590K, committed 1664K, reserved 1048576K
+}
+Event: 38025.869 GC heap before
+{Heap before GC invocations=2777 (full 940):
+ PSYoungGen      total 133120K, used 131720K [0x000000076c400000, 0x0000000775580000, 0x00000007c0000000)
+  eden space 124416K, 100% used [0x000000076c400000,0x0000000773d80000,0x0000000773d80000)
+  from space 8704K, 83% used [0x0000000774d00000,0x00000007754223c8,0x0000000775580000)
+  to   space 12288K, 0% used [0x0000000773d80000,0x0000000773d80000,0x0000000774980000)
+ ParOldGen       total 147968K, used 83521K [0x00000006c4c00000, 0x00000006cdc80000, 0x000000076c400000)
+  object space 147968K, 56% used [0x00000006c4c00000,0x00000006c9d90590,0x00000006cdc80000)
+ Metaspace       used 15492K, capacity 15800K, committed 16000K, reserved 1062912K
+  class space    used 1459K, capacity 1590K, committed 1664K, reserved 1048576K
+Event: 38025.871 GC heap after
+Heap after GC invocations=2777 (full 940):
+ PSYoungGen      total 129536K, used 8455K [0x000000076c400000, 0x0000000775300000, 0x00000007c0000000)
+  eden space 120832K, 0% used [0x000000076c400000,0x000000076c400000,0x0000000773a00000)
+  from space 8704K, 97% used [0x0000000773d80000,0x00000007745c1fc8,0x0000000774600000)
+  to   space 12800K, 0% used [0x0000000774680000,0x0000000774680000,0x0000000775300000)
+ ParOldGen       total 147968K, used 83912K [0x00000006c4c00000, 0x00000006cdc80000, 0x000000076c400000)
+  object space 147968K, 56% used [0x00000006c4c00000,0x00000006c9df23b8,0x00000006cdc80000)
+ Metaspace       used 15492K, capacity 15800K, committed 16000K, reserved 1062912K
+  class space    used 1459K, capacity 1590K, committed 1664K, reserved 1048576K
+}
+Event: 38026.510 GC heap before
+{Heap before GC invocations=2778 (full 940):
+ PSYoungGen      total 129536K, used 129287K [0x000000076c400000, 0x0000000775300000, 0x00000007c0000000)
+  eden space 120832K, 100% used [0x000000076c400000,0x0000000773a00000,0x0000000773a00000)
+  from space 8704K, 97% used [0x0000000773d80000,0x00000007745c1fc8,0x0000000774600000)
+  to   space 12800K, 0% used [0x0000000774680000,0x0000000774680000,0x0000000775300000)
+ ParOldGen       total 147968K, used 83912K [0x00000006c4c00000, 0x00000006cdc80000, 0x000000076c400000)
+  object space 147968K, 56% used [0x00000006c4c00000,0x00000006c9df23b8,0x00000006cdc80000)
+ Metaspace       used 15492K, capacity 15800K, committed 16000K, reserved 1062912K
+  class space    used 1459K, capacity 1590K, committed 1664K, reserved 1048576K
+Event: 38026.512 GC heap after
+Heap after GC invocations=2778 (full 940):
+ PSYoungGen      total 127488K, used 8354K [0x000000076c400000, 0x0000000775080000, 0x00000007c0000000)
+  eden space 117248K, 0% used [0x000000076c400000,0x000000076c400000,0x0000000773680000)
+  from space 10240K, 81% used [0x0000000774680000,0x0000000774ea8880,0x0000000775080000)
+  to   space 13312K, 0% used [0x0000000773680000,0x0000000773680000,0x0000000774380000)
+ ParOldGen       total 147968K, used 84771K [0x00000006c4c00000, 0x00000006cdc80000, 0x000000076c400000)
+  object space 147968K, 57% used [0x00000006c4c00000,0x00000006c9ec8d58,0x00000006cdc80000)
+ Metaspace       used 15492K, capacity 15800K, committed 16000K, reserved 1062912K
+  class space    used 1459K, capacity 1590K, committed 1664K, reserved 1048576K
+}
+Event: 38247.380 GC heap before
+{Heap before GC invocations=2779 (full 940):
+ PSYoungGen      total 127488K, used 125602K [0x000000076c400000, 0x0000000775080000, 0x00000007c0000000)
+  eden space 117248K, 100% used [0x000000076c400000,0x0000000773680000,0x0000000773680000)
+  from space 10240K, 81% used [0x0000000774680000,0x0000000774ea8880,0x0000000775080000)
+  to   space 13312K, 0% used [0x0000000773680000,0x0000000773680000,0x0000000774380000)
+ ParOldGen       total 147968K, used 84771K [0x00000006c4c00000, 0x00000006cdc80000, 0x000000076c400000)
+  object space 147968K, 57% used [0x00000006c4c00000,0x00000006c9ec8d58,0x00000006cdc80000)
+ Metaspace       used 15492K, capacity 15800K, committed 16000K, reserved 1062912K
+  class space    used 1459K, capacity 1590K, committed 1664K, reserved 1048576K
+Event: 38247.383 GC heap after
+Heap after GC invocations=2779 (full 940):
+ PSYoungGen      total 122880K, used 8455K [0x000000076c400000, 0x0000000774d80000, 0x00000007c0000000)
+  eden space 114176K, 0% used [0x000000076c400000,0x000000076c400000,0x0000000773380000)
+  from space 8704K, 97% used [0x0000000773680000,0x0000000773ec1fc8,0x0000000773f00000)
+  to   space 13312K, 0% used [0x0000000774080000,0x0000000774080000,0x0000000774d80000)
+ ParOldGen       total 147968K, used 85589K [0x00000006c4c00000, 0x00000006cdc80000, 0x000000076c400000)
+  object space 147968K, 57% used [0x00000006c4c00000,0x00000006c9f956f8,0x00000006cdc80000)
+ Metaspace       used 15492K, capacity 15800K, committed 16000K, reserved 1062912K
+  class space    used 1459K, capacity 1590K, committed 1664K, reserved 1048576K
+}
+
+Deoptimization events (10 events):
+Event: 36439.855 Thread 0x000001b573147800 Uncommon trap: reason=unstable_if action=reinterpret pc=0x000001b5008caa38 method=sun.java2d.SurfaceData.canRenderParallelograms(Lsun/java2d/SunGraphics2D;)Z @ 91
+Event: 36439.855 Thread 0x000001b573147800 Uncommon trap: reason=class_check action=maybe_recompile pc=0x000001b500310810 method=sun.java2d.pipe.PixelToParallelogramConverter.fill(Lsun/java2d/SunGraphics2D;Ljava/awt/Shape;)V @ 70
+Event: 36439.855 Thread 0x000001b573147800 Uncommon trap: reason=class_check action=maybe_recompile pc=0x000001b500a6ad38 method=sun.java2d.pipe.ShapeSpanIterator.appendPath(Ljava/awt/geom/PathIterator;)V @ 7
+Event: 36439.855 Thread 0x000001b573147800 Uncommon trap: reason=unstable_if action=reinterpret pc=0x000001b5005ca0e8 method=sun.java2d.SunGraphics2D.setRenderingHint(Ljava/awt/RenderingHints$Key;Ljava/lang/Object;)V @ 401
+Event: 36439.856 Thread 0x000001b573147800 Uncommon trap: reason=class_check action=maybe_recompile pc=0x000001b500310810 method=sun.java2d.pipe.PixelToParallelogramConverter.fill(Lsun/java2d/SunGraphics2D;Ljava/awt/Shape;)V @ 70
+Event: 36439.856 Thread 0x000001b573147800 Uncommon trap: reason=class_check action=maybe_recompile pc=0x000001b500a6ad38 method=sun.java2d.pipe.ShapeSpanIterator.appendPath(Ljava/awt/geom/PathIterator;)V @ 7
+Event: 36439.856 Thread 0x000001b573147800 Uncommon trap: reason=class_check action=maybe_recompile pc=0x000001b500310810 method=sun.java2d.pipe.PixelToParallelogramConverter.fill(Lsun/java2d/SunGraphics2D;Ljava/awt/Shape;)V @ 70
+Event: 36439.856 Thread 0x000001b573147800 Uncommon trap: reason=class_check action=maybe_recompile pc=0x000001b500a6ad38 method=sun.java2d.pipe.ShapeSpanIterator.appendPath(Ljava/awt/geom/PathIterator;)V @ 7
+Event: 36439.856 Thread 0x000001b573147800 Uncommon trap: reason=class_check action=maybe_recompile pc=0x000001b500310810 method=sun.java2d.pipe.PixelToParallelogramConverter.fill(Lsun/java2d/SunGraphics2D;Ljava/awt/Shape;)V @ 70
+Event: 36439.856 Thread 0x000001b573147800 Uncommon trap: reason=class_check action=maybe_recompile pc=0x000001b500a6ad38 method=sun.java2d.pipe.ShapeSpanIterator.appendPath(Ljava/awt/geom/PathIterator;)V @ 7
+
+Classes redefined (0 events):
+No events
+
+Internal exceptions (10 events):
+Event: 1209.971 Thread 0x000001b573147800 Implicit null exception at 0x000001b5006fcc76 to 0x000001b5006fd1a9
+Event: 1233.549 Thread 0x000001b573147800 Implicit null exception at 0x000001b50060db30 to 0x000001b50060e15b
+Event: 1774.972 Thread 0x000001b573147800 Implicit null exception at 0x000001b500b31263 to 0x000001b500b33379
+Event: 1774.972 Thread 0x000001b573147800 Implicit null exception at 0x000001b50047cc1d to 0x000001b50047d25d
+Event: 23515.441 Thread 0x000001b573147800 Implicit null exception at 0x000001b500491847 to 0x000001b500494fbd
+Event: 27769.599 Thread 0x000001b573147800 Implicit null exception at 0x000001b500ad93fc to 0x000001b500ada291
+Event: 27769.606 Thread 0x000001b573147800 Implicit null exception at 0x000001b500ae4659 to 0x000001b500ae4b61
+Event: 27769.669 Thread 0x000001b573147800 Implicit null exception at 0x000001b500bfbac8 to 0x000001b500c025c5
+Event: 33696.572 Thread 0x000001b573147800 Implicit null exception at 0x000001b500a1593c to 0x000001b500a16059
+Event: 33710.629 Thread 0x000001b573147800 Implicit null exception at 0x000001b500c28673 to 0x000001b500c2f311
+
+Events (10 events):
+Event: 38024.978 Executing VM operation: ParallelGCFailedAllocation
+Event: 38024.980 Executing VM operation: ParallelGCFailedAllocation done
+Event: 38025.255 Executing VM operation: ParallelGCFailedAllocation
+Event: 38025.258 Executing VM operation: ParallelGCFailedAllocation done
+Event: 38025.869 Executing VM operation: ParallelGCFailedAllocation
+Event: 38025.871 Executing VM operation: ParallelGCFailedAllocation done
+Event: 38026.510 Executing VM operation: ParallelGCFailedAllocation
+Event: 38026.512 Executing VM operation: ParallelGCFailedAllocation done
+Event: 38247.380 Executing VM operation: ParallelGCFailedAllocation
+Event: 38247.383 Executing VM operation: ParallelGCFailedAllocation done
+
+
+Dynamic libraries:
+0x00007ff653770000 - 0x00007ff65378b000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\python.exe
+0x00007fff365b0000 - 0x00007fff367a8000 	C:\WINDOWS\SYSTEM32\ntdll.dll
+0x00007fff34cf0000 - 0x00007fff34dad000 	C:\WINDOWS\System32\KERNEL32.DLL
+0x00007fff33c60000 - 0x00007fff33f56000 	C:\WINDOWS\System32\KERNELBASE.dll
+0x00007fff34110000 - 0x00007fff34210000 	C:\WINDOWS\System32\ucrtbase.dll
+0x00007ffef6b80000 - 0x00007ffef6b99000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\VCRUNTIME140.dll
+0x00007ffec8310000 - 0x00007ffec8a10000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\python312.dll
+0x00007fff35a50000 - 0x00007fff35abb000 	C:\WINDOWS\System32\WS2_32.dll
+0x00007fff35ba0000 - 0x00007fff35cc5000 	C:\WINDOWS\System32\RPCRT4.dll
+0x00007fff34040000 - 0x00007fff34067000 	C:\WINDOWS\System32\bcrypt.dll
+0x00007fff35cf0000 - 0x00007fff35da0000 	C:\WINDOWS\System32\ADVAPI32.dll
+0x00007fff32960000 - 0x00007fff3296a000 	C:\WINDOWS\SYSTEM32\VERSION.dll
+0x00007fff34840000 - 0x00007fff348de000 	C:\WINDOWS\System32\msvcrt.dll
+0x00007fff36010000 - 0x00007fff360b0000 	C:\WINDOWS\System32\sechost.dll
+0x00007ffef35c0000 - 0x00007ffef35da000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\zlib.dll
+0x00007fff33f60000 - 0x00007fff33fe2000 	C:\WINDOWS\System32\bcryptprimitives.dll
+0x000001b566590000 - 0x000001b56659f000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\python3.DLL
+0x00007ffeece20000 - 0x00007ffeece2a000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\DLLs\_wmi.pyd
+0x00007fff35f40000 - 0x00007fff3600d000 	C:\WINDOWS\System32\OLEAUT32.dll
+0x00007fff34330000 - 0x00007fff343cd000 	C:\WINDOWS\System32\msvcp_win.dll
+0x00007fff34990000 - 0x00007fff34ce3000 	C:\WINDOWS\System32\combase.dll
+0x00007fff2c3c0000 - 0x00007fff2c4b6000 	C:\WINDOWS\SYSTEM32\PROPSYS.dll
+0x00007ffef2eb0000 - 0x00007ffef2ec1400 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\zmq\backend\cython\_device.cp312-win_amd64.pyd
+0x00007ffef0920000 - 0x00007ffef09a5400 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\pyzmq.libs\libzmq-v141-mt-4_3_4-0a6f51ca.dll
+0x00007ffef0880000 - 0x00007ffef08cf000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\pyzmq.libs\libsodium-ac42d648.dll
+0x00007ffec9290000 - 0x00007ffec9321000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\MSVCP140.dll
+0x00007fff33090000 - 0x00007fff330cb000 	C:\WINDOWS\SYSTEM32\IPHLPAPI.DLL
+0x00007fff2cb20000 - 0x00007fff2cb2c000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\VCRUNTIME140_1.dll
+0x00007fff33600000 - 0x00007fff3360c000 	C:\WINDOWS\SYSTEM32\CRYPTBASE.DLL
+0x00007ffef2c10000 - 0x00007ffef2c24400 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\zmq\backend\cython\context.cp312-win_amd64.pyd
+0x00007ffef0720000 - 0x00007ffef0744400 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\zmq\backend\cython\socket.cp312-win_amd64.pyd
+0x00007ffef1550000 - 0x00007ffef1569400 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\zmq\backend\cython\message.cp312-win_amd64.pyd
+0x00007ffef0b10000 - 0x00007ffef0b23400 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\zmq\backend\cython\_poll.cp312-win_amd64.pyd
+0x00007ffef0a60000 - 0x00007ffef0a70400 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\zmq\backend\cython\_proxy_steerable.cp312-win_amd64.pyd
+0x00007fff2acd0000 - 0x00007fff2acdd400 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\zmq\backend\cython\_version.cp312-win_amd64.pyd
+0x00007fff27320000 - 0x00007fff2732d400 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\zmq\backend\cython\error.cp312-win_amd64.pyd
+0x00007fff26420000 - 0x00007fff2642f400 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\zmq\backend\cython\utils.cp312-win_amd64.pyd
+0x00007ffef4e60000 - 0x00007ffef4e76000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\DLLs\_socket.pyd
+0x00007fff00a40000 - 0x00007fff00a49000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\DLLs\select.pyd
+0x00007ffef4e30000 - 0x00007ffef4e5e000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\DLLs\_ssl.pyd
+0x00007fff343d0000 - 0x00007fff3452d000 	C:\WINDOWS\System32\CRYPT32.dll
+0x00007ffe95c50000 - 0x00007ffe96152000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Library\bin\libcrypto-3-x64.dll
+0x00007ffebd130000 - 0x00007ffebd1f2000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Library\bin\libssl-3-x64.dll
+0x00007fff35da0000 - 0x00007fff35f3e000 	C:\WINDOWS\System32\USER32.dll
+0x00007fff34070000 - 0x00007fff34092000 	C:\WINDOWS\System32\win32u.dll
+0x00007fff36270000 - 0x00007fff3629b000 	C:\WINDOWS\System32\GDI32.dll
+0x00007fff34210000 - 0x00007fff34327000 	C:\WINDOWS\System32\gdi32full.dll
+0x00007fff34950000 - 0x00007fff34982000 	C:\WINDOWS\System32\IMM32.DLL
+0x00007ffef4e10000 - 0x00007ffef4e22000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\DLLs\_asyncio.pyd
+0x00007ffefdae0000 - 0x00007ffefdaee000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\DLLs\_overlapped.pyd
+0x00007fff333f0000 - 0x00007fff3345a000 	C:\WINDOWS\system32\mswsock.dll
+0x00007fff2acc0000 - 0x00007fff2acca000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\DLLs\_bz2.pyd
+0x00007ffef0400000 - 0x00007ffef0432000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Library\bin\LIBBZ2.dll
+0x00007fff2a720000 - 0x00007fff2a72d000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\DLLs\_lzma.pyd
+0x00007ffef4e80000 - 0x00007ffef4eb2000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Library\bin\liblzma.dll
+0x00007ffedfb10000 - 0x00007ffedfb19000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\DLLs\_queue.pyd
+0x00007ffedf4a0000 - 0x00007ffedf4b0000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\DLLs\_hashlib.pyd
+0x00007fff22e10000 - 0x00007fff22e17000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\tornado\speedups.pyd
+0x00007ffeef900000 - 0x00007ffeef921000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\DLLs\_ctypes.pyd
+0x00007fff362a0000 - 0x00007fff363cb000 	C:\WINDOWS\System32\ole32.dll
+0x00007fff03a70000 - 0x00007fff03a7c000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Library\bin\ffi.dll
+0x00007ffe8cce0000 - 0x00007ffe8cd24000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\DLLs\_decimal.pyd
+0x00007ffede200000 - 0x00007ffede207000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\DLLs\_uuid.pyd
+0x00007fff35220000 - 0x00007fff3598b000 	C:\WINDOWS\System32\shell32.DLL
+0x00007ffe8ccc0000 - 0x00007ffe8ccde000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\DLLs\_sqlite3.pyd
+0x00007ffe8cb50000 - 0x00007ffe8ccbe000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Library\bin\sqlite3.dll
+0x00007ffe8ca30000 - 0x00007ffe8cb47000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\DLLs\unicodedata.pyd
+0x00007fff32920000 - 0x00007fff32932000 	C:\WINDOWS\SYSTEM32\kernel.appcore.dll
+0x00007fff2e650000 - 0x00007fff2e6ee000 	C:\WINDOWS\system32\uxtheme.dll
+0x00007fff34790000 - 0x00007fff34839000 	C:\WINDOWS\System32\clbcatq.dll
+0x00007fff280a0000 - 0x00007fff280bf000 	C:\WINDOWS\SYSTEM32\amsi.dll
+0x00007fff33b10000 - 0x00007fff33b3e000 	C:\WINDOWS\SYSTEM32\USERENV.dll
+0x00007fff33b90000 - 0x00007fff33bb5000 	C:\WINDOWS\SYSTEM32\profapi.dll
+0x00007fff22d30000 - 0x00007fff22db1000 	C:\ProgramData\Microsoft\Windows Defender\Platform\4.18.24020.7-0\MpOav.dll
+0x00007fff22c60000 - 0x00007fff22d2a000 	C:\Program Files\McAfee\MfeAV\AMSIExt.dll
+0x00007fff360b0000 - 0x00007fff360b8000 	C:\WINDOWS\System32\PSAPI.DLL
+0x00007fff359f0000 - 0x00007fff35a45000 	C:\WINDOWS\System32\SHLWAPI.dll
+0x00007fff340a0000 - 0x00007fff34107000 	\\?\C:\Windows\System32\WINTRUST.dll
+0x00007fff33820000 - 0x00007fff33832000 	C:\WINDOWS\SYSTEM32\MSASN1.dll
+0x00007fff335e0000 - 0x00007fff335f8000 	C:\WINDOWS\SYSTEM32\CRYPTSP.dll
+0x00007fff32cb0000 - 0x00007fff32ce4000 	C:\WINDOWS\system32\rsaenh.dll
+0x00007fff35cd0000 - 0x00007fff35ced000 	C:\WINDOWS\System32\imagehlp.dll
+0x00007fff32220000 - 0x00007fff32243000 	C:\WINDOWS\SYSTEM32\gpapi.dll
+0x00007fff299c0000 - 0x00007fff299f1000 	C:\WINDOWS\SYSTEM32\cryptnet.dll
+0x00007fff22720000 - 0x00007fff227a8000 	C:\Program Files\Common Files\McAfee\SystemCore\mfehida.dll
+0x00007fff22360000 - 0x00007fff2241c000 	C:\Program Files\Common Files\McAfee\SystemCore\mfemmsa.dll
+0x00007ffef03e0000 - 0x00007ffef03f4000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\psutil\_psutil_windows.pyd
+0x00007fff19e00000 - 0x00007fff19e49000 	C:\WINDOWS\SYSTEM32\pdh.dll
+0x00007fff330d0000 - 0x00007fff3311b000 	C:\WINDOWS\SYSTEM32\POWRPROF.dll
+0x00007fff33070000 - 0x00007fff33082000 	C:\WINDOWS\SYSTEM32\UMPDC.dll
+0x00007fff329e0000 - 0x00007fff329f4000 	C:\WINDOWS\SYSTEM32\wtsapi32.dll
+0x00007ffe8c9f0000 - 0x00007ffe8ca01000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\DLLs\pyexpat.pyd
+0x00007ffe8c980000 - 0x00007ffe8c9e3000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Library\bin\libexpat.dll
+0x00007fff33120000 - 0x00007fff331eb000 	C:\WINDOWS\SYSTEM32\DNSAPI.dll
+0x00007fff34670000 - 0x00007fff34678000 	C:\WINDOWS\System32\NSI.dll
+0x000000006b350000 - 0x000000006b376000 	C:\Program Files\Bonjour\mdnsNSP.dll
+0x00007fff29f50000 - 0x00007fff29fd0000 	C:\WINDOWS\System32\fwpuclnt.dll
+0x00007fff2a660000 - 0x00007fff2a66a000 	C:\Windows\System32\rasadhlp.dll
+0x00007ffeff030000 - 0x00007ffeff047000 	C:\WINDOWS\system32\napinsp.dll
+0x00007ffeff010000 - 0x00007ffeff02b000 	C:\WINDOWS\system32\pnrpnsp.dll
+0x00007fff2bd10000 - 0x00007fff2bd25000 	C:\WINDOWS\system32\wshbth.dll
+0x00007fff2c900000 - 0x00007fff2c91d000 	C:\WINDOWS\system32\NLAapi.dll
+0x00007ffefd6f0000 - 0x00007ffefd702000 	C:\WINDOWS\System32\winrnr.dll
+0x00007fff2a590000 - 0x00007fff2a5a7000 	C:\WINDOWS\SYSTEM32\dhcpcsvc6.DLL
+0x00007fff2ac70000 - 0x00007fff2ac8d000 	C:\WINDOWS\SYSTEM32\dhcpcsvc.DLL
+0x00007ffebd070000 - 0x00007ffebd12a000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\_brotli.cp312-win_amd64.pyd
+0x00007ffeb0e40000 - 0x00007ffeb1098000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\cryptography\hazmat\bindings\_rust.pyd
+0x00007ffeef8c0000 - 0x00007ffeef8ef000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\_cffi_backend.cp312-win_amd64.pyd
+0x00007fff29460000 - 0x00007fff29467000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\mkl\_mklinit.cp312-win_amd64.pyd
+0x00007ffe8aa20000 - 0x00007ffe8c97c000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Library\bin\mkl_rt.2.dll
+0x00007ffe8a9f0000 - 0x00007ffe8aa14000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\mkl\_py_mkl_service.cp312-win_amd64.pyd
+0x00007ffe7fea0000 - 0x00007ffe832c9000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Library\bin\mkl_intel_thread.2.dll
+0x00007ffe713b0000 - 0x00007ffe75ea3000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Library\bin\mkl_core.2.dll
+0x00007ffe4daf0000 - 0x00007ffe512d1000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Library\bin\mkl_avx512.2.dll
+0x00007ffe89be0000 - 0x00007ffe8a9ec000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Library\bin\mkl_vml_avx512.2.dll
+0x00007ffe9b900000 - 0x00007ffe9bbd9000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\numpy\core\_multiarray_umath.cp312-win_amd64.pyd
+0x00007ffeef8a0000 - 0x00007ffeef8b4000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\numpy\core\_multiarray_tests.cp312-win_amd64.pyd
+0x00007ffeee050000 - 0x00007ffeee06d000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\numpy\linalg\_umath_linalg.cp312-win_amd64.pyd
+0x00007ffeedb50000 - 0x00007ffeedb6e000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\numpy\fft\_pocketfft_internal.cp312-win_amd64.pyd
+0x00007ffeba950000 - 0x00007ffeba9e4000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\numpy\random\mtrand.cp312-win_amd64.pyd
+0x00007ffeeda50000 - 0x00007ffeeda7c000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\numpy\random\bit_generator.cp312-win_amd64.pyd
+0x00007ffeeac40000 - 0x00007ffeeac6d000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\numpy\random\_common.cp312-win_amd64.pyd
+0x00007ffee62c0000 - 0x00007ffee62fc000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\numpy\random\_bounded_integers.cp312-win_amd64.pyd
+0x00007ffeedb30000 - 0x00007ffeedb46000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\numpy\random\_mt19937.cp312-win_amd64.pyd
+0x00007ffee60f0000 - 0x00007ffee6105000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\numpy\random\_philox.cp312-win_amd64.pyd
+0x00007ffee55c0000 - 0x00007ffee55d8000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\numpy\random\_pcg64.cp312-win_amd64.pyd
+0x00007fff0d660000 - 0x00007fff0d670000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\numpy\random\_sfc64.cp312-win_amd64.pyd
+0x00007ffeba8a0000 - 0x00007ffeba94d000 	C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\numpy\random\_generator.cp312-win_amd64.pyd
+
+VM Arguments:
+jvm_args: -Dfile.encoding=UTF8 
+java_command: <unknown>
+java_class_path (initial): C:\Users\Jason Cruz\.conda\envs\gdp_revisions\Lib\site-packages\tabula\tabula-1.0.5-jar-with-dependencies.jar
+Launcher Type: generic
+
+Environment Variables:
+JAVA_HOME=C:\Program Files\Java\jre-1.8
+PATH=C:\Users\Jason Cruz\.conda\envs\env_training;C:\Users\Jason Cruz\.conda\envs\env_training\Library\mingw-w64\bin;C:\Users\Jason Cruz\.conda\envs\env_training\Library\usr\bin;C:\Users\Jason Cruz\.conda\envs\env_training\Library\bin;C:\Users\Jason Cruz\.conda\envs\env_training\Scripts;C:\Users\Jason Cruz\.conda\envs\env_training\bin;C:\ProgramData\Anaconda3\condabin;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Program Files\MiKTeX_New\miktex\bin\x64;C:\texlive\2023\bin\windows;C:\texlive\2015\bin\win32;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0;C:\Windows\System32\OpenSSH;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0;C:\WINDOWS\System32\OpenSSH;C:\Program Files\Git\cmd;C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\bin;C:\Program Files\Microsoft VS Code\bin;C:\Program Files\dotnet;C:\Program Files\Pandoc;C:\Program Files\PostgreSQL\16\bin;C:\Program Files (x86)\Tesseract-OCR;C:\Program Files\Microsoft SQL Server\150\Tools\Binn;C:\Program Files\MATLAB\R2024a\bin;C:\Users\Jason Cruz\AppData\Local\Programs\Python\Python312\Scripts;C:\Users\Jason Cruz\AppData\Local\Programs\Python\Python312;C:\Users\Jason Cruz\AppData\Local\Programs\Python\Python310\Scripts;C:\Users\Jason Cruz\AppData\Local\Programs\Python\Python310;C:\Users\Jason Cruz\AppData\Local\Microsoft\WindowsApps;C:\Users\Jason Cruz\AppData\Local\GitHubDesktop\bin;C:\Users\Jason Cruz\AppData\Local\atom\bin;C:\Program Files\PostgreSQL\16\bin;C:\Users\Jason Cruz\Downloads\chromedriver-win64\chromedriver-win64\chromedriver.exe;C:\Program Files (x86)\poppler-24.02.0\Library\bin;.
+USERNAME=Jason Cruz
+OS=Windows_NT
+PROCESSOR_IDENTIFIER=Intel64 Family 6 Model 140 Stepping 1, GenuineIntel
+
+
+
+---------------  S Y S T E M  ---------------
+
+OS: Windows 10 , 64 bit Build 19041 (10.0.19041.3636)
+
+CPU:total 8 (initial active 8) (4 cores per cpu, 2 threads per core) family 6 model 140 stepping 1, cmov, cx8, fxsr, mmx, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, avx, avx2, aes, clmul, erms, 3dnowpref, lzcnt, ht, tsc, tscinvbit, bmi1, bmi2, adx
+
+Memory: 4k page, physical 16461136k(4105108k free), swap 23014736k(4146984k free)
+
+vm_info: Java HotSpot(TM) 64-Bit Server VM (25.401-b10) for windows-amd64 JRE (1.8.0_401-b10), built on Dec 19 2023 12:38:48 by "java_re" with MS VC++ 17.1 (VS2022)
+
+time: Sat Apr  6 00:11:11 2024
+timezone: Hora est. Pacífico, Sudamérica
+elapsed time: 38247.767180 seconds (0d 10h 37m 27s)
+
