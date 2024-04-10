@@ -222,7 +222,7 @@ use temp_data, clear
 	
 	** Plotting
 	
-	twoway (line electricity_revison revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	twoway (line electricity_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
 	xtitle("", axis(1)) ///
 	ytitle("Electricity GDP revisions") ///
 	title("Electricity GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
@@ -250,7 +250,7 @@ use temp_data, clear
 	
 	** Plotting
 	
-	twoway (line fishing_revison revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	twoway (line fishing_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
 	xtitle("", axis(1)) ///
 	ytitle("Fishing GDP revisions") ///
 	title("Fishing GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
@@ -278,7 +278,7 @@ use temp_data, clear
 	
 	** Plotting
 	
-	twoway (line manufacturing_revison revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	twoway (line manufacturing_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
 	xtitle("", axis(1)) ///
 	ytitle("Manufacturing GDP revisions") ///
 	title("Manufacturing GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
@@ -306,7 +306,7 @@ use temp_data, clear
 	
 	** Plotting
 	
-	twoway (line mining_revison revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	twoway (line mining_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
 	xtitle("", axis(1)) ///
 	ytitle("Mining GDP revisions") ///
 	title("Mining GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
@@ -333,7 +333,7 @@ use temp_data, clear
 	
 	** Plotting
 	
-	twoway (line services_revison revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	twoway (line services_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
 	xtitle("", axis(1)) ///
 	ytitle("Services GDP revisions") ///
 	title("Services GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
