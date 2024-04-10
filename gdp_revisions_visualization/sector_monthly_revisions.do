@@ -88,6 +88,25 @@ use temp_data, clear
 
 save temp_data, replace
 	
+
+	
+/*----------------------
+Computing revision mean
+by sector 
+-----------------------*/
+	
+
+	** Definir un nuevo sufijo para las variables promedio
+	
+	local sufijo _mean
+	
+	** Iterar sobre cada variable en la lista
+	
+	foreach var of varlist *_revision {
+		// Calcular el promedio de la variable actual y guardar en una nueva variable con el sufijo "_mean"
+		egen `var'_`sufijo' = mean(`var')
+	}
+	
 	
 	
 /*----------------------
