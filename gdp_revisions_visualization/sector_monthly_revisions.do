@@ -98,9 +98,9 @@ revisions by sector
 	
 use temp_data, clear	
 	
-	
-	** First graph
-	** ------------		
+
+	** Global GDP Monthly Revisions
+	** ______________________________		
 
 	** Set up the color palette
 	
@@ -109,32 +109,243 @@ use temp_data, clear
 	"0 180 140" ///
 	, n(2) nograph
 
-	twoway (line gdp_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
-	xtitle("", axis(1)) ///
-	ytitle("GDP revisions") ///
-	title("Global GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
-	graphregion(color(white)) ///
-	bgcolor(white)
+	** Plotting
 	
+	twoway (line gdp_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+		xtitle("", axis(1)) ///
+		ytitle("GDP revisions") ///
+		title("Global GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
+		graphregion(color(white)) ///
+		bgcolor(white)
+	
+	** Export graph
 	
 	graph export "${graphs_folder}/gdp_revisions_m.pdf", as(pdf) replace
 	graph export "${graphs_folder}/gdp_revisions_m.eps", as(eps) replace
 	graph export "${graphs_folder}/gdp_revisions_m.png", as(png) replace
 	
 	
+	** Agriculture GDP Monthly Revisions
+	** ______________________________		
+
+	** Set up the color palette
+	
+	colorpalette ///
+	"25 57 65" ///
+	"0 180 140" ///
+	, n(2) nograph
 
 	
+	** Plotting
 	
+	twoway (line agriculture_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	xtitle("", axis(1)) ///
+	ytitle("Agriculture GDP revisions") ///
+	title("Agriculture GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
+	graphregion(color(white)) ///
+	bgcolor(white)
+	
+	
+	** Export graph
+	
+	graph export "${graphs_folder}/agriculture_revisions_m.pdf", as(pdf) replace
+	graph export "${graphs_folder}/agriculture_revisions_m.eps", as(eps) replace
+	graph export "${graphs_folder}/agriculture_revisions_m.png", as(png) replace
 
 	
+	**  Commerce Monthly Revisions
+	** ______________________________		
+
+	** Set up the color palette
+	
+	colorpalette ///
+	"25 57 65" ///
+	"0 180 140" ///
+	, n(2) nograph
+
+	
+	** Plotting
+	
+	twoway (line commerce_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	xtitle("", axis(1)) ///
+	ytitle("Commerce GDP revisions") ///
+	title("Commerce GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
+	graphregion(color(white)) ///
+	bgcolor(white)
 	
 	
+	** Export graph
+	
+	graph export "${graphs_folder}/commerce_revisions_m.pdf", as(pdf) replace
+	graph export "${graphs_folder}/commerce_revisions_m.eps", as(eps) replace
+	graph export "${graphs_folder}/commerce_revisions_m.png", as(png) replace
+
+	
+	**  Construction Monthly Revisions
+	** ______________________________		
+
+	** Set up the color palette
+	
+	colorpalette ///
+	"25 57 65" ///
+	"0 180 140" ///
+	, n(2) nograph
+
+	
+	** Plotting
+	
+	twoway (line construction_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	xtitle("", axis(1)) ///
+	ytitle("Construction GDP revisions") ///
+	title("Construction GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
+	graphregion(color(white)) ///
+	bgcolor(white)
 	
 	
+	** Export graph
+	
+	graph export "${graphs_folder}/construction_revisions_m.pdf", as(pdf) replace
+	graph export "${graphs_folder}/construction_revisions_m.eps", as(eps) replace
+	graph export "${graphs_folder}/construction_revisions_m.png", as(png) replace
+
+	
+	**  Electricity Monthly Revisions
+	** ______________________________		
+
+	** Set up the color palette
+	
+	colorpalette ///
+	"25 57 65" ///
+	"0 180 140" ///
+	, n(2) nograph
+
+	
+	** Plotting
+	
+	twoway (line electricity_revison revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	xtitle("", axis(1)) ///
+	ytitle("Electricity GDP revisions") ///
+	title("Electricity GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
+	graphregion(color(white)) ///
+	bgcolor(white)
 	
 	
+	** Export graph
+	
+	graph export "${graphs_folder}/electricity_revisions_m.pdf", as(pdf) replace
+	graph export "${graphs_folder}/electricity_revisions_m.eps", as(eps) replace
+	graph export "${graphs_folder}/electricity_revisions_m.png", as(png) replace
+
+
+	**  Fishing Monthly Revisions
+	** ______________________________		
+
+	** Set up the color palette
+	
+	colorpalette ///
+	"25 57 65" ///
+	"0 180 140" ///
+	, n(2) nograph
+
+	
+	** Plotting
+	
+	twoway (line fishing_revison revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	xtitle("", axis(1)) ///
+	ytitle("Fishing GDP revisions") ///
+	title("Fishing GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
+	graphregion(color(white)) ///
+	bgcolor(white)
 	
 	
+	** Export graph
+	
+	graph export "${graphs_folder}/fishing_revisions_m.pdf", as(pdf) replace
+	graph export "${graphs_folder}/fishing_revisions_m.eps", as(eps) replace
+	graph export "${graphs_folder}/fishing_revisions_m.png", as(png) replace
+	
+	
+	**  Manufacturing Monthly Revisions
+	** ______________________________		
+
+	** Set up the color palette
+	
+	colorpalette ///
+	"25 57 65" ///
+	"0 180 140" ///
+	, n(2) nograph
+
+	
+	** Plotting
+	
+	twoway (line manufacturing_revison revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	xtitle("", axis(1)) ///
+	ytitle("Manufacturing GDP revisions") ///
+	title("Manufacturing GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
+	graphregion(color(white)) ///
+	bgcolor(white)
+	
+	
+	** Export graph
+	
+	graph export "${graphs_folder}/manufacturing_revisions_m.pdf", as(pdf) replace
+	graph export "${graphs_folder}/manufacturing_revisions_m.eps", as(eps) replace
+	graph export "${graphs_folder}/manufacturing_revisions_m.png", as(png) replace	
+	
+
+	**  Mining Monthly Revisions
+	** ______________________________		
+
+	** Set up the color palette
+	
+	colorpalette ///
+	"25 57 65" ///
+	"0 180 140" ///
+	, n(2) nograph
+
+	
+	** Plotting
+	
+	twoway (line mining_revison revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	xtitle("", axis(1)) ///
+	ytitle("Mining GDP revisions") ///
+	title("Mining GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
+	graphregion(color(white)) ///
+	bgcolor(white)
+	
+	
+	** Export graph
+	
+	graph export "${graphs_folder}/mining_revisions_m.pdf", as(pdf) replace
+	graph export "${graphs_folder}/mining_revisions_m.eps", as(eps) replace
+	graph export "${graphs_folder}/mining_revisions_m.png", as(png) replace		
+	
+	**  Services Monthly Revisions
+	** ______________________________		
+
+	** Set up the color palette
+	
+	colorpalette ///
+	"25 57 65" ///
+	"0 180 140" ///
+	, n(2) nograph
+
+	
+	** Plotting
+	
+	twoway (line services_revison revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	xtitle("", axis(1)) ///
+	ytitle("Services GDP revisions") ///
+	title("Services GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
+	graphregion(color(white)) ///
+	bgcolor(white)
+	
+	
+	** Export graph
+	
+	graph export "${graphs_folder}/services_revisions_m.pdf", as(pdf) replace
+	graph export "${graphs_folder}/services_revisions_m.eps", as(eps) replace
+	graph export "${graphs_folder}/services_revisions_m.png", as(png) replace
 	
 	
 	
