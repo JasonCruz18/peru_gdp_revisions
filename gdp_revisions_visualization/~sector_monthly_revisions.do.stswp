@@ -348,6 +348,63 @@ use temp_data, clear
 	graph export "${graphs_folder}/services_revisions_m.png", as(png) replace
 	
 	
+	**  Global and Services GDP Monthly Revisions
+	** ______________________________		
+
+	** Set up the color palette
+	
+	colorpalette ///
+	"25 57 65" ///
+	"0 180 140" ///
+	"224 224 224" ///
+	, n(3) nograph
+
+	
+	** Plotting
+	
+	twoway (line gdp_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)) || ///
+       (line services_revision revision_date, lcolor("`r(p2)'%100") fintensity(*0.8)), ///
+	xtitle("Revision date", axis(1)) ///
+	ytitle("GDP revisions") ///
+	title("Global and Services GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
+	graphregion(color(white)) ///
+	bgcolor(white) ///
+	legend(position(1) label(1 "GDP revision") label(2 "Services GDP revision") size(vsmall) order(1 2) ring(0) col(1) region(color("`r(p3)'%30")) title("Legend", size(*0.6)))
 	
 	
+	** Export graph
 	
+	graph export "${graphs_folder}/gdp_services_revisions_m.pdf", as(pdf) replace
+	graph export "${graphs_folder}/gdp_services_revisions_m.eps", as(eps) replace
+	graph export "${graphs_folder}/gdp_services_revisions_m.png", as(png) replace
+	
+	
+	**  Global and Mining GDP Monthly Revisions
+	** ______________________________		
+
+	** Set up the color palette
+	
+	colorpalette ///
+	"25 57 65" ///
+	"0 180 140" ///
+	"224 224 224" ///
+	, n(3) nograph
+
+	
+	** Plotting
+	
+	twoway (line gdp_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)) || ///
+       (line mining_revision revision_date, lcolor("`r(p2)'%100") fintensity(*0.8)), ///
+	xtitle("Revision date", axis(1)) ///
+	ytitle("GDP revisions") ///
+	title("Global and Mining GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
+	graphregion(color(white)) ///
+	bgcolor(white) ///
+	legend(position(1) label(1 "GDP revision") label(2 "Mining GDP revision") size(vsmall) order(1 2) ring(0) col(1) region(color("`r(p3)'%30")) title("Legend", size(*0.6)))
+	
+	
+	** Export graph
+	
+	graph export "${graphs_folder}/gdp_mining_revisions_m.pdf", as(pdf) replace
+	graph export "${graphs_folder}/gdp_mining_revisions_m.eps", as(eps) replace
+	graph export "${graphs_folder}/gdp_mining_revisions_m.png", as(png) replace	
