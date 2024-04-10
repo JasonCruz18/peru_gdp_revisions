@@ -32,6 +32,19 @@ Defining auxiliary path
 	
 	
 /*----------------------
+Setting folders to save outputs
+------------------------*/
+	
+	mkdir output 		// to create folder to save outputs
+	mkdir output/graphs // to create folder to save graphs
+	
+	* Define la ruta completa hacia la carpeta "graphs"
+	
+	global graphs_folder "output/graphs" // to export the graphics there
+	
+	
+	
+/*----------------------
 Import ODBC dataset and
 save temp
 -----------------------*/
@@ -104,10 +117,15 @@ use temp_data, clear
 	bgcolor(white)
 	
 	
-	graph export "gdp_revisions_m.pdf", as(pdf) replace
+	graph export "${graphs_folder}/gdp_revisions_m.pdf", as(pdf) replace
 	graph export "gdp_revisions_m.eps", as(eps) replace
 	graph export "gdp_revisions_m.png", as(png) replace
 	
+	
+
+	
+	
+
 	
 	
 	
