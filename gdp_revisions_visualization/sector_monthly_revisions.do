@@ -104,7 +104,7 @@ by sector
 	
 	foreach var of varlist *_revision {
 		// Calcular el promedio de la variable actual y guardar en una nueva variable con el sufijo "_mean"
-		egen `var'_`sufijo' = mean(`var')
+		egen `var'`sufijo' = mean(`var')
 	}
 	
 	
@@ -126,16 +126,19 @@ use temp_data, clear
 	colorpalette ///
 	"25 57 65" ///
 	"0 180 140" ///
-	, n(2) nograph
+	"224 224 224" ///
+	, n(3) nograph
 
-	** Plotting
+	** Graph
 	
-	twoway (line gdp_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	twoway (line gdp_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)) || ///
+       (line gdp_revision_mean revision_date, lcolor("`r(p2)'%100") fintensity(*0.8)), ///
 		xtitle("", axis(1)) ///
 		ytitle("GDP revisions") ///
 		title("Global GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
 		graphregion(color(white)) ///
-		bgcolor(white)
+		bgcolor(white) ///
+		legend(position(1) label(1 "GDP revision") label(2 "Mean") size(vsmall) order(1 2) ring(0) col(1) region(color("`r(p3)'%30")) title("Legend", size(*0.6)))
 	
 	** Export graph
 	
@@ -152,17 +155,20 @@ use temp_data, clear
 	colorpalette ///
 	"25 57 65" ///
 	"0 180 140" ///
-	, n(2) nograph
+	"224 224 224" ///
+	, n(3) nograph
 
 	
-	** Plotting
+	** Graph
 	
-	twoway (line agriculture_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	twoway (line agriculture_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)) || ///
+       (line agriculture_revision_mean revision_date, lcolor("`r(p2)'%100") fintensity(*0.8)), ///
 	xtitle("", axis(1)) ///
 	ytitle("Agriculture GDP revisions") ///
 	title("Agriculture GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
 	graphregion(color(white)) ///
-	bgcolor(white)
+	bgcolor(white) ///
+	legend(position(1) label(1 "Agriculture GDP revision") label(2 "Mean") size(vsmall) order(1 2) ring(0) col(1) region(color("`r(p3)'%30")) title("Legend", size(*0.6)))
 	
 	
 	** Export graph
@@ -180,17 +186,20 @@ use temp_data, clear
 	colorpalette ///
 	"25 57 65" ///
 	"0 180 140" ///
-	, n(2) nograph
+	"224 224 224" ///
+	, n(3) nograph
 
 	
-	** Plotting
+	** Graph
 	
-	twoway (line commerce_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	twoway (line commerce_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)) || ///
+       (line commerce_revision_mean revision_date, lcolor("`r(p2)'%100") fintensity(*0.8)), ///
 	xtitle("", axis(1)) ///
 	ytitle("Commerce GDP revisions") ///
 	title("Commerce GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
 	graphregion(color(white)) ///
-	bgcolor(white)
+	bgcolor(white) ///
+	legend(position(1) label(1 "Commerce GDP revision") label(2 "Mean") size(vsmall) order(1 2) ring(0) col(1) region(color("`r(p3)'%30")) title("Legend", size(*0.6)))
 	
 	
 	** Export graph
@@ -208,17 +217,20 @@ use temp_data, clear
 	colorpalette ///
 	"25 57 65" ///
 	"0 180 140" ///
-	, n(2) nograph
+	"224 224 224" ///
+	, n(3) nograph
 
 	
-	** Plotting
+	** Graph
 	
-	twoway (line construction_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	twoway (line construction_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)) || ///
+       (line construction_revision_mean revision_date, lcolor("`r(p2)'%100") fintensity(*0.8)), ///
 	xtitle("", axis(1)) ///
 	ytitle("Construction GDP revisions") ///
 	title("Construction GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
 	graphregion(color(white)) ///
-	bgcolor(white)
+	bgcolor(white) ///
+	legend(position(1) label(1 "Construction GDP revision") label(2 "Mean") size(vsmall) order(1 2) ring(0) col(1) region(color("`r(p3)'%30")) title("Legend", size(*0.6)))
 	
 	
 	** Export graph
@@ -236,17 +248,20 @@ use temp_data, clear
 	colorpalette ///
 	"25 57 65" ///
 	"0 180 140" ///
-	, n(2) nograph
+	"224 224 224" ///
+	, n(3) nograph
 
 	
-	** Plotting
+	** Graph
 	
-	twoway (line electricity_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	twoway (line electricity_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)) || ///
+       (line electricity_revision_mean revision_date, lcolor("`r(p2)'%100") fintensity(*0.8)), ///
 	xtitle("", axis(1)) ///
 	ytitle("Electricity GDP revisions") ///
 	title("Electricity GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
 	graphregion(color(white)) ///
-	bgcolor(white)
+	bgcolor(white) ///
+	legend(position(1) label(1 "Electricity GDP revision") label(2 "Mean") size(vsmall) order(1 2) ring(0) col(1) region(color("`r(p3)'%30")) title("Legend", size(*0.6)))
 	
 	
 	** Export graph
@@ -264,17 +279,20 @@ use temp_data, clear
 	colorpalette ///
 	"25 57 65" ///
 	"0 180 140" ///
-	, n(2) nograph
+	"224 224 224" ///
+	, n(3) nograph
 
 	
-	** Plotting
+	** Graph
 	
-	twoway (line fishing_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	twoway (line fishing_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)) || ///
+       (line fishing_revision_mean revision_date, lcolor("`r(p2)'%100") fintensity(*0.8)), ///
 	xtitle("", axis(1)) ///
 	ytitle("Fishing GDP revisions") ///
 	title("Fishing GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
 	graphregion(color(white)) ///
-	bgcolor(white)
+	bgcolor(white) ///
+	legend(position(1) label(1 "Fishing GDP revision") label(2 "Mean") size(vsmall) order(1 2) ring(0) col(1) region(color("`r(p3)'%30")) title("Legend", size(*0.6)))
 	
 	
 	** Export graph
@@ -292,17 +310,20 @@ use temp_data, clear
 	colorpalette ///
 	"25 57 65" ///
 	"0 180 140" ///
-	, n(2) nograph
+	"224 224 224" ///
+	, n(3) nograph
 
 	
-	** Plotting
+	** Graph
 	
-	twoway (line manufacturing_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	twoway (line manufacturing_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)) || ///
+       (line manufacturing_revision_mean revision_date, lcolor("`r(p2)'%100") fintensity(*0.8)), ///
 	xtitle("", axis(1)) ///
 	ytitle("Manufacturing GDP revisions") ///
 	title("Manufacturing GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
 	graphregion(color(white)) ///
-	bgcolor(white)
+	bgcolor(white) ///
+	legend(position(1) label(1 "Manufacturing GDP revision") label(2 "Mean") size(vsmall) order(1 2) ring(0) col(1) region(color("`r(p3)'%30")) title("Legend", size(*0.6)))
 	
 	
 	** Export graph
@@ -320,17 +341,20 @@ use temp_data, clear
 	colorpalette ///
 	"25 57 65" ///
 	"0 180 140" ///
-	, n(2) nograph
+	"224 224 224" ///
+	, n(3) nograph
 
 	
-	** Plotting
+	** Graph
 	
-	twoway (line mining_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	twoway (line mining_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)) || ///
+       (line mining_revision_mean revision_date, lcolor("`r(p2)'%100") fintensity(*0.8)), ///
 	xtitle("", axis(1)) ///
 	ytitle("Mining GDP revisions") ///
 	title("Mining GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
 	graphregion(color(white)) ///
-	bgcolor(white)
+	bgcolor(white) ///
+	legend(position(1) label(1 "Mining GDP revision") label(2 "Mean") size(vsmall) order(1 2) ring(0) col(1) region(color("`r(p3)'%30")) title("Legend", size(*0.6)))
 	
 	
 	** Export graph
@@ -347,17 +371,20 @@ use temp_data, clear
 	colorpalette ///
 	"25 57 65" ///
 	"0 180 140" ///
-	, n(2) nograph
+	"224 224 224" ///
+	, n(3) nograph
 
 	
-	** Plotting
+	** Graph
 	
-	twoway (line services_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
+	twoway (line services_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)) || ///
+       (line services_revision_mean revision_date, lcolor("`r(p2)'%100") fintensity(*0.8)), ///
 	xtitle("", axis(1)) ///
 	ytitle("Services GDP revisions") ///
 	title("Services GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
 	graphregion(color(white)) ///
-	bgcolor(white)
+	bgcolor(white) ///
+	legend(position(1) label(1 "Services GDP revision") label(2 "Mean") size(vsmall) order(1 2) ring(0) col(1) region(color("`r(p3)'%30")) title("Legend", size(*0.6)))
 	
 	
 	** Export graph
@@ -386,7 +413,7 @@ Inter-sectoral GDP Revisions
 	, n(3) nograph
 
 	
-	** Plotting
+	** Graph
 	
 	twoway (line gdp_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)) || ///
        (line services_revision revision_date, lcolor("`r(p2)'%100") fintensity(*0.8)), ///
@@ -417,7 +444,7 @@ Inter-sectoral GDP Revisions
 	, n(3) nograph
 
 	
-	** Plotting
+	** Graph
 	
 	twoway (line gdp_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)) || ///
        (line mining_revision revision_date, lcolor("`r(p2)'%100") fintensity(*0.8)), ///
