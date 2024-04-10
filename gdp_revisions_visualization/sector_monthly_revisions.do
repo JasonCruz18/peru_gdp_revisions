@@ -91,8 +91,8 @@ save temp_data, replace
 	
 	
 /*----------------------
-Ploting monthly GDP
-revisions by sector
+Charts for Monthly GDP
+Revisions by sector
 -----------------------*/
 	
 	
@@ -348,6 +348,13 @@ use temp_data, clear
 	graph export "${graphs_folder}/services_revisions_m.png", as(png) replace
 	
 	
+	
+/*----------------------
+Charts for Monthly
+Inter-sectoral GDP Revisions
+-----------------------*/
+
+
 	**  Global and Services GDP Monthly Revisions
 	** ______________________________		
 
