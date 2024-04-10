@@ -7,7 +7,7 @@ Data Visualization for Monthly GDP Revisions by sector
 	Jason Cruz
 	*********************/
 
-	*** Program: sector_monthly_revisions.
+	*** Program: sector_monthly_revisions.do
 	** 	First Created: 04/10/24
 	** 	Last Updated:  04/--/24
 			
@@ -29,3 +29,59 @@ Defining auxiliary path
 
 	di `"Please, enter your path for storing the outputs of this dofile in the COMMAND WINDOW and press ENTER  "'  _request(path)
 	cd "$path"
+	
+	
+/*----------------------
+Import ODBC dataset and
+save temp
+-----------------------*/
+
+					
+	odbc load, exec("select * from gdp_monthly_revisions") dsn("gdp_revisions_datasets") lowercase sqlshow clear // When we use ODBC server
+
+	save temp_data, replace
+	
+	
+	
+/*----------------------
+Parsing dataset
+-----------------------*/
+	
+
+use temp_data, clear
+
+	d // check entire dataset variables
+	
+	
+	** Transform all variable names to lower case
+	
+	rename _all, lower
+	
+	
+	** Vars label as vars names (lowercase)
+	
+	foreach var of varlist _all {
+	label variable `var' "`var'"
+	}
+	
+	
+	** Check total observations 
+	
+	count // 148 observations
+
+save temp_data, replace
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
