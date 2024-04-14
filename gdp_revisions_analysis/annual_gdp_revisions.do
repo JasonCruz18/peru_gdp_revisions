@@ -96,6 +96,7 @@ use TempData, clear
 
 save "annual_gdp_revisions", replace
 
+
 		
 /*----------------------
 Ploting for monthly GDP
@@ -182,7 +183,5 @@ use "annual_gdp_revisions", clear
 	graph export "annual_gdp_revisions_mean.pdf", as(pdf) replace
 	graph export "annual_gdp_revisions_mean.eps", as(eps) replace
 	graph export "annual_gdp_revisions_mean.png", as(png) replace
-	 
-	 tabulate ss
 	
 	
