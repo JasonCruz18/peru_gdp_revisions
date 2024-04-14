@@ -42,7 +42,7 @@ END$$;
 -- Crear la tabla 'sectors_monthly_revisions'
 CREATE TABLE sectors_monthly_revisions (
     id SERIAL PRIMARY KEY,  -- Suponiendo que 'id' es una clave primaria autoincremental
-    revision_date CHARACTER(20),
+    revision_date DATE,
     gdp_revision DECIMAL,
     agriculture_revision DECIMAL,
     commerce_revision DECIMAL,
