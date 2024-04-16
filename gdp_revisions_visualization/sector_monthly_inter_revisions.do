@@ -141,25 +141,29 @@ use temp_data, clear
 	colorpalette ///
 	"25 57 65" ///
 	"0 180 140" ///
+	"28 22 120" ///
+	"255 32 78" ///
+	"93 14 65" ///
 	"224 224 224" ///
-	, n(3) nograph
+	, n(6) nograph
 
 	** Graph
 	
-	twoway (line gdp_revision_1 inter_revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)) || ///
-       (line gdp_revision_2 inter_revision_date, lcolor("`r(p2)'%100") fintensity(*0.8)), ///
+	twoway (line gdp_revision_1 inter_revision_date, lcolor("`r(p2)'%100") fintensity(*0.8)) || ///
+	   (line gdp_revision_6 inter_revision_date, lcolor("`r(p3)'%100") fintensity(*0.8)) || ///
+       (line gdp_revision_12 inter_revision_date, lcolor("`r(p5)'%100") fintensity(*0.8)), ///
 		xtitle("", axis(1)) ///
 		ytitle("GDP intermediate revisions") ///
 		title("Global GDP Monthly Intermediate Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
 		graphregion(color(white)) ///
 		bgcolor(white) ///
-		legend(position(1) label(1 "t+1") label(2 "t+2") size(vsmall) order(1 2) ring(0) col(1) region(color("`r(p3)'%30")) title("Horizon Legend (t+h)", size(*0.6)))
+		legend(position(1) label(1 "t+1") label(2 "t+6") label(3 "t+12") size(vsmall) order(1 2 3) ring(0) col(1) region(color("`r(p6)'%30")) title("Horizon Legend (t+h)", size(*0.6)))
 	
 	** Export graph
 	
 	//graph export "${graphs_folder}/gdp_inter_revisions_m.pdf", as(pdf) replace
 	//graph export "${graphs_folder}/gdp_inter_revisions_m.eps", as(eps) replace
-	graph export "${graphs_folder}/gdp_inter_revisions_m.png", as(png) replace
+	graph export "${graphs_folder}/gdp_inter_revisions_m_6.png", as(png) replace
 
 
 
