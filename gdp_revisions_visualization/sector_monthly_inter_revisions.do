@@ -83,6 +83,15 @@ use temp_data, clear
 	
 	count // 148 observations
 	
+	
+	** Generate monthly var and change format from %td to %tm
+	
+	gen monthly = mofd(inter_revision_date)
+	format monthly %tm
+	drop inter_revision_date
+	rename monthly inter_revision_date // Return original var name
+	
+	
 	** Order dataset
 	
 	order id inter_revision_date
@@ -124,7 +133,7 @@ Revisions by sector
 use temp_data, clear	
 	
 
-	** Global GDP Monthly Revisions
+	** Global GDP Monthly Intermediate Revisions
 	** ______________________________		
 
 	** Set up the color palette
@@ -137,14 +146,14 @@ use temp_data, clear
 
 	** Graph
 	
-	twoway (line gdp_inter_revision_1 inter_revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)) || ///
-       (line gdp_inter_revision_2 inter_revision_date, lcolor("`r(p2)'%100") fintensity(*0.8)), ///
+	twoway (line gdp_revision_1 inter_revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)) || ///
+       (line gdp_revision_2 inter_revision_date, lcolor("`r(p2)'%100") fintensity(*0.8)), ///
 		xtitle("", axis(1)) ///
-		ytitle("GDP revisions") ///
-		title("Global GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
+		ytitle("GDP intermediate revisions") ///
+		title("Global GDP Monthly Intermediate Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
 		graphregion(color(white)) ///
 		bgcolor(white) ///
-		legend(position(1) label(1 "GDP revision") label(2 "Mean") size(vsmall) order(1 2) ring(0) col(1) region(color("`r(p3)'%30")) title("Legend", size(*0.6)))
+		legend(position(1) label(1 "t+1") label(2 "t+2") size(vsmall) order(1 2) ring(0) col(1) region(color("`r(p3)'%30")) title("Horizon Legend (t+h)", size(*0.6)))
 	
 	** Export graph
 	
