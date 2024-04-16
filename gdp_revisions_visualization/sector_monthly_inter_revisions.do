@@ -1,5 +1,5 @@
 /********************
-Data Visualization for Monthly GDP Revisions by sector
+Data Visualization for Monthly GDP Intermediate Revisions by sector
 ***
 
 	Author
@@ -7,8 +7,8 @@ Data Visualization for Monthly GDP Revisions by sector
 	Jason Cruz
 	*********************/
 
-	*** Program: sector_monthly_revisions.do
-	** 	First Created: 04/10/24
+	*** Program: sector_monthly_inter_revisions.do
+	** 	First Created: 04/16/24
 	** 	Last Updated:  04/--/24
 			
 				
@@ -21,8 +21,9 @@ Initial script configuration
 	set more off
 	cap set maxvar 12000
 	program drop _all
+	
 
-
+	
 /*----------------------
 Defining auxiliary path
 ------------------------*/
@@ -35,8 +36,8 @@ Defining auxiliary path
 Setting folders to save outputs
 ------------------------*/
 	
-	mkdir output 		// to create folder to save outputs
-	mkdir output/graphs // to create folder to save graphs
+	shell mkdir output 		// to create folder to save outputs
+	shell mkdir output/graphs // to create folder to save graphs
 	
 	* Define la ruta completa hacia la carpeta "graphs"
 	
@@ -50,7 +51,7 @@ save temp
 -----------------------*/
 
 					
-	odbc load, exec("select * from sector_monthly_revision") dsn("gdp_revisions_datasets") lowercase sqlshow clear // When we use ODBC server
+	odbc load, exec("select * from gdp_monthly_inter_revisions") dsn("gdp_revisions_datasets") lowercase sqlshow clear // When we use ODBC server
 
 	save temp_data, replace
 	
@@ -84,59 +85,9 @@ use temp_data, clear
 	
 	** Order dataset
 	
-	order id revision_date
+	order id inter_revision_date
 
 save temp_data, replace
-	
-	
-	
-/*----------------------
-Ploting monthly GDP
-revisions by sector
------------------------*/
-	
-	
-use temp_data, clear	
-	
-	
-	** First graph
-	** ------------		
 
-	** Set up the color palette
-	
-	colorpalette ///
-	"25 57 65" ///
-	"0 180 140" ///
-	, n(2) nograph
 
-	twoway (line gdp_revision revision_date, lcolor("`r(p1)'%100") fintensity(*0.8)), ///
-	xtitle("", axis(1)) ///
-	ytitle("GDP revisions") ///
-	title("Global GDP Monthly Revisions", size(*0.55) box bexpand bcolor("`r(p1)'") color(white)) ///
-	graphregion(color(white)) ///
-	bgcolor(white)
-	
-	
-	graph export "${graphs_folder}/gdp_revisions_m.pdf", as(pdf) replace
-	graph export "gdp_revisions_m.eps", as(eps) replace
-	graph export "gdp_revisions_m.png", as(png) replace
-	
-	
 
-	
-	
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
