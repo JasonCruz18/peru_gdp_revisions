@@ -108,4 +108,4 @@ SET services_revision = svr.services_revision
 FROM services_monthly_revisions AS svr
 WHERE smr.revision_date = svr.revision_date;
 
-SELECT * FROM "sectors_monthly_revisions";
+--SELECT * FROM "sectors_monthly_revisions";
