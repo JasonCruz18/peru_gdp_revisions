@@ -8,12 +8,22 @@
 # 1. PDF Downloader
 #----------------------------------------------------------------
 
+
 #+++++++++++++++
 # LIBRARIES
 #+++++++++++++++
 
+import os  # for file and directory manipulation
+import requests  # to make HTTP requests to web servers
 import random  # to generate random numbers
 import time  # to manage time and take breaks in the script
+from selenium import webdriver  # for automating web browsers
+from selenium.webdriver.common.by import By  # to locate elements on a webpage
+from selenium.webdriver.support.ui import WebDriverWait  # to wait until certain conditions are met on a webpage.
+from selenium.webdriver.support import expected_conditions as EC  # to define expected conditions
+from selenium.common.exceptions import StaleElementReferenceException  # To handle exceptions related to elements on the webpage that are no longer available.
+import pygame # Allows you to handle graphics, sounds and input events.
+
 
 # Function to play the sound
 #________________________________________________________________
@@ -31,7 +41,7 @@ def random_wait(min_time, max_time):
 
 # Function to download PDFs
 #________________________________________________________________
-def download_pdf(pdf_link):
+def download_pdf(driver, pdf_link, wait, download_counter, raw_pdf, download_record):
     # Click the link using JavaScript
     driver.execute_script("arguments[0].click();", pdf_link)
 
