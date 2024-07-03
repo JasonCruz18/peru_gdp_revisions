@@ -41,6 +41,7 @@ def random_wait(min_time, max_time):
 
 # Function to download PDFs
 #________________________________________________________________
+# Function to download PDFs
 def download_pdf(driver, pdf_link, wait, download_counter, raw_pdf, download_record):
     # Click the link using JavaScript
     driver.execute_script("arguments[0].click();", pdf_link)
@@ -73,6 +74,10 @@ def download_pdf(driver, pdf_link, wait, download_counter, raw_pdf, download_rec
                 pdf_file.write(chunk)
 
         print(f"PDF downloaded successfully at: {destination_path}")
+
+        # Save the file name in the record
+        with open(os.path.join(download_record, "downloaded_files.txt"), "a") as f:
+            f.write(file_name + "\n")
 
     else:
         print(f"Error downloading the PDF. Response code: {response.status_code}")
