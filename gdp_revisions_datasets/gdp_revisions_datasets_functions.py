@@ -8,13 +8,21 @@
 # 1. PDF Downloader
 #----------------------------------------------------------------
 
+#+++++++++++++++
+# LIBRARIES
+#+++++++++++++++
+
+import random  # to generate random numbers
+import time  # to manage time and take breaks in the script
 
 # Function to play the sound
+#________________________________________________________________
 def play_sound():
     pygame.mixer.music.play()
     
     
 # Function to wait random seconds
+#________________________________________________________________
 def random_wait(min_time, max_time):
     wait_time = random.uniform(min_time, max_time)
     print(f"Waiting randomly for {wait_time:.2f} seconds")
@@ -22,6 +30,7 @@ def random_wait(min_time, max_time):
 
 
 # Function to download PDFs
+#________________________________________________________________
 def download_pdf(pdf_link):
     # Click the link using JavaScript
     driver.execute_script("arguments[0].click();", pdf_link)
