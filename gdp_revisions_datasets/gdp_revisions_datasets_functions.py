@@ -88,8 +88,37 @@ def download_pdf(driver, pdf_link, wait, download_counter, raw_pdf, download_rec
     # Switch back to the main window
     driver.switch_to.window(windows[0])
     
+
+# Function to organize PDFs by year
+#________________________________________________________________   
     
     
+    def organize_files_by_year(raw_pdf):
+    # Get the list of files in the directory
+    files = os.listdir(raw_pdf)
+
+    # Iterate over each file
+    for file in files:
+        # Get the year from the file name
+        name, extension = os.path.splitext(file)
+        year = None
+        name_parts = name.split('-')
+        for part in name_parts:
+            if part.isdigit() and len(part) == 4:
+                year = part
+                break
+
+        # If the year was found, move the file to the corresponding folder
+        if year:
+            destination_folder = os.path.join(raw_pdf, year)
+            # Create the folder if it doesn't exist
+            if not os.path.exists(destination_folder):
+                os.makedirs(destination_folder)
+            # Move the file to the destination folder
+            shutil.move(os.path.join(raw_pdf, file), destination_folder)
+            
+            
+            
 #----------------------------------------------------------------
 # 2. 
 #----------------------------------------------------------------
