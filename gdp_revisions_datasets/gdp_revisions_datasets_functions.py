@@ -743,6 +743,49 @@ def split_values_2(df):
     return df
 
 
+# 𝑛𝑠_2016_19
+#...............................................................................................................................
+
+# 1. Split values in a specified column into multiple columns.
+def split_values_3(df):
+    column_to_expand = df.columns[-3]
+    new_columns = df[column_to_expand].str.split(expand=True)
+    new_columns.columns = [f'{column_to_expand}_{i+1}' for i in range(new_columns.shape[1])]
+    insertion_position = len(df.columns) - 2
+    for col in reversed(new_columns.columns):
+        df.insert(insertion_position, col, new_columns[col])
+    df.drop(columns=[column_to_expand], inplace=True)
+    return df
+
+# 2. Replace NaN values in consecutive columns with values from the previous column.
+def replace_nan_with_previous_column_1(df):
+    columns = df.columns
+    
+    for i in range(len(columns) - 1):
+        # Add condition to check if the current column is not the last one
+        if i != len(columns) - 2 and not (columns[i].endswith('_year') and df[columns[i]].isnull().any()):
+            # Check if the column to the right has at least one NaN and does not end with '_year'
+            if df[columns[i+1]].isnull().any() and not columns[i+1].endswith('_year'):
+                nan_indices = df[columns[i+1]].isnull()
+                df.loc[nan_indices, [columns[i], columns[i+1]]] = df.loc[nan_indices, [columns[i+1], columns[i]]].values
+    
+    return df
+
+# 3. Replace NaN values in consecutive columns with values from the previous column (version 2).
+def replace_nan_with_previous_column_2(df):
+    columns = df.columns
+    
+    for i in range(len(columns) - 1):
+        # Add condition to check if the current column is not the last one
+        if i != len(columns) - 2 and not (columns[i].endswith('_year') and df[columns[i]].isnull().any()):
+            # Check if the column to the right has at least one NaN and does not end with '_year'
+            if df[columns[i+1]].isnull().any() and not columns[i+1].endswith('_year'):
+                nan_indices = df[columns[i+1]].isnull()
+                df.loc[nan_indices, [columns[i], columns[i+1]]] = df.loc[nan_indices, [columns[i+1], columns[i]]].values
+    
+    return df
+
+
 
 #...............................................................................................
 #...............................................................................................
