@@ -987,5 +987,81 @@ def get_quarters_sublist_list(df, year_columns):
 # By NS
 #+++++++++++++++
 
-# 𝑛𝑠_20
+# 𝑛𝑠_2016_20
 #...............................................................................................................................
+
+# 1. Drop the first row if all values are NaN.
+def drop_nan_row(df):
+    if df.iloc[0].isnull().all():
+        df = df.drop(index=0)
+        df.reset_index(drop=True, inplace=True)
+    return df
+
+
+# 𝑛𝑠_2019_17
+#...............................................................................................................................
+
+# 1. Move values based on 'ECONOMIC SECTORS' observation in the last column.
+def last_column_es(df):
+    # Check if the first observation of the last column is 'ECONOMIC SECTORS'
+    if df[df.columns[-1]].iloc[0] == 'ECONOMIC SECTORS':
+        # Check if the second observation of the last column is not empty
+        if pd.notnull(df[df.columns[-1]].iloc[1]):
+            # Create a new column with NaN values
+            new_column_name = f"col_{len(df.columns)}"
+            df[new_column_name] = np.nan
+
+            # Get 'ECONOMIC SECTORS' and relocate
+            insert_value = df.iloc[0, -2]
+            # Convert the value to string before assignment
+            insert_value = str(insert_value)
+            # Ensure the dtype of the last column is object (string) to accommodate string values
+            df.iloc[:, -1] = df.iloc[:, -1].astype('object')
+            df.iloc[0, -1] = insert_value
+
+            # NaN first observation
+            df.iloc[0, -2] = np.nan
+    
+    return df
+
+
+# 𝑛𝑠_2019_26
+#...............................................................................................................................
+
+# 1. Exchange columns based on conditions.
+def exchange_columns(df):
+    # Find a column with all NaN values
+    nan_column = None
+    for column in df.columns:
+        if df[column].isnull().all() and len(column) == 4 and column.isdigit():
+            nan_column = column
+            break
+    
+    if nan_column:
+        # Check the column to the left
+        column_index = df.columns.get_loc(nan_column)
+        if column_index > 0:
+            left_column = df.columns[column_index - 1]
+            # Check if it is not a year (does not have 4 digits)
+            if not (len(left_column) == 4 and left_column.isdigit()):
+                # Swap column names
+                df.rename(columns={nan_column: left_column, left_column: nan_column}, inplace=True)
+    
+    return df
+
+
+# 𝑛𝑠_2019_29
+#...............................................................................................................................
+
+# 1. Exchange values between columns based on specific conditions.
+def exchange_roman_nan(df):
+    for col_idx, value in enumerate(df.iloc[1]):
+        if isinstance(value, str):
+            if value.upper() == 'AÑO' or (value.isalpha() and roman.fromRoman(value.upper())):
+                next_col_idx = col_idx + 1
+                if next_col_idx < len(df.columns) and pd.isna(df.iloc[1, next_col_idx]):
+                    current_col = df.iloc[:, col_idx].drop(index=1)
+                    next_col = df.iloc[:, next_col_idx].drop(index=1)
+                    if current_col.isna().all():
+                        df.iloc[1, col_idx], df.iloc[1, next_col_idx] = df.iloc[1, next_col_idx], df.iloc[1, col_idx]
+    return df
