@@ -297,6 +297,19 @@ def find_roman_numerals(text):
     matches = re.findall(pattern, text)
     return matches
 
+# 5. Auxiliary function used directly only in Table 2 to split values in a specific column.
+def split_values(df):
+    column_to_expand = df.columns[-3]
+    new_columns = df[column_to_expand].str.split(expand=True)
+    new_columns.columns = [f'{column_to_expand}_{i+1}' for i in range(new_columns.shape[1])]
+    insertion_position = len(df.columns) - 2
+    for col in reversed(new_columns.columns):
+        df.insert(insertion_position, col, new_columns[col])
+    df.drop(columns=[column_to_expand], inplace=True)
+    return df
+
+
+
 #...............................................................................................
 # Functions for both Table 1 and Table 2
 # ______________________________________________________________________________________________
