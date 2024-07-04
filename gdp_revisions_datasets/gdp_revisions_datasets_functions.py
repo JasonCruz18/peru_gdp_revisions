@@ -611,6 +611,8 @@ def replace_var_perc_first_column(df):
     return df
 
 # 6. Replaces a numeric pattern in the last column with a specified moving average number
+
+number_moving_average = 'three' # Keep a space at the end
 def replace_number_moving_average(df):
     for index, row in df.iterrows():
         if pd.notnull(row.iloc[-1]) and re.search(r'(\d\s*-)', str(row.iloc[-1])):
