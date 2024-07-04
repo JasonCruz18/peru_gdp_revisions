@@ -4,9 +4,9 @@
 
 
 
-#----------------------------------------------------------------
-# 1. PDF Downloader
-#----------------------------------------------------------------
+################################################################################################
+# Section 1. PDF Downloader
+################################################################################################
 
 
 #+++++++++++++++
@@ -118,9 +118,9 @@ def organize_files_by_year(raw_pdf):
             
             
             
-#----------------------------------------------------------------
-# 2. Data cleaning
-#----------------------------------------------------------------
+################################################################################################
+# Section 2. Generate PDF input with key tables
+################################################################################################
 
 
 #+++++++++++++++
@@ -235,3 +235,155 @@ def write_input_pdf_files(input_pdf_files):
         for filename in sorted_filenames:
             file.write(filename + '\n')
 
+
+
+################################################################################################
+# Section 3. Data cleaning
+################################################################################################
+
+
+#----------------------------------------------------------------------------------------------
+# Section 3.1. A brief documentation on issus in the table information of the PDFs. 
+#----------------------------------------------------------------------------------------------
+
+#+++++++++++++++
+# LIBRARIES
+#+++++++++++++++
+
+from PIL import Image  # Used for opening, manipulating, and saving image files.
+import matplotlib.pyplot as plt  # Used for creating static, animated, and interactive visualizations.
+
+
+# Function to 
+# _________________________________________________________________________
+
+
+#----------------------------------------------------------------------------------------------
+# Section 3.1. A brief documentation on issus in the table information of the PDFs. 
+#----------------------------------------------------------------------------------------------
+
+#+++++++++++++++
+# LIBRARIES
+#+++++++++++++++
+
+from PIL import Image  # Used for opening, manipulating, and saving image files.
+import matplotlib.pyplot as plt  # Used for creating static, animated, and interactive visualizations.
+
+
+#+++++++++++++++
+# Cleaning up
+#+++++++++++++++
+
+
+# Auxiliary functions (used within other functions)
+# _________________________________________________________________________
+
+def remove_rare_characters_first_row(texto):
+    texto = re.sub(r'\s*-\s*', '-', texto)  # Removes spaces around hyphens
+    texto = re.sub(r'[^a-zA-Z0-9\s-]', '', texto)  # Removes rare characters except letters, digits, and hyphens
+    return texto
+
+def remove_rare_characters(texto):
+    return re.sub(r'[^a-zA-Z\s]', '', texto)  # Removes rare characters, allowing only letters and spaces
+
+def remove_tildes(texto):
+    return ''.join((c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn'))  # Removes tildes and other diacritical marks
+
+
+# Functions for both Table 1 and Table 2
+# _________________________________________________________________________
+
+# 1. Drops rows where all elements are NaN
+def drop_nan_rows(df):
+    df = df.dropna(how='all')
+    return df
+
+# 2. Drops columns where all elements are NaN
+def drop_nan_columns(df):
+    return df.dropna(axis=1, how='all')
+
+# 3. Swaps the first and second rows in the first and last columns
+def swap_first_second_row(df):
+    temp = df.iloc[0, 0]
+    df.iloc[0, 0] = df.iloc[1, 0]
+    df.iloc[1, 0] = temp
+
+    temp = df.iloc[0, -1]
+    df.iloc[0, -1] = df.iloc[1, -1]
+    df.iloc[1, -1] = temp
+    return df
+
+# 4. Resets the index of the DataFrame
+def reset_index(df):
+    df.reset_index(drop=True, inplace=True)
+    return df
+
+# 5. Removes digits followed by a slash in the first and last two columns
+def remove_digit_slash(df):
+    df.iloc[:, [0, -2, -1]] = df.iloc[:, [0, -2, -1]].apply(lambda x: x.str.replace(r'\d+/', '', regex=True))
+    return df
+
+# 6. Separates text and digits in the second to last column, handling potential numeric and decimal values
+def separate_text_digits(df):
+    for index, row in df.iterrows():
+        if any(char.isdigit() for char in str(row.iloc[-2])) and any(char.isalpha() for char in str(row.iloc[-2])):
+            if pd.isnull(row.iloc[-1]):
+                df.loc[index, df.columns[-1]] = ''.join(filter(lambda x: x.isalpha() or x == ' ', str(row.iloc[-2])))
+                df.loc[index, df.columns[-2]] = ''.join(filter(lambda x: not (x.isalpha() or x == ' '), str(row.iloc[-2])))
+            
+            # Check if comma or dot is used as decimal separator
+            if ',' in str(row.iloc[-2]):
+                split_values = str(row.iloc[-2]).split(',')
+            elif '.' in str(row.iloc[-2]):
+                split_values = str(row.iloc[-2]).split('.')
+            else:
+                split_values = [str(row.iloc[-2]), '']
+                
+            cleaned_integer = ''.join(filter(lambda x: x.isdigit() or x == '-', split_values[0]))
+            cleaned_decimal = ''.join(filter(lambda x: x.isdigit(), split_values[1]))
+            if cleaned_decimal:
+                cleaned_numeric = cleaned_integer + ',' + cleaned_decimal
+            else:
+                cleaned_numeric = cleaned_integer
+            df.loc[index, df.columns[-2]] = cleaned_numeric
+    return df
+
+# 7. Extracts columns with 4-digit years in their names
+def extract_years(df):
+    year_columns = [col for col in df.columns if re.match(r'\b\d{4}\b', col)]
+    return year_columns
+
+# 8. Sets the first row as column names and drops the first row
+def first_row_columns(df):
+    df.columns = df.iloc[0]
+    df = df.drop(df.index[0])
+    return df
+
+# 9. Cleans column names and values by normalizing, removing tildes, and making them lowercase
+def clean_columns_values(df):
+    df.columns = df.columns.str.lower()
+    df.columns = [unicodedata.normalize('NFKD', col).encode('ASCII', 'ignore').decode('utf-8') if isinstance(col, str) else col for col in df.columns]
+    df.columns = df.columns.str.replace(' ', '_').str.replace('ano', 'year').str.replace('-', '_')
+    
+    text_columns = df.select_dtypes(include='object').columns
+    for col in df.columns:
+        df.loc[:, col] = df[col].apply(lambda x: remove_tildes(x) if isinstance(x, str) else x)
+        df.loc[:, col] = df[col].apply(lambda x: str(x).replace(',', '.') if isinstance(x, (int, float, str)) else x)
+    df.loc[:, 'sectores_economicos'] = df['sectores_economicos'].str.lower()
+    df.loc[:, 'economic_sectors'] = df['economic_sectors'].str.lower()
+    df.loc[:, 'sectores_economicos'] = df['sectores_economicos'].apply(remove_rare_characters)
+    df.loc[:, 'economic_sectors'] = df['economic_sectors'].apply(remove_rare_characters)
+    return df
+
+# 10. Converts specified columns to numeric, ignoring specified columns
+def convert_float(df):
+    excluded_columns = ['sectores_economicos', 'economic_sectors']
+    columns_to_convert = [col for col in df.columns if col not in excluded_columns]
+    df[columns_to_convert] = df[columns_to_convert].apply(pd.to_numeric, errors='coerce')
+    return df
+
+# 11. Moves the last column to be the second column
+def relocate_last_column(df):
+    last_column = df.pop(df.columns[-1])
+    df.insert(1, last_column.name, last_column)
+    return df
