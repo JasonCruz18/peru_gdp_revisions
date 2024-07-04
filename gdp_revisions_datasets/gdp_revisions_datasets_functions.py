@@ -129,8 +129,6 @@ def organize_files_by_year(raw_pdf):
 # LIBRARIES
 #+++++++++++++++
 
-import os
-import shutil
 import fitz  # for working with PDFs
 import tkinter as tk  # for creating popup windows
 
@@ -268,8 +266,23 @@ import matplotlib.pyplot as plt  # Used for creating static, animated, and inter
 # LIBRARIES
 #+++++++++++++++
 
-from PIL import Image  # Used for opening, manipulating, and saving image files.
-import matplotlib.pyplot as plt  # Used for creating static, animated, and interactive visualizations.
+# Auxiliary functions (used within other functions)
+
+import re  # Para funciones que utilizan expresiones regulares
+import unicodedata  # Para funciones que manejan caracteres Unicode
+
+# Functions for both Table 1 and Table 2
+
+import pandas as pd  # Para funciones que trabajan con DataFrames
+
+# Functions only for Table 1 
+
+import numpy as np  # Para operaciones numéricas
+
+
+# Functions only for Table 2
+
+import roman  # Para conversión de números romanos a arábigos
 
 
 
