@@ -1,5 +1,7 @@
 #*********************************************************************************************
+#*********************************************************************************************
 # Functions for gdp_revisions_datasets 
+#*********************************************************************************************
 #*********************************************************************************************
 
 
@@ -242,7 +244,7 @@ def write_input_pdf_files(input_pdf_files):
 ################################################################################################
 
 
-#----------------------------------------------------------------------------------------------
+#**********************************************************************************************
 # Section 3.1. A brief documentation on issus in the table information of the PDFs. 
 #----------------------------------------------------------------------------------------------
 
@@ -254,12 +256,12 @@ from PIL import Image  # Used for opening, manipulating, and saving image files.
 import matplotlib.pyplot as plt  # Used for creating static, animated, and interactive visualizations.
 
 
-# Function to 
+# Function to PENDING
 # _________________________________________________________________________
 
 
-#----------------------------------------------------------------------------------------------
-# Section 3.1. A brief documentation on issus in the table information of the PDFs. 
+#**********************************************************************************************
+# Section 3.2.  Extracting tables and data cleanup 
 #----------------------------------------------------------------------------------------------
 
 #+++++++++++++++
@@ -270,13 +272,10 @@ from PIL import Image  # Used for opening, manipulating, and saving image files.
 import matplotlib.pyplot as plt  # Used for creating static, animated, and interactive visualizations.
 
 
-#+++++++++++++++
-# Cleaning up
-#+++++++++++++++
 
-
+#...............................................................................................
 # Auxiliary functions (used within other functions)
-# _________________________________________________________________________
+# ______________________________________________________________________________________________
 
 # 1. Removes spaces around hyphens and rare characters except letters, digits, and hyphens
 def remove_rare_characters_first_row(texto):
@@ -292,9 +291,15 @@ def remove_rare_characters(texto):
 def remove_tildes(texto):
     return ''.join((c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn'))
 
+# 4. Finds Roman numerals (I to X) in a given text.
+def find_roman_numerals(text):
+    pattern = r'\b(?:I{1,3}|IV|V|VI{0,3}|IX|X)\b'
+    matches = re.findall(pattern, text)
+    return matches
 
+#...............................................................................................
 # Functions for both Table 1 and Table 2
-# _________________________________________________________________________
+# ______________________________________________________________________________________________
 
 # 1. Drops rows where all elements are NaN
 def drop_nan_rows(df):
@@ -405,8 +410,10 @@ def clean_first_row(df):
     return df
 
 
+
+#...............................................................................................
 # Functions only for Table 1 
-# _________________________________________________________________________
+# ______________________________________________________________________________________________
 
 # 1. Relocates values in the last columns of the DataFrame
 def relocate_last_columns(df):
@@ -577,3 +584,153 @@ def split_column_by_pattern(df):
             new_col_name = col + '_split'
             df.insert(df.columns.get_loc(col) + 1, new_col_name, split_values[1])
     return df
+
+
+#+++++++++++++++
+# By NS
+#+++++++++++++++
+
+
+# 𝑛𝑠_2014_07 sectores económicos
+#...............................................................................................................................
+
+# 1. Swaps NaN and "SECTORES ECONÓMICOS" in the first row of the DataFrame
+def swap_nan_se(df):
+    if pd.isna(df.iloc[0, 0]) and df.iloc[0, 1] == "SECTORES ECONÓMICOS":
+        column_1_value = df.iloc[0, 1]
+        df.iloc[0, 0] = column_1_value
+        df.iloc[0, 1] = np.nan
+        df = df.drop(df.columns[1], axis=1)
+    return df
+
+
+# 𝑛𝑠_2014_08
+#...............................................................................................................................
+
+# 1. Replaces NaN values in the first row with column names and sets them as column headers
+def replace_first_row_with_columns(df):
+    if any(isinstance(element, str) and element.isdigit() and len(element) == 4 for element in df.iloc[0]):
+        for col_index, value in enumerate(df.iloc[0]):
+            if pd.isna(value):
+                df.iloc[0, col_index] = f"column_{col_index + 1}"
+        df.columns = df.iloc[0]
+        df = df.drop(df.index[0])
+    return df
+
+# 2. Expands a column based on a hyphen pattern and splits into new columns
+def expand_column(df):
+    column_to_expand = df.columns[-2]
+    
+    def replace_hyphens(match_obj):
+        return match_obj.group(1) + ' ' + match_obj.group(2)
+
+    if df[column_to_expand].str.contains(r'\d').any() and df[column_to_expand].str.contains(r'[a-zA-Z]').any():
+        df[column_to_expand] = df[column_to_expand].apply(lambda x: re.sub(r'([a-zA-Z]+)\s*-\s*([a-zA-Z]+)', replace_hyphens, str(x)) if pd.notnull(x) else x)
+        
+        pattern = re.compile(r'[a-zA-Z\s]+$')
+
+        def extract_replace(row):
+            if pd.notnull(row[column_to_expand]) and isinstance(row[column_to_expand], str):
+                if row.name != 0:
+                    value_to_replace = pattern.search(row[column_to_expand])
+                    if value_to_replace:
+                        value_to_replace = value_to_replace.group().strip()
+                        row[df.columns[-1]] = value_to_replace
+                        row[column_to_expand] = re.sub(pattern, '', row[column_to_expand]).strip()
+            return row
+
+        df = df.apply(extract_replace, axis=1)
+
+    return df
+
+# 3. Splits values in a column into multiple columns based on a separator
+def split_values_1(df):
+    column_to_expand = df.columns[-2]
+    new_columns = df[column_to_expand].str.split(expand=True)
+    new_columns.columns = [f'{column_to_expand}_{i+1}' for i in range(new_columns.shape[1])]
+    insertion_position = len(df.columns) - 1
+    for col in reversed(new_columns.columns):
+        df.insert(insertion_position, col, new_columns[col])
+    df.drop(columns=[column_to_expand], inplace=True)
+    return df
+
+
+# 𝑛𝑠_2015_11
+#...............................................................................................................................
+
+# 1. Checks and updates the first row with specific patterns and values
+def check_first_row(df):
+    first_row = df.iloc[0]
+    
+    for i, (col, value) in enumerate(first_row.items()):
+        if re.search(r'\b\d{4}\s\d{4}\b', str(value)):
+            years = value.split()
+            first_year = years[0]
+            second_year = years[1]
+            
+            original_column_name = f'col_{i}'
+            df.at[0, col] = original_column_name
+            
+            if pd.isna(df.iloc[0, 0]):
+                df.iloc[0, 0] = first_year
+            
+            if pd.isna(df.iloc[0, 1]):
+                df.iloc[0, 1] = second_year
+    
+    return df
+
+# 2. Replaces NaN values in specific columns with values from adjacent columns
+def replace_nan_with_previous_column_3(df):
+    columns = df.columns
+    
+    for i in range(len(columns) - 1):
+        if i != len(columns) - 1 and (columns[i].endswith('_year') and not df[columns[i]].isnull().any()):
+            if df[columns[i+1]].isnull() and not columns[i+1].endswith('_year'):
+                nan_indices = df[columns[i+1]].isnull()
+                df.loc[nan_indices, [columns[i], columns[i+1]]] = df.loc[nan_indices, [columns[i+1], columns[i]]].values
+    
+    return df
+
+
+# 𝑛𝑠_2016_15
+#...............................................................................................................................
+
+# 1. Checks and updates specific cells in the first row based on patterns and conditions
+def check_first_row_1(df):
+    if pd.isnull(df.iloc[0, 0]):
+        penultimate_column = df.iloc[0, -2]
+        if isinstance(penultimate_column, str) and len(penultimate_column) == 4 and penultimate_column.isdigit():
+            df.iloc[0, 0] = penultimate_column
+            df.iloc[0, -2] = np.nan
+    
+    if pd.isnull(df.iloc[0, 1]):
+        last_column = df.iloc[0, -1]
+        if isinstance(last_column, str) and len(last_column) == 4 and last_column.isdigit():
+            df.iloc[0, 1] = last_column
+            df.iloc[0, -1] = np.nan
+    
+    return df
+
+# 2. Splits values in a column into multiple columns based on a separator
+def split_values_2(df):
+    column_to_expand = df.columns[-4]
+    new_columns = df[column_to_expand].str.split(expand=True)
+    new_columns.columns = [f'{column_to_expand}_{i+1}' for i in range(new_columns.shape[1])]
+    insertion_position = len(df.columns) - 3
+    for col in reversed(new_columns.columns):
+        df.insert(insertion_position, col, new_columns[col])
+    df.drop(columns=[column_to_expand], inplace=True)
+    return df
+
+
+
+#...............................................................................................
+# Functions only for Table 2
+# ______________________________________________________________________________________________
+
+
+
+
+#+++++++++++++++
+# By NS
+#+++++++++++++++
