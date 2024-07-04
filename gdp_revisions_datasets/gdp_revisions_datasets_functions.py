@@ -427,6 +427,48 @@ def clean_first_row(df):
 
     return df
 
+# 13. Replace 'set' with 'sep' in column names.
+def replace_set_sep(df):
+    # Get the column names of the DataFrame
+    columns = df.columns
+    
+    # Iterate over the columns
+    for column in columns:
+        # Check if the column contains the expression 'set'
+        if 'set' in column:
+            # Replace 'set' with 'sep' in the column name
+            new_column = column.replace('set', 'sep')
+            # Rename the column in the DataFrame
+            df.rename(columns={column: new_column}, inplace=True)
+    
+    return df
+
+# 14. Strip spaces from specific columns.
+def spaces_se_es(df):
+    # Apply strip to the columns 'sectores_economicos' and 'economic_sectors'
+    df['sectores_economicos'] = df['sectores_economicos'].str.strip()
+    df['economic_sectors'] = df['economic_sectors'].str.strip()
+    return df
+
+# 15. Replace specific values in two columns.
+def replace_services(df):
+    # Check if 'servicios' and 'services' are present in the columns 'sectores_economicos' and 'economic_sectors'
+    if ('servicios' in df['sectores_economicos'].values) and ('services' in df['economic_sectors'].values):
+        # Replace the values
+        df['sectores_economicos'].replace({'servicios': 'otros servicios'}, inplace=True)
+        df['economic_sectors'].replace({'services': 'other services'}, inplace=True)
+    return df
+
+# 16. Round float values to the specified number of decimals.
+def rounding_values(df, decimals=1):
+    # Iterate over all columns of the DataFrame
+    for col in df.columns:
+        # Check if the column is of type float
+        if df[col].dtype == 'float64':
+            # Round the values in the column to the specified number of decimals
+            df[col] = df[col].round(decimals)
+    return df
+
 
 
 #...............................................................................................
