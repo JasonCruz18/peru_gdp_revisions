@@ -390,3 +390,16 @@ def relocate_last_column(df):
     last_column = df.pop(df.columns[-1])
     df.insert(1, last_column.name, last_column)
     return df
+
+# 12. Cleans the first row of the DataFrame by converting to lowercase, removing tildes, rare characters, and replacing 'ano' with 'year'
+def clean_first_row(df):
+    for col in df.columns:
+        if df[col].dtype == 'object':
+            if isinstance(df.at[0, col], str):
+                df.at[0, col] = df.at[0, col].lower()  # Convert to lowercase if it is a string
+                df.at[0, col] = remove_tildes(df.at[0, col])
+                df.at[0, col] = remove_rare_characters_first_row(df.at[0, col])
+                # Replace 'ano' with 'year'
+                df.at[0, col] = df.at[0, col].replace('ano', 'year')
+
+    return df
