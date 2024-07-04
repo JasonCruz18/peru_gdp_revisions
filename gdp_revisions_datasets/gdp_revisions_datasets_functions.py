@@ -278,16 +278,19 @@ import matplotlib.pyplot as plt  # Used for creating static, animated, and inter
 # Auxiliary functions (used within other functions)
 # _________________________________________________________________________
 
+# 1. Removes spaces around hyphens and rare characters except letters, digits, and hyphens
 def remove_rare_characters_first_row(texto):
     texto = re.sub(r'\s*-\s*', '-', texto)  # Removes spaces around hyphens
     texto = re.sub(r'[^a-zA-Z0-9\s-]', '', texto)  # Removes rare characters except letters, digits, and hyphens
     return texto
 
+# 2. Removes rare characters, allowing only letters and spaces
 def remove_rare_characters(texto):
-    return re.sub(r'[^a-zA-Z\s]', '', texto)  # Removes rare characters, allowing only letters and spaces
+    return re.sub(r'[^a-zA-Z\s]', '', texto)
 
+# 3. Removes tildes and other diacritical marks
 def remove_tildes(texto):
-    return ''.join((c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn'))  # Removes tildes and other diacritical marks
+    return ''.join((c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn'))
 
 
 # Functions for both Table 1 and Table 2
