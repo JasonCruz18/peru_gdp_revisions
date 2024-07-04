@@ -403,3 +403,177 @@ def clean_first_row(df):
                 df.at[0, col] = df.at[0, col].replace('ano', 'year')
 
     return df
+
+
+# Functions only for Table 1 
+# _________________________________________________________________________
+
+# 1. Relocates values in the last columns of the DataFrame
+def relocate_last_columns(df):
+    if not pd.isna(df.iloc[1, -1]):
+        # Create a new column with NaN
+        new_column = 'col_' + ''.join(map(str, np.random.randint(1, 5, size=1)))
+        df[new_column] = np.nan
+        
+        # Get 'ECONOMIC SECTORS' and relocate
+        insert_value_1 = df.iloc[0, -2]
+        insert_value_1 = str(insert_value_1)
+        df.iloc[:, -1] = df.iloc[:, -1].astype('object')
+        df.iloc[0, -1] = insert_value_1
+        
+        # NaN first obs
+        df.iloc[0,-2] = np.nan
+    return df
+
+# 2. Gets a sublist of months based on specified year columns
+def get_months_sublist_list(df, year_columns):
+    first_row = df.iloc[0]
+    months_sublist_list = []
+    months_sublist = []
+
+    for item in first_row:
+        if len(str(item)) == 3:
+            months_sublist.append(item)
+        elif '-' in item or str(item) == 'year':
+            months_sublist.append(item)
+            months_sublist_list.append(months_sublist)
+            months_sublist = []
+
+    if months_sublist:
+        months_sublist_list.append(months_sublist)
+
+    new_elements = []
+
+    if year_columns:
+        for i, year in enumerate(year_columns):
+            if i < len(months_sublist_list):
+                for element in months_sublist_list[i]:
+                    new_elements.append(f"{year}_{element}")
+                    
+    two_first_elements = df.iloc[0][:2].tolist()
+
+    for index in range(len(two_first_elements) - 1, -1, -1):
+        if two_first_elements[index] not in new_elements:
+            new_elements.insert(0, two_first_elements[index])
+
+    while len(new_elements) < len(df.columns):
+        new_elements.append(None)
+
+    temp_df = pd.DataFrame([new_elements], columns=df.columns)
+    df.iloc[0] = temp_df.iloc[0]
+
+    return df
+
+# 3. Finds and processes the year column in the DataFrame
+def find_year_column(df):
+    found_years = []
+
+    for column in df.columns:
+        if column.isdigit() and len(column) == 4:
+            found_years.append(column)
+
+    if len(found_years) > 1:
+        pass
+    elif len(found_years) == 1:
+        year_name = found_years[0]
+        first_row = df.iloc[0]
+
+        column_contains_year = first_row[first_row.astype(str).str.contains(r'\byear\b')]
+
+        if not column_contains_year.empty:
+            column_contains_year_name = column_contains_year.index[0]
+
+            column_contains_year_index = df.columns.get_loc(column_contains_year_name)
+            year_name_index = df.columns.get_loc(year_name)
+
+            if column_contains_year_index < year_name_index:
+                new_year = str(int(year_name) - 1)
+                df.rename(columns={column_contains_year_name: new_year}, inplace=True)
+            elif column_contains_year_index > year_name_index:
+                new_year = str(int(year_name) + 1)
+                df.rename(columns={column_contains_year_name: new_year}, inplace=True)
+            else:
+                pass
+        else:
+            pass
+    else:
+        pass
+    
+    return df
+
+# 4. Exchanges values between the last two columns where NaNs are present in the last column
+def exchange_values(df):
+    if len(df.columns) < 2:
+        print("The DataFrame has less than two columns. Values cannot be exchanged.")
+        return df
+
+    if df.iloc[:, -1].isnull().any():
+        last_column_rows_nan = df[df.iloc[:, -1].isnull()].index
+
+        for idx in last_column_rows_nan:
+            if -2 >= -len(df.columns):
+                df.iloc[idx, -1], df.iloc[idx, -2] = df.iloc[idx, -2], df.iloc[idx, -1]
+
+    return df
+
+# 5. Replaces "Var. %" or "Var.%" in the first column with "variacion porcentual"
+def replace_var_perc_first_column(df):
+    regex = re.compile(r'Var\. ?%')
+
+    for index, row in df.iterrows():
+        value = str(row.iloc[0])
+
+        if regex.search(value):
+            df.at[index, df.columns[0]] = regex.sub("variacion porcentual", value)
+    
+    return df
+
+# 6. Replaces a numeric pattern in the last column with a specified moving average number
+def replace_number_moving_average(df):
+    for index, row in df.iterrows():
+        if pd.notnull(row.iloc[-1]) and re.search(r'(\d\s*-)', str(row.iloc[-1])):
+            df.at[index, df.columns[-1]] = re.sub(r'(\d\s*-)', f'{number_moving_average}-', str(row.iloc[-1]))
+
+    return df
+
+# 7. Replaces "Var. %" or "Var.%" in the last two columns with "percent change"
+def replace_var_perc_last_columns(df):
+    regex = re.compile(r'(Var\. ?%)(.*)')
+
+    for index, row in df.iterrows():
+        if isinstance(row.iloc[-2], str) and regex.search(row.iloc[-2]):
+            replaced_text = regex.sub(r'\2 percent change', row.iloc[-2])
+            df.at[index, df.columns[-2]] = replaced_text.strip()
+        
+        if isinstance(row.iloc[-1], str) and regex.search(row.iloc[-1]):
+            replaced_text = regex.sub(r'\2 percent change', row.iloc[-1])
+            df.at[index, df.columns[-1]] = replaced_text.strip()
+    
+    return df
+
+# 8. Replaces the first dot in the second row of each column with a hyphen
+def replace_first_dot(df):
+    second_row = df.iloc[1]
+
+    if any(isinstance(cell, str) and re.match(r'^\w+\.\s?\w+', cell) for cell in second_row):
+        for col in df.columns:
+            if isinstance(second_row[col], str):
+                if re.match(r'^\w+\.\s?\w+', second_row[col]):
+                    df.at[1, col] = re.sub(r'(\w+)\.(\s?\w+)', r'\1-\2', second_row[col], count=1)
+    return df
+
+# 9. Drops rows containing the rare character "}"
+def drop_rare_caracter_row(df):
+    rare_caracter_row = df.apply(lambda row: '}' in row.values, axis=1)
+    df = df[~rare_caracter_row]
+    return df
+
+# 10. Splits columns based on a specified pattern in the second row
+def split_column_by_pattern(df):
+    for col in df.columns:
+        if re.match(r'^[A-Z][a-z]+\.?\s[A-Z][a-z]+\.?$', str(df.iloc[1][col])):
+            split_values = df[col].str.split(expand=True)
+            df[col] = split_values[0]
+            new_col_name = col + '_split'
+            df.insert(df.columns.get_loc(col) + 1, new_col_name, split_values[1])
+    return df
