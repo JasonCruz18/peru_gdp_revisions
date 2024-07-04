@@ -274,8 +274,11 @@ import matplotlib.pyplot as plt  # Used for creating static, animated, and inter
 
 
 #...............................................................................................
+#...............................................................................................
 # Auxiliary functions (used within other functions)
 # ______________________________________________________________________________________________
+#...............................................................................................
+
 
 # 1. Removes spaces around hyphens and rare characters except letters, digits, and hyphens
 def remove_rare_characters_first_row(texto):
@@ -311,8 +314,10 @@ def split_values(df):
 
 
 #...............................................................................................
+#...............................................................................................
 # Functions for both Table 1 and Table 2
 # ______________________________________________________________________________________________
+#...............................................................................................
 
 # 1. Drops rows where all elements are NaN
 def drop_nan_rows(df):
@@ -425,8 +430,10 @@ def clean_first_row(df):
 
 
 #...............................................................................................
+#...............................................................................................
 # Functions only for Table 1 
 # ______________________________________________________________________________________________
+#...............................................................................................
 
 # 1. Relocates values in the last columns of the DataFrame
 def relocate_last_columns(df):
@@ -738,12 +745,162 @@ def split_values_2(df):
 
 
 #...............................................................................................
+#...............................................................................................
 # Functions only for Table 2
 # ______________________________________________________________________________________________
+#...............................................................................................
 
+# 1. Separate years in the second last column of the DataFrame.
+def separate_years(df):
+    df = df.copy()  # Create a copy of the DataFrame to avoid SettingWithCopyWarning
+    if isinstance(df.iloc[0, -2], str) and len(df.iloc[0, -2].split()) == 2:
+        years = df.iloc[0, -2].split()
+        if all(len(year) == 4 for year in years):
+            second_year = years[1]
+            df.iloc[0, -2] = years[0]
+            df.insert(len(df.columns) - 1, 'new_column', [second_year] + [None] * (len(df) - 1))
+    return df
 
+# 2. Relocate Roman numerals found in the last row's last column and store them in a new column.
+def relocate_roman_numerals(df):
+    roman_numerals = find_roman_numerals(df.iloc[2, -1])
+    if roman_numerals:
+        original_text = df.iloc[2, -1]
+        for roman_numeral in roman_numerals:
+            original_text = original_text.replace(roman_numeral, '').strip()
+        df.iloc[2, -1] = original_text
+        df.at[2, 'new_column'] = ', '.join(roman_numerals)
+        df.iloc[2, -1] = np.nan
+    return df
+
+# 3. Extract mixed numeric and textual values from the third last column and move them to the second last column.
+def extract_mixed_values(df):
+    df = df.copy()  # Create a copy of the DataFrame to avoid SettingWithCopyWarning
+    regex_pattern = r'(-?\d+,\d [a-zA-Z\s]+)'
+    for index, row in df.iterrows():
+        third_last_obs = row.iloc[-3]
+        second_last_obs = row.iloc[-2]
+
+        if isinstance(third_last_obs, str) and pd.notnull(third_last_obs):
+            match = re.search(regex_pattern, third_last_obs)
+            if match:
+                extracted_part = match.group(0)
+                if pd.isna(second_last_obs) or pd.isnull(second_last_obs):
+                    df.iloc[index, -2] = extracted_part
+                    third_last_obs = re.sub(regex_pattern, '', third_last_obs).strip()
+                    df.iloc[index, -3] = third_last_obs
+    return df
+
+# 4. Replace NaN values in the first row with corresponding column names.
+def replace_first_row_nan(df):
+    for col in df.columns:
+        if pd.isna(df.iloc[0][col]):
+            df.iloc[0, df.columns.get_loc(col)] = col
+    return df
+
+# 5. Convert Roman numerals in the first row of the DataFrame to Arabic numerals.
+def roman_arabic(df):
+    first_row = df.iloc[0]
+    
+    def convert_roman_number(number):
+        try:
+            return str(roman.fromRoman(number))
+        except roman.InvalidRomanNumeralError:
+            return number
+
+    converted_first_row = []
+    for value in first_row:
+        if isinstance(value, str) and not pd.isna(value):
+            converted_first_row.append(convert_roman_number(value))
+        else:
+            converted_first_row.append(value)
+
+    df.iloc[0] = converted_first_row
+    return df
+
+# 6. Fix duplicate numeric values in the first row by incrementing subsequent duplicates.
+def fix_duplicates(df):
+    second_row = df.iloc[0].copy()
+    prev_num = None
+    first_one_index = None
+
+    for i, num in enumerate(second_row):
+        try:
+            num = int(num)
+            prev_num = int(prev_num) if prev_num is not None else None
+
+            if num == prev_num:
+                if num == 1:
+                    if first_one_index is None:
+                        first_one_index = i - 1
+                    next_num = int(second_row[i - 1]) + 1
+                    for j in range(i, len(second_row)):
+                        if str(second_row.iloc[j]).isdigit():
+                            second_row.iloc[j] = str(next_num)
+                            next_num += 1
+                elif i - 1 >= 0:
+                    second_row.iloc[i] = str(int(second_row.iloc[i - 1]) + 1)
+
+            prev_num = num
+        except ValueError:
+            pass
+
+    df.iloc[0] = second_row
+    return df
+
+# 7. Extract quarters and create new column names based on year_columns.
+def get_quarters_sublist_list(df, year_columns):
+    first_row = df.iloc[0]
+    # Initialize the list of sublists
+    quarters_sublist_list = []
+
+    # Initialize the current sublist
+    quarters_sublist = []
+
+    # Iterate over the elements of the first row
+    for item in first_row:
+        # Check if the item meets the requirements
+        if len(str(item)) == 1:
+            quarters_sublist.append(item)
+        elif str(item) == 'year':
+            quarters_sublist.append(item)
+            quarters_sublist_list.append(quarters_sublist)
+            quarters_sublist = []
+
+    # Add the last sublist if it's not empty
+    if quarters_sublist:
+        quarters_sublist_list.append(quarters_sublist)
+
+    new_elements = []
+
+    # Check if year_columns is not empty
+    if year_columns:
+        for i, year in enumerate(year_columns):
+            # Check if index i is valid for quarters_sublist_list
+            if i < len(quarters_sublist_list):
+                for element in quarters_sublist_list[i]:
+                    new_elements.append(f"{year}_{element}")
+
+    two_first_elements = df.iloc[0][:2].tolist()
+
+    # Ensure that the two_first_elements are added if they are not in new_elements
+    for index in range(len(two_first_elements) - 1, -1, -1):
+        if two_first_elements[index] not in new_elements:
+            new_elements.insert(0, two_first_elements[index])
+
+    # Ensure that the length of new_elements matches the number of columns in df
+    while len(new_elements) < len(df.columns):
+        new_elements.append(None)
+
+    temp_df = pd.DataFrame([new_elements], columns=df.columns)
+    df.iloc[0] = temp_df.iloc[0]
+
+    return df
 
 
 #+++++++++++++++
 # By NS
 #+++++++++++++++
+
+# 𝑛𝑠_20
+#...............................................................................................................................
