@@ -235,9 +235,9 @@ def write_input_pdf_files(input_pdf_files):
         for filename in sorted_filenames:
             file.write(filename + '\n')
 
-
-
-
+# Class to create and manage a pop-up window for user interaction
+# _________________________________________________________________________
+            
 class PopupWindow(tk.Toplevel):
     """Creates a pop-up window for user interaction."""
 
@@ -281,7 +281,7 @@ class PopupWindow(tk.Toplevel):
         self.result = False
         self.destroy()
 
-        
+
 
 ################################################################################################
 # Section 3. Data cleaning
