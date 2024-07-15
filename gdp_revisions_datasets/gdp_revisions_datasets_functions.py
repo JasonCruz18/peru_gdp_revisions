@@ -254,7 +254,7 @@ from PIL import Image  # Used for opening, manipulating, and saving image files.
 import matplotlib.pyplot as plt  # Used for creating static, animated, and interactive visualizations.
 
 
-# Function to PENDING
+# Function to ... PENDING
 # _________________________________________________________________________
 
 
@@ -1080,3 +1080,102 @@ def exchange_roman_nan(df):
                     if current_col.isna().all():
                         df.iloc[1, col_idx], df.iloc[1, next_col_idx] = df.iloc[1, next_col_idx], df.iloc[1, col_idx]
     return df
+
+
+
+################################################################################################
+# Section 4. SQL Tables
+################################################################################################
+
+
+#+++++++++++++++
+# LIBRARIES
+#+++++++++++++++
+
+import tkinter as tk  # Import the tkinter library for creating the GUI
+
+
+# Define the options you want to display
+spanish_options = [
+    "pbi",
+    "agropecuario",
+    "pesca",
+    "mineria e hidrocarburos",
+    "manufactura",
+    "electricidad y agua",
+    "construccion",
+    "comercio",
+    "otros servicios"
+]
+
+english_options = [
+    "gdp",
+    "agriculture and livestock",
+    "fishing",
+    "mining and fuel",
+    "manufacturing",
+    "electricity and water",
+    "construction",
+    "commerce",
+    "other services"
+]
+
+
+# Function for selecting an economic sector
+# _________________________________________________________________________
+def select_economic_sector(options):
+    """
+    This function creates a Tkinter window with a dropdown menu for selecting an economic sector.
+    It saves the selected option to a global variable 'economic_sector' and closes the window.
+
+    Args:
+    - options (list): A list containing the options to display in the dropdown menu.
+    """
+    def save_option():
+        """
+        This function saves the selected option from the dropdown menu to a global variable
+        and then closes the popup window.
+        """
+        global economic_sector  # Declare the global variable to store the selected option
+        economic_sector = selected_option.get()  # Get the current value from the dropdown menu
+        root.destroy()  # Close the window after selecting an option
+
+    # Create the popup window
+    root = tk.Tk()
+    root.title("Select option")
+
+    # Variable to store the selected option
+    selected_option = tk.StringVar(root)
+    selected_option.set(options[0])  # Default option
+
+    # Create the options menu
+    menu = tk.OptionMenu(root, selected_option, *options)
+    menu.pack(pady=10)
+
+    # Button to confirm the selection
+    confirm_button = tk.Button(root, text="Confirm", command=save_option)
+    confirm_button.pack()
+
+    # Display the window
+    root.update_idletasks()
+    root.wait_window()
+
+    # Display the selected value
+    print("Selected economic sector:", selected_option.get())
+
+
+
+#**********************************************************************************************
+# Section 4.1. A brief documentation on issus in the table information of the PDFs. 
+#----------------------------------------------------------------------------------------------
+
+#+++++++++++++++
+# LIBRARIES
+#+++++++++++++++
+
+from PIL import Image  # Used for opening, manipulating, and saving image files.
+import matplotlib.pyplot as plt  # Used for creating static, animated, and interactive visualizations.
+
+
+# Function to PENDING
+# _________________________________________________________________________
