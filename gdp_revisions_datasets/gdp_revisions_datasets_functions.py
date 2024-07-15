@@ -1124,59 +1124,221 @@ english_options = [
 
 # Function for selecting an economic sector
 # _________________________________________________________________________
-def select_economic_sector(options):
+def select_economic_sector(spanish_options, english_options):
     """
-    This function creates a Tkinter window with a dropdown menu for selecting an economic sector.
-    It saves the selected option to a global variable 'economic_sector' and closes the window.
+    This function creates a Tkinter window with two dropdown menus for selecting an economic sector
+    in Spanish and English. It returns the selected options 'sector_economico' and 'economic_sector'
+    when the user confirms their selection.
 
     Args:
-    - options (list): A list containing the options to display in the dropdown menu.
+    - spanish_options (list): A list containing the options to display in Spanish.
+    - english_options (list): A list containing the options to display in English.
+
+    Returns:
+    - tuple: A tuple containing the selected options 'sector_economico' (Spanish) and 'economic_sector' (English).
     """
-    def save_option():
+    sector_economico = None  # Define variable in the enclosing scope
+    economic_sector = None  # Define variable in the enclosing scope
+
+    def save_options():
         """
-        This function saves the selected option from the dropdown menu to a global variable
-        and then closes the popup window.
+        This function saves the selected options from the dropdown menus and closes the popup window.
         """
-        global economic_sector  # Declare the global variable to store the selected option
-        economic_sector = selected_option.get()  # Get the current value from the dropdown menu
-        root.destroy()  # Close the window after selecting an option
+        nonlocal sector_economico, economic_sector
+        sector_economico = spanish_option.get()
+        economic_sector = english_option.get()
+        root.destroy()
 
     # Create the popup window
     root = tk.Tk()
-    root.title("Select option")
+    root.title("Select economic sector")
 
-    # Variable to store the selected option
-    selected_option = tk.StringVar(root)
-    selected_option.set(options[0])  # Default option
+    # Variables to store the selected options
+    spanish_option = tk.StringVar(root)
+    english_option = tk.StringVar(root)
 
-    # Create the options menu
-    menu = tk.OptionMenu(root, selected_option, *options)
-    menu.pack(pady=10)
+    # Set default options
+    spanish_option.set(spanish_options[0])
+    english_option.set(english_options[0])
 
-    # Button to confirm the selection
-    confirm_button = tk.Button(root, text="Confirm", command=save_option)
+    # Create dropdown menus
+    spanish_menu = tk.OptionMenu(root, spanish_option, *spanish_options)
+    english_menu = tk.OptionMenu(root, english_option, *english_options)
+
+    # Pack dropdown menus
+    spanish_menu.pack(pady=10)
+    english_menu.pack(pady=10)
+
+    # Button to confirm selection
+    confirm_button = tk.Button(root, text="Confirm", command=save_options)
     confirm_button.pack()
 
     # Display the window
     root.update_idletasks()
     root.wait_window()
 
-    # Display the selected value
-    print("Selected economic sector:", selected_option.get())
+    # Return selected values
+    return sector_economico, economic_sector
 
 
 
 #**********************************************************************************************
-# Section 4.1. A brief documentation on issus in the table information of the PDFs. 
+# Section 4.1. Annual Concatenation
 #----------------------------------------------------------------------------------------------
 
-#+++++++++++++++
-# LIBRARIES
-#+++++++++++++++
 
-from PIL import Image  # Used for opening, manipulating, and saving image files.
-import matplotlib.pyplot as plt  # Used for creating static, animated, and interactive visualizations.
-
-
-# Function to PENDING
+# Function to concatenate Table 2 (annual)
 # _________________________________________________________________________
+def concatenate_annual_df(dataframes_dict, sector_economico, economic_sector):
+    # List to store the names of dataframes that meet the criterion of ending in '_2'
+    dataframes_ending_with_2 = []
+
+    # List to store the names of dataframes to be concatenated
+    dataframes_to_concatenate = []
+
+    # Iterate over the dataframe names in the all_dataframes dictionary
+    for df_name in dataframes_dict.keys():
+        # Check if the dataframe name ends with '_2' and add it to the corresponding list
+        if df_name.endswith('_2'):
+            dataframes_ending_with_2.append(df_name)
+            dataframes_to_concatenate.append(dataframes_dict[df_name])
+
+    # Print the names of dataframes that meet the criterion of ending in '_2'
+    print("DataFrames ending with '_2' that will be concatenated:")
+    for df_name in dataframes_ending_with_2:
+        print(df_name)
+
+    # Concatenate all dataframes in the 'dataframes_to_concatenate' list
+    if dataframes_to_concatenate:
+        # Concatenate only rows that meet the specified conditions
+        annual_growth_rates = pd.concat([df[(df['sectores_economicos'] == sector_economico) | (df['economic_sectors'] == economic_sector)] 
+                                    for df in dataframes_to_concatenate 
+                                    if 'sectores_economicos' in df.columns and 'economic_sectors' in df.columns], 
+                                    ignore_index=True)
+
+        # Keep only columns that start with 'year' and the 'id_ns', 'year', and 'date' columns
+        columns_to_keep = ['year', 'id_ns', 'date'] + [col for col in annual_growth_rates.columns if col.endswith('_year')]
+
+        # Drop unwanted columns
+        annual_growth_rates = annual_growth_rates[columns_to_keep]
+        
+        # Remove duplicate columns if any
+        annual_growth_rates = annual_growth_rates.loc[:,~annual_growth_rates.columns.duplicated()]
+    
+        # Cambia el nombre de las columnas a partir de la cuarta columna
+        annual_growth_rates.columns = [col.split('_')[1] + '_' + col.split('_')[0] if '_' in col and idx >= 3 else col for idx, col in enumerate(annual_growth_rates.columns)]
+
+        # Print the number of rows in the concatenated dataframe
+        print("Number of rows in the concatenated dataframe:", len(annual_growth_rates))
+        
+        return annual_growth_rates
+    else:
+        print("No dataframes were found to concatenate.")
+        return None
+    
+# Function to concatenate Table 1 (quarterly)
+# _________________________________________________________________________
+    
+def concatenate_quarterly_df(dataframes_dict, sector_economico, economic_sector):
+    # List to store the names of dataframes that meet the criterion of ending in '_2'
+    dataframes_ending_with_2 = []
+
+    # List to store the names of dataframes to be concatenated
+    dataframes_to_concatenate = []
+
+    # Iterate over the dataframe names in the all_dataframes dictionary
+    for df_name in dataframes_dict.keys():
+        # Check if the dataframe name ends with '_2' and add it to the corresponding list
+        if df_name.endswith('_2'):
+            dataframes_ending_with_2.append(df_name)
+            dataframes_to_concatenate.append(dataframes_dict[df_name])
+
+    # Print the names of dataframes that meet the criterion of ending in '_2'
+    print("DataFrames ending with '_2' that will be concatenated:")
+    for df_name in dataframes_ending_with_2:
+        print(df_name)
+
+    # Concatenate all dataframes in the 'dataframes_to_concatenate' list
+    if dataframes_to_concatenate:
+        # Concatenate only rows that meet the specified conditions
+        quarterly_growth_rates = pd.concat([df[(df['sectores_economicos'] == sector_economico) | (df['economic_sectors'] == economic_sector)] 
+                                    for df in dataframes_to_concatenate 
+                                    if 'sectores_economicos' in df.columns and 'economic_sectors' in df.columns], 
+                                    ignore_index=True)
+
+        # Keep all columns except those starting with 'year_', in addition to the 'id_ns', 'year', and 'date' columns
+        columns_to_keep = ['year', 'id_ns', 'date'] + [col for col in quarterly_growth_rates.columns if not col.endswith('_year')]
+
+        # Select unwanted columns
+        quarterly_growth_rates = quarterly_growth_rates[columns_to_keep]
+
+        # Drop the 'sectores_economicos' and 'economic_sectors' columns
+        quarterly_growth_rates.drop(columns=['sectores_economicos', 'economic_sectors'], inplace=True)
+
+        # Remove duplicate columns if any
+        quarterly_growth_rates = quarterly_growth_rates.loc[:, ~quarterly_growth_rates.columns.duplicated()]
+        
+        # Print the number of rows in the concatenated dataframe
+        print("Number of rows in the concatenated dataframe:", len(quarterly_growth_rates))
+        
+        return quarterly_growth_rates
+    else:
+        print("No dataframes were found to concatenate.")
+        return None
+    
+# Function to concatenate Table 1 (monthly)
+# _________________________________________________________________________
+    
+def concatenate_monthly_df(dataframes_dict, sector_economico, economic_sector):
+    # List to store the names of dataframes that meet the criterion of ending in '_1'
+    dataframes_ending_with_1 = []
+
+    # List to store the names of dataframes to be concatenated
+    dataframes_to_concatenate = []
+
+    # Iterate over the dataframe names in the all_dataframes dictionary
+    for df_name in dataframes_dict.keys():
+        # Check if the dataframe name ends with '_1' and add it to the corresponding list
+        if df_name.endswith('_1'):
+            dataframes_ending_with_1.append(df_name)
+            dataframes_to_concatenate.append(dataframes_dict[df_name])
+
+    # Print the names of dataframes that meet the criterion of ending with '_1'
+    print("DataFrames ending with '_1' that will be concatenated:")
+    for df_name in dataframes_ending_with_1:
+        print(df_name)
+
+    # Concatenate all dataframes in the 'dataframes_to_concatenate' list
+    if dataframes_to_concatenate:
+        # Concatenate only rows that meet the specified conditions
+        monthly_growth_rates = pd.concat([df[(df['sectores_economicos'] == sector_economico) | (df['economic_sectors'] == economic_sector)] 
+                                    for df in dataframes_to_concatenate 
+                                    if 'sectores_economicos' in df.columns and 'economic_sectors' in df.columns], 
+                                    ignore_index=True)
+
+        # Keep all columns except those starting with 'year_', in addition to the 'id_ns', 'year', and 'date' columns
+        columns_to_keep = ['year', 'id_ns', 'date'] + [col for col in monthly_growth_rates.columns if not col.endswith('_year')]
+
+        # Select unwanted columns
+        monthly_growth_rates = monthly_growth_rates[columns_to_keep]
+
+        # Drop the 'sectores_economicos' and 'economic_sectors' columns
+        monthly_growth_rates.drop(columns=['sectores_economicos', 'economic_sectors'], inplace=True)
+
+        # Remove duplicate columns if any
+        monthly_growth_rates = monthly_growth_rates.loc[:,~monthly_growth_rates.columns.duplicated()]
+
+        # Drop columns with at least two underscores in their names
+        columns_to_drop = [col for col in monthly_growth_rates.columns if col.count('_') >= 2]
+        monthly_growth_rates.drop(columns=columns_to_drop, inplace=True)
+        
+        # Cambia el nombre de las columnas a partir de la cuarta columna
+        monthly_growth_rates.columns = [col.split('_')[1] + '_' + col.split('_')[0] if '_' in col and idx >= 3 else col for idx, col in enumerate(monthly_growth_rates.columns)]
+        
+        # Print the number of rows in the concatenated dataframe
+        print("Number of rows in the concatenated dataframe:", len(monthly_growth_rates))
+
+        return monthly_growth_rates
+    else:
+        print("No dataframes were found to concatenate.")
+        return None
