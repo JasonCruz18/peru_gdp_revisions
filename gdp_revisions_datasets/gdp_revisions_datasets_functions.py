@@ -237,6 +237,52 @@ def write_input_pdf_files(input_pdf_files):
 
 
 
+
+class PopupWindow(tk.Toplevel):
+    """Creates a pop-up window for user interaction."""
+
+    def __init__(self, root, message):
+        """Initialize the pop-up window."""
+        super().__init__(root)
+        self.root = root
+        self.title("Attention!")
+        self.message = message
+        self.result = None
+        self.configure_window()
+        self.create_widgets()
+
+    def configure_window(self):
+        """Configure the window to be non-resizable."""
+        self.resizable(False, False)
+
+    def create_widgets(self):
+        """Create widgets (labels and buttons) inside the pop-up window."""
+        self.label = tk.Label(self, text=self.message, wraplength=250)  # Adjust text if too long
+        self.label.pack(pady=10, padx=10)
+        self.btn_frame = tk.Frame(self)
+        self.btn_frame.pack(pady=5)
+        self.btn_yes = tk.Button(self.btn_frame, text="Yes", command=self.yes)
+        self.btn_yes.pack(side=tk.LEFT, padx=5)
+        self.btn_no = tk.Button(self.btn_frame, text="No", command=self.no)
+        self.btn_no.pack(side=tk.RIGHT, padx=5)
+
+        # Calculate window size based on text size
+        width = self.label.winfo_reqwidth() + 20
+        height = self.label.winfo_reqheight() + 100
+        self.geometry(f"{width}x{height}")
+
+    def yes(self):
+        """Set result to True and close the window."""
+        self.result = True
+        self.destroy()
+
+    def no(self):
+        """Set result to False and close the window."""
+        self.result = False
+        self.destroy()
+
+        
+
 ################################################################################################
 # Section 3. Data cleaning
 ################################################################################################
