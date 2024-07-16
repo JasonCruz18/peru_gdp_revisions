@@ -129,3 +129,17 @@ def rounding_values(df, decimals=1):
             # Round the values in the column to the specified number of decimals
             df[col] = df[col].round(decimals)
     return df
+
+
+
+#...............................................................................................
+#...............................................................................................
+# Functions for table 1
+# ______________________________________________________________________________________________
+#...............................................................................................
+
+# 1. Replace 'TOTAL' with 'YEAR' in the first row
+def replace_total_with_year(df):
+    # Replace 'TOTAL' with 'YEAR' in the first row
+    df.iloc[0] = df.iloc[0].apply(lambda x: 'YEAR' if "TOTAL" in str(x) else x)
+    return df
