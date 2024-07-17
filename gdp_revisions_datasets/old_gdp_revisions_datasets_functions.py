@@ -140,7 +140,7 @@ def duplicate_files_table_2(year, df_year, base_path):
 # LIBRARIES
 #+++++++++++++++
 
-
+import unicodedata  # For manipulating Unicode data
 
 
 
