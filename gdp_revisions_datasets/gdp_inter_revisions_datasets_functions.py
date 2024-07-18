@@ -136,7 +136,7 @@ def show_h_initial_window():
 def show_start_row_window():
     root = tk.Tk()
     root.withdraw()  # Hide the root window
-    start_row = simpledialog.askinteger("Input", "Please enter an initial horizon value (h_initial):",
+    start_row = simpledialog.askinteger("Input", "Please enter a start row number (start_row):",
                                         minvalue=0)  # Only accept positive integers
     root.destroy()
     return start_row
@@ -180,7 +180,7 @@ def columns_str(df):
     # Aplicar la conversión a partir de la cuarta columna del dataframe
     return df.apply(lambda x: x if x.name in df.columns[:3] else x.map(lambda y: str(y) if pd.notnull(y) else ''))
 
-# Filling the remaining rows with horizon 't+h' values 
+# Filling the remaining rows with horizon 't+h' values  
 #________________________________________________________________
 def replace_horizon_1(df):
     df = df.copy()
