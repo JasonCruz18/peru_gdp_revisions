@@ -131,6 +131,16 @@ def show_h_initial_window():
     root.destroy()
     return h_initial
 
+# Show start_row window to ask for user to enter a number
+#________________________________________________________________
+def show_start_row_window():
+    root = tk.Tk()
+    root.withdraw()  # Hide the root window
+    start_row = simpledialog.askinteger("Input", "Please enter an initial horizon value (h_initial):",
+                                        minvalue=1)  # Only accept positive integers
+    root.destroy()
+    return start_row
+
 # Setting main horizon rows on growth rates datasets
 #________________________________________________________________
 def replace_horizon(df, start_row, h_initial, h_counter):
@@ -164,5 +174,53 @@ def replace_horizon(df, start_row, h_initial, h_counter):
     second_part = df.iloc[start_row:].apply(lambda x: replace_row(x, last_non_nan_indices, h_initial), axis=1)  # Apply replace_row to the second part
     return pd.concat([first_part, second_part])  # Concatenate the first and second parts and return the result
 
-# Setting main horizon rows on growth rates datasets
+# Converting columns to string type
+#________________________________________________________________
+def columns_str(df):
+    # Aplicar la conversión a partir de la cuarta columna del dataframe
+    return df.apply(lambda x: x if x.name in df.columns[:3] else x.map(lambda y: str(y) if pd.notnull(y) else ''))
+
+# Filling the remaining rows with horizon 't+h' values 
+#________________________________________________________________
+def replace_horizon_1(df):
+    df = df.copy()
+    df['date'] = pd.to_datetime(df['date'])
+    columns = df.columns[3:]
+
+    for col in columns:
+        base_t = None
+
+        for i in range(len(df)):
+            current_value = df.at[i, col]
+
+            if pd.isna(current_value) or str(current_value) == '' or re.match(r't\+\d+', str(current_value)):
+                if re.match(r't\+\d+', str(current_value)):
+                    base_t = int(current_value.split('+')[1])
+                continue
+
+            if base_t is not None:
+                prev_date = df.at[i-1, 'date']
+                current_date = df.at[i, 'date']
+                month_diff = (current_date.year - prev_date.year) * 12 + (current_date.month - prev_date.month)
+                base_t += month_diff
+            else:
+                base_t = 0  # In case base_t was not set, we start with t+0 for the first replacement.
+
+            if re.match(r'[-+]?\d+\.\d+', str(current_value)):
+                df.at[i, col] = f't+{base_t}'
+
+    return df
+
+
+################################################################################################
+# Section 3. Create horizon datasets
+################################################################################################
+
+
+#+++++++++++++++
+# LIBRARIES
+#+++++++++++++++
+
+
+# 
 #________________________________________________________________
