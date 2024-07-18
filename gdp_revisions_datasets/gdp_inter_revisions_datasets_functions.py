@@ -137,7 +137,7 @@ def show_start_row_window():
     root = tk.Tk()
     root.withdraw()  # Hide the root window
     start_row = simpledialog.askinteger("Input", "Please enter an initial horizon value (h_initial):",
-                                        minvalue=1)  # Only accept positive integers
+                                        minvalue=0)  # Only accept positive integers
     root.destroy()
     return start_row
 
