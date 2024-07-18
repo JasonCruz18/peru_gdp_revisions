@@ -15,9 +15,6 @@
 # LIBRARIES
 #+++++++++++++++
 
-
-# 1.1. Economic sector
-
 import tkinter as tk
 
 
@@ -103,3 +100,69 @@ def show_frequency_window():
     root.wait_window()
     
     return selected_frequency.get()
+
+
+################################################################################################
+# Section 2. Create horizon datasets
+################################################################################################
+
+
+#+++++++++++++++
+# LIBRARIES
+#+++++++++++++++
+
+import tkinter as tk
+import pandas as pd
+import re
+
+# Window fo h_initial
+
+import tkinter as tk
+from tkinter import simpledialog
+
+
+# Show h_initial window to ask for user to enter a number
+#________________________________________________________________
+def show_h_initial_window():
+    root = tk.Tk()
+    root.withdraw()  # Hide the root window
+    h_initial = simpledialog.askinteger("Input", "Please enter an initial horizon value (h_initial):",
+                                        minvalue=1)  # Only accept positive integers
+    root.destroy()
+    return h_initial
+
+# Setting main horizon rows on growth rates datasets
+#________________________________________________________________
+def replace_horizon(df, start_row, h_initial, h_counter):
+    # Cast DataFrame to object dtype to allow storing strings
+    df = df.astype(object)
+
+    def replace_row(row, last_non_nan_indices, h_initial):
+        new_row = row.copy()  # Create a copy of the current row
+        last_non_nan_index = row.last_valid_index()  # Get the index of the last non-NaN value
+        h = h_initial  # Initialize the horizon counter
+
+        if last_non_nan_indices:
+            if last_non_nan_indices[-1] != last_non_nan_index:
+                new_row[last_non_nan_index] = "t+1"  # Set the last non-NaN value to "t+1"
+                h = 1  # Reset horizon counter
+            else:
+                h += h_counter  # Increment horizon counter
+        else:
+            new_row[last_non_nan_index] = "t+1"  # Set the last non-NaN value to "t+1" if no previous indices
+
+        for i in range(len(row) - 1, -1, -1):
+            if pd.notnull(row.iloc[i]) and (not last_non_nan_indices or last_non_nan_indices[-1] != last_non_nan_index):
+                new_row.iloc[i] = f"t+{h}"  # Replace value with horizon string
+                h += h_counter  # Increment horizon counter by h_counter
+
+        last_non_nan_indices.append(last_non_nan_index)  # Store the last non-NaN index
+        return new_row
+
+    first_part = df.iloc[:start_row]  # Get the first part of the DataFrame up to start_row
+    last_non_nan_indices = []  # Initialize the list to store indices of last non-NaN values
+    second_part = df.iloc[start_row:].apply(lambda x: replace_row(x, last_non_nan_indices, h_initial), axis=1)  # Apply replace_row to the second part
+    return pd.concat([first_part, second_part])  # Concatenate the first and second parts and return the result
+
+# Setting main horizon rows on growth rates datasets
+#________________________________________________________________
