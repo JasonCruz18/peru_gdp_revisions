@@ -229,6 +229,7 @@ def replace_horizon_1(df):
 #+++++++++++++++
 
 import numpy as np
+import pandas as pd
 
 # Getting last row index for t+h value for each column
 #________________________________________________________________
@@ -315,11 +316,58 @@ def transpose_inter_revisions(intermediate_revisions):
 def convert_to_float_and_round(df):
     for col in df.columns:
         if col != 'inter_revision_date':
-            # Convert the column to float, forcing errors to NaN
             df[col] = pd.to_numeric(df[col], errors='coerce')
     
-    # Apply rounding to one decimal place only to columns that are now float
     float_cols = df.select_dtypes(include='float64').columns
     df[float_cols] = df[float_cols].round(1)
     
     return df
+
+
+#  Clean up monthly dataset
+#________________________________________________________________
+def process_monthly(df):
+    df['month'] = df['inter_revision_date'].str.split('_').str[0]
+    df['year'] = df['inter_revision_date'].str.split('_').str[1]
+    
+    month_mapping = {
+        'ene': '01', 'feb': '02', 'mar': '03', 'abr': '04',
+        'may': '05', 'jun': '06', 'jul': '07', 'ago': '08',
+        'sep': '09', 'oct': '10', 'nov': '11', 'dic': '12'
+    }
+    
+    df['month'] = df['month'].map(month_mapping)
+    df['inter_revision_date'] = df['year'] + '-' + df['month']
+    df['inter_revision_date'] = pd.to_datetime(df['inter_revision_date'], format='%Y-%m')
+    
+    df.drop(['month', 'year'], axis=1, inplace=True)
+    
+    return convert_to_float_and_round(df)
+
+#  Clean up quarterly dataset
+#________________________________________________________________
+def process_quarterly(df):
+    df['year'] = df['inter_revision_date'].str.split('_').str[0]
+    df['month'] = df['inter_revision_date'].str.split('_').str[1]
+    
+    month_mapping = {
+        '1': '03', '2': '06', '3': '09', '4': '12'
+    }
+    
+    df['month'] = df['month'].map(month_mapping)
+    df['inter_revision_date'] = df['year'] + '-' + df['month']
+    df['inter_revision_date'] = pd.to_datetime(df['inter_revision_date'], format='%Y-%m')
+    
+    df.drop(['month', 'year'], axis=1, inplace=True)
+    
+    return convert_to_float_and_round(df)
+
+#  Clean up annual dataset
+#________________________________________________________________
+def process_annual(df):
+    df['year'] = df['inter_revision_date'].str.split('_').str[1]
+    df['inter_revision_date'] = pd.to_datetime(df['year'], format='%Y')
+    
+    df.drop(['year'], axis=1, inplace=True)
+    
+    return convert_to_float_and_round(df)
