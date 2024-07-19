@@ -189,6 +189,8 @@ def replace_horizon_1(df):
 
     for col in columns:
         base_t = None
+        last_valid_t = None
+        last_valid_date = None
 
         for i in range(len(df)):
             current_value = df.at[i, col]
@@ -196,15 +198,20 @@ def replace_horizon_1(df):
             if pd.isna(current_value) or str(current_value) == '' or re.match(r't\+\d+', str(current_value)):
                 if re.match(r't\+\d+', str(current_value)):
                     base_t = int(current_value.split('+')[1])
+                    last_valid_t = base_t
+                    last_valid_date = df.at[i, 'date']
                 continue
 
-            if base_t is not None:
-                prev_date = df.at[i-1, 'date']
+            if last_valid_t is not None:
+                prev_date = last_valid_date if last_valid_date is not None else df.at[i-1, 'date']
                 current_date = df.at[i, 'date']
                 month_diff = (current_date.year - prev_date.year) * 12 + (current_date.month - prev_date.month)
-                base_t += month_diff
+                base_t = last_valid_t + month_diff
             else:
                 base_t = 0  # In case base_t was not set, we start with t+0 for the first replacement.
+
+            last_valid_t = base_t
+            last_valid_date = df.at[i, 'date']
 
             if re.match(r'[-+]?\d+\.\d+', str(current_value)):
                 df.at[i, col] = f't+{base_t}'
