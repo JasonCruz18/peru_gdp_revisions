@@ -213,7 +213,7 @@ def replace_horizon_1(df):
 
 
 ################################################################################################
-# Section 3. Create horizon datasets
+# Section 3. Create intermediate revisions datasets
 ################################################################################################
 
 
@@ -222,5 +222,96 @@ def replace_horizon_1(df):
 #+++++++++++++++
 
 
-# 
+# Getting last row index for t+h value for each column
 #________________________________________________________________
+def get_last_index_h(df):
+    # Create a dictionary to store the records
+    records = {}
+
+    # Iterate over each column in the DataFrame, excluding the 'year', 'date', and 'id_ns' columns
+    for column in df.columns.drop(['year', 'date', 'id_ns']):
+        # Create a dictionary to store the row indices of each 't+\d' value in the current column
+        column_records = {}
+        # Iterate over each unique value in the current column, excluding NaN
+        for value in df[column].dropna().unique():
+            # Use regular expressions to find values that contain 't+\d'
+            if re.search(r't\+\d', value):
+                # Find the index of the last occurrence of a value containing 't+\d' in the column
+                last_index = df[df[column] == value].index.max()
+                # Add the value and its index to the column records dictionary
+                column_records[value] = last_index
+        # Add the column records dictionary to the main dictionary
+        records[column] = column_records
+
+    # Return the records
+    return records
+
+#  Computting intermediate revisions
+#________________________________________________________________
+def computing_inter_revisions(df, records):
+    # Extract columns from df, excluding 'year', 'date', and 'id_ns'
+    columns = df.columns.drop(['year', 'date', 'id_ns'])
+    
+    # Get the maximum value of h to determine the number of rows in the revisions DataFrame
+    max_h = max([int(value.split('+')[1]) for column in records.values() for value in column.keys()])
+    num_rows = max_h - 1
+    
+    # Create an empty DataFrame to store the intermediate revisions
+    intermediate_revisions = pd.DataFrame(columns=columns, index=range(num_rows))
+    
+    # Iterate over each value of h
+    for h in range(2, max_h + 1):
+        # Calculate the column name in the new DataFrame
+        revision_column = f"t+{h} - t+1"
+        
+        # Iterate over each column in df
+        for column in columns:
+            # Get the indices corresponding to t+h and t+1
+            index_h = float(records[column].get(f"t+{h}", float('nan')))
+            index_t1 = float(records[column].get(f"t+1", float('nan')))
+
+            # Check if the indices are valid
+            if np.isnan(index_h) or np.isnan(index_t1):
+                # If either index is NaN, assign NaN to the result
+                result = np.nan
+            else:
+                # Perform the subtraction and store the result in the corresponding column
+                result = df.at[int(index_h), column] - df.at[int(index_t1), column]
+                # Save the result in the corresponding row of intermediate_revisions
+                intermediate_revisions.at[h - 2, column] = result
+    
+    return intermediate_revisions
+
+#  Transpose intermediate revisions dataset
+#________________________________________________________________
+def transpose_inter_revisions(intermediate_revisions):
+    # Transpose the DataFrame
+    transposed_revisions = intermediate_revisions.T
+    
+    # Set the name of the first column as 'intermediate_revision_date'
+    transposed_revisions.columns.name = 'intermediate_revision_date'
+    
+    # Rename the columns
+    transposed_revisions.columns = [f'{sector}_revision_{i+1}' for i in range(len(transposed_revisions.columns))]
+    
+    # Reset the index
+    transposed_revisions = transposed_revisions.reset_index()
+    
+    # Rename the index column
+    transposed_revisions = transposed_revisions.rename(columns={'index': 'inter_revision_date'})
+    
+    return transposed_revisions
+
+#  Convert columns to float and round decimal values
+#________________________________________________________________
+def convert_to_float_and_round(df):
+    for col in df.columns:
+        if col != 'inter_revision_date':
+            # Convert the column to float, forcing errors to NaN
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+    
+    # Apply rounding to one decimal place only to columns that are now float
+    float_cols = df.select_dtypes(include='float64').columns
+    df[float_cols] = df[float_cols].round(1)
+    
+    return df
