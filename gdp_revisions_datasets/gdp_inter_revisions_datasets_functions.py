@@ -221,6 +221,7 @@ def replace_horizon_1(df):
 # LIBRARIES
 #+++++++++++++++
 
+import numpy as np
 
 # Getting last row index for t+h value for each column
 #________________________________________________________________
