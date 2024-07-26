@@ -518,7 +518,23 @@ def replace_services(df):
         df['economic_sectors'].replace({'services': 'other services'}, inplace=True)
     return df
 
-# 16. Round float values to the specified number of decimals.
+# 16. Replace specific values in two columns.
+def replace_mineria(df):
+    # Check if 'mineria' is present in the columns 'sectores_economicos'
+    if ('mineria' in df['sectores_economicos'].values):
+        # Replace the value
+        df['sectores_economicos'].replace({'mineria': 'mineria e hidrocarburos'}, inplace=True)
+    return df
+
+# 17. Replace specific values in two columns.
+def replace_mining(df):
+    # Check if 'mining and fuels' is present in the columns 'economic_sectors'
+    if ('mining and fuels' in df['economic_sectors'].values):
+        # Replace the value
+        df['economic_sectors'].replace({'mining and fuels': 'mining and fuel'}, inplace=True)
+    return df
+
+# 18. Round float values to the specified number of decimals.
 def rounding_values(df, decimals=1):
     # Iterate over all columns of the DataFrame
     for col in df.columns:
