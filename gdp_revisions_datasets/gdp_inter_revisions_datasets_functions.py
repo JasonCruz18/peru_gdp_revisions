@@ -311,11 +311,41 @@ def transpose_inter_revisions(intermediate_revisions):
     
     return transposed_revisions
 
+#  Keep dataframe for last dates by month (monthly vintages)
+#________________________________________________________________
+def create_vintages(df):
+    # Check that the 'date' column exists and is of type datetime64[ns]
+    if 'date' not in df.columns:
+        raise ValueError("The DataFrame does not contain the 'date' column.")
+    if not pd.api.types.is_datetime64_any_dtype(df['date']):
+        raise TypeError("The 'date' column is not of type datetime64[ns].")
+
+    # Keep the DataFrame only for the last dates of each month
+    df = df.sort_values(by='date')
+    df['year_month'] = df['date'].dt.to_period('M')
+    last_dates = df.groupby('year_month')['date'].transform('max') == df['date']
+    filtered_df = df[last_dates].drop(columns='year_month')
+
+    # Create the 'vintages' column
+    filtered_df['aux'] = 'ns_' + filtered_df['year'].astype(str) + 'm' + filtered_df['date'].dt.strftime('%m')
+
+    # Drop the 'year', 'id_ns', and 'date' columns
+    filtered_df = filtered_df.drop(columns=['year', 'id_ns', 'date'])
+
+    # Transpose filtered_df
+    filtered_df = filtered_df.set_index('aux').T # We will use 'vintages' as columns and keep the original columns as rows
+
+    # Reset index to have a default integer index
+    filtered_df.reset_index(inplace=True)
+    filtered_df.rename(columns={'index': 'vintages_date'}, inplace=True)
+
+    return filtered_df
+
 #  Convert columns to float and round decimal values
 #________________________________________________________________
 def convert_to_float_and_round(df):
     for col in df.columns:
-        if col != 'inter_revision_date':
+        if col != 'vintages_date':
             df[col] = pd.to_numeric(df[col], errors='coerce')
     
     float_cols = df.select_dtypes(include='float64').columns
@@ -327,8 +357,8 @@ def convert_to_float_and_round(df):
 #  Clean up monthly dataset
 #________________________________________________________________
 def process_monthly(df):
-    df['month'] = df['inter_revision_date'].str.split('_').str[0]
-    df['year'] = df['inter_revision_date'].str.split('_').str[1]
+    df['month'] = df['vintages_date'].str.split('_').str[0]
+    df['year'] = df['vintages_date'].str.split('_').str[1]
     
     month_mapping = {
         'ene': '01', 'feb': '02', 'mar': '03', 'abr': '04',
@@ -337,8 +367,8 @@ def process_monthly(df):
     }
     
     df['month'] = df['month'].map(month_mapping)
-    df['inter_revision_date'] = df['year'] + '-' + df['month']
-    df['inter_revision_date'] = pd.to_datetime(df['inter_revision_date'], format='%Y-%m')
+    df['vintages_date'] = df['year'] + '-' + df['month']
+    df['vintages_date'] = pd.to_datetime(df['vintages_date'], format='%Y-%m')
     
     df.drop(['month', 'year'], axis=1, inplace=True)
     
@@ -347,16 +377,16 @@ def process_monthly(df):
 #  Clean up quarterly dataset
 #________________________________________________________________
 def process_quarterly(df):
-    df['year'] = df['inter_revision_date'].str.split('_').str[0]
-    df['month'] = df['inter_revision_date'].str.split('_').str[1]
+    df['year'] = df['vintages_date'].str.split('_').str[0]
+    df['month'] = df['vintages_date'].str.split('_').str[1]
     
     month_mapping = {
         '1': '03', '2': '06', '3': '09', '4': '12'
     }
     
     df['month'] = df['month'].map(month_mapping)
-    df['inter_revision_date'] = df['year'] + '-' + df['month']
-    df['inter_revision_date'] = pd.to_datetime(df['inter_revision_date'], format='%Y-%m')
+    df['vintages_date'] = df['year'] + '-' + df['month']
+    df['vintages_date'] = pd.to_datetime(df['vintages_date'], format='%Y-%m')
     
     df.drop(['month', 'year'], axis=1, inplace=True)
     
@@ -365,9 +395,65 @@ def process_quarterly(df):
 #  Clean up annual dataset
 #________________________________________________________________
 def process_annual(df):
-    df['year'] = df['inter_revision_date'].str.split('_').str[1]
-    df['inter_revision_date'] = pd.to_datetime(df['year'], format='%Y')
+    df['year'] = df['vintages_date'].str.split('_').str[1]
+    df['vintages_date'] = pd.to_datetime(df['year'], format='%Y')
     
     df.drop(['year'], axis=1, inplace=True)
     
     return convert_to_float_and_round(df)
+
+#  Generate horizon dataset (vintages as observations)
+#________________________________________________________________
+def filter_df_by_indices(df, records):
+    # Create a dictionary to store the filtered columns
+    filtered_columns = {}
+
+    # Iterate over the records dictionary
+    for column, value_indices in records.items():
+        # Get the indices to keep for the current column
+        indices = list(value_indices.values())
+        # Filter the DataFrame to keep only the rows with the specified indices for the current column
+        filtered_values = df.loc[indices, column]
+        # Add the filtered values to the dictionary, resetting the index
+        filtered_columns[column] = filtered_values.reset_index(drop=True)
+
+    # Create a new DataFrame from the filtered columns dictionary
+    filtered_df = pd.DataFrame(filtered_columns)
+
+    # Add the 'horizon' column
+    max_index = len(filtered_df) - 1
+    filtered_df.insert(0, 'horizon', ['t'] + [f't+{i}' for i in range(1, max_index + 1)])
+
+    # Return the filtered DataFrame
+    return filtered_df
+
+#  Generate releases dataset (firs, second, ..., most recent)
+#________________________________________________________________
+
+def create_releases(df, sector):
+    # Filter columns of type float
+    float_columns = df.select_dtypes(include=[np.float64]).columns
+
+    # Find the maximum number of non-NaN values in any row
+    max_non_nan = df[float_columns].notna().sum(axis=1).max()
+
+    # Create a new DataFrame to store the results
+    result_df = df[['vintages_date']].copy()
+
+    for i in range(max_non_nan):
+        # Create column name for the new column
+        col_name = f'{sector}_release_{i+1}'
+        
+        # Extract the first, second, ..., nth non-NaN value in each row
+        result_df[col_name] = df[float_columns].apply(
+            lambda row: [x for x in row if not pd.isna(x)][i] if len([x for x in row if not pd.isna(x)]) > i else np.nan,
+            axis=1
+        )
+    
+    # Add column with the most recent value for each row
+    result_df[f'{sector}_most_recent'] = df[float_columns].apply(
+        lambda row: [x for x in row if not pd.isna(x)][-1] if len([x for x in row if not pd.isna(x)]) > 0 else np.nan,
+        axis=1
+    )
+    
+    return result_df
