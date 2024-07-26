@@ -824,7 +824,7 @@ def replace_nan_with_previous_column_3(df):
     
     for i in range(len(columns) - 1):
         if i != len(columns) - 1 and (columns[i].endswith('_year') and not df[columns[i]].isnull().any()):
-            if df[columns[i+1]].isnull() and not columns[i+1].endswith('_year'):
+            if df[columns[i+1]].isnull().any() and not columns[i+1].endswith('_year'):
                 nan_indices = df[columns[i+1]].isnull()
                 df.loc[nan_indices, [columns[i], columns[i+1]]] = df.loc[nan_indices, [columns[i+1], columns[i]]].values
     
