@@ -132,11 +132,6 @@ def duplicate_files_table_2(year, df_year, base_path):
             else:
                 print(f"No existing file to duplicate for {new_file_name}")
 
-# Process each year
-for year in range(1994, 2012):  # Please change your preferred year range
-    df_year = df[df['year'] == year]
-    duplicate_files_table_2(year, df_year, table_2_folder)
-
 
 
 ################################################################################################
