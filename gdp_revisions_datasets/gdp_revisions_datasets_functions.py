@@ -374,6 +374,36 @@ def process_monthly(df):
     
     return convert_to_float_and_round(df)
 
+def process_monthly_services(df):
+    # Remove duplicate columns, keeping the last occurrence
+    df = df.loc[:, ~df.columns.duplicated(keep='last')]
+
+    # Remove the first 47 rows
+    df = df.iloc[47:].reset_index(drop=True)
+    
+    # Extract month and year from 'vintages_date'
+    df['month'] = df['vintages_date'].str.split('_').str[0]
+    df['year'] = df['vintages_date'].str.split('_').str[1]
+    
+    # Map Spanish month abbreviations to numerical format
+    month_mapping = {
+        'ene': '01', 'feb': '02', 'mar': '03', 'abr': '04',
+        'may': '05', 'jun': '06', 'jul': '07', 'ago': '08',
+        'sep': '09', 'oct': '10', 'nov': '11', 'dic': '12'
+    }
+    
+    df['month'] = df['month'].map(month_mapping)
+    
+    # Combine year and month into a single date column
+    df['vintages_date'] = df['year'] + '-' + df['month']
+    df['vintages_date'] = pd.to_datetime(df['vintages_date'], format='%Y-%m')
+    
+    # Drop the temporary 'month' and 'year' columns
+    df.drop(['month', 'year'], axis=1, inplace=True)
+    
+    # Convert columns to float and round as needed
+    return convert_to_float_and_round(df)
+
 #  Clean up quarterly dataset
 #________________________________________________________________
 def process_quarterly(df):
