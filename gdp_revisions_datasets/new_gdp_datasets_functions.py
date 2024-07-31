@@ -1422,7 +1422,7 @@ def concatenate_monthly_df(dataframes_dict, sector_economico, economic_sector):
                                     ignore_index=True)
 
         # Keep all columns except those starting with 'year_', in addition to the 'id_ns', 'year', and 'date' columns
-        columns_to_keep = ['year', 'id_ns', 'date'] + [col for col in monthly_growth_rates.columns if not col.endswith('_year')]
+        columns_to_keep = ['year', 'id_ns', 'date'] + [col for col in monthly_growth_rates.columns if not (col.endswith('_year') or col.endswith('_mean'))]
 
         # Select unwanted columns
         monthly_growth_rates = monthly_growth_rates[columns_to_keep]
