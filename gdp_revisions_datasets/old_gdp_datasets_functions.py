@@ -32,6 +32,7 @@ def duplicate_files_table_1(year, df_year, base_path):
 
     # Get existing files
     existing_files = {int(f.split('-')[1]): f for f in files}
+    print(f"Existing files for year {year}: {existing_files}")
     
     # Get the last file of the previous year
     if year > 1994:
@@ -54,8 +55,12 @@ def duplicate_files_table_1(year, df_year, base_path):
     for index, row in df_year.iterrows():
         id_ns = row['id_ns']
         if row['delivered_1'] == 1:
-            last_existing_file = existing_files[id_ns]
-            last_existing_id_ns = id_ns
+            if id_ns in existing_files:
+                last_existing_file = existing_files[id_ns]
+                last_existing_id_ns = id_ns
+                print(f"Using existing file {last_existing_file} for id_ns {id_ns} in year {year}")
+            else:
+                print(f"Warning: id_ns {id_ns} not found in existing_files for year {year}")
         else:
             # Create name of new duplicate file
             new_file_name = f"ns-{id_ns:02d}-{year}.csv"
@@ -75,13 +80,15 @@ def duplicate_files_table_1(year, df_year, base_path):
 
 # Function to duplicate files (TABLE 2)
 #________________________________________________________________
+# Function to duplicate files (TABLE 2)
 def duplicate_files_table_2(year, df_year, base_path):
     year_path = os.path.join(base_path, str(year))
     files = sorted([f for f in os.listdir(year_path) if f.endswith('.csv')])
 
     # Get existing files
     existing_files = {int(f.split('-')[1]): f for f in files}
-    
+    print(f"Existing files for year {year}: {existing_files}")
+
     # Get the last file of the previous year
     if year > 1997:
         prev_year_path = os.path.join(base_path, str(year - 1))
@@ -103,8 +110,12 @@ def duplicate_files_table_2(year, df_year, base_path):
     for index, row in df_year.iterrows():
         id_ns = row['id_ns']
         if row['delivered_2'] == 1:
-            last_existing_file = existing_files[id_ns]
-            last_existing_id_ns = id_ns
+            if id_ns in existing_files:
+                last_existing_file = existing_files[id_ns]
+                last_existing_id_ns = id_ns
+                print(f"Using existing file {last_existing_file} for id_ns {id_ns} in year {year}")
+            else:
+                print(f"Warning: id_ns {id_ns} not found in existing_files for year {year}")
         else:
             # Create name of new duplicate file
             new_file_name = f"ns-{id_ns:02d}-{year}.csv"
@@ -120,6 +131,11 @@ def duplicate_files_table_2(year, df_year, base_path):
                 print(f"Duplicated {last_existing_file} to {new_file_name}")
             else:
                 print(f"No existing file to duplicate for {new_file_name}")
+
+# Process each year
+for year in range(1994, 2012):  # Please change your preferred year range
+    df_year = df[df['year'] == year]
+    duplicate_files_table_2(year, df_year, table_2_folder)
 
 
 
