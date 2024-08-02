@@ -500,7 +500,6 @@ def create_releases(df, sector):
 
 # Function to Replace Float Values with Base Year in DataFrame
 #________________________________________________________________
-
 def replace_floats_with_base_year(df_1, df_2):
     """
     Replace float values in df_2 with the corresponding base_year from df_1 based on common columns.
@@ -513,21 +512,25 @@ def replace_floats_with_base_year(df_1, df_2):
     - A DataFrame with float values replaced by base_year from df_1 where applicable.
     """
     
+    # Ensure 'year' and 'id_ns' columns are of the same type
+    df_1['year'] = df_1['year'].astype(str)
+    df_1['id_ns'] = df_1['id_ns'].astype(str)
+    df_2['year'] = df_2['year'].astype(str)
+    df_2['id_ns'] = df_2['id_ns'].astype(str)
+    
     # Merge the two dataframes on the common columns
     merged_df = pd.merge(df_2, df_1[['year', 'id_ns', 'date', 'base_year']], on=['year', 'id_ns', 'date'], how='left')
     
     # List of columns to exclude from replacement
-    exclude_columns = ['year', 'id_ns', 'date']
+    exclude_columns = ['year', 'id_ns', 'date', 'base_year']
     
     # Get the list of columns where replacements should be made
     columns_to_replace = [col for col in df_2.columns if col not in exclude_columns]
     
-    # Iterate over each row in the merged dataframe
-    for index, row in merged_df.iterrows():
-        base_year = row['base_year']
-        # Replace all float values in the specified columns with base_year if they are not NaN
-        merged_df.loc[index, columns_to_replace] = row[columns_to_replace].apply(
-            lambda x: base_year if pd.notnull(x) and isinstance(x, float) else x
+    # Replace all float values in the specified columns with base_year if they are not NaN
+    for col in columns_to_replace:
+        merged_df[col] = merged_df.apply(
+            lambda row: row['base_year'] if pd.notnull(row[col]) and isinstance(row[col], float) else row[col], axis=1
         )
     
     # Drop the base_year column since it's no longer needed
@@ -537,7 +540,6 @@ def replace_floats_with_base_year(df_1, df_2):
 
 # Function to Create a Dictionary Mapping Columns to Base Year Indices
 #________________________________________________________________
-
 def create_dic_base_year(df):
     """
     Create a dictionary where each key is a column name and each value is a set of indices where the second unique 
@@ -579,7 +581,6 @@ def create_dic_base_year(df):
 
 # Function to Remove Observations Affected by Base Year Indices
 #________________________________________________________________
-
 def remove_base_year_affected_obs(dic_base_year, df):
     """
     Remove observations from the DataFrame that are affected by the base year indices specified in the dictionary.
