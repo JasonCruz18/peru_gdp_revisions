@@ -491,3 +491,113 @@ def create_releases(df, sector):
     )
     
     return result_df
+
+
+
+################################################################################################
+# Section X. Base Year
+################################################################################################
+
+# Function to Replace Float Values with Base Year in DataFrame
+#________________________________________________________________
+
+def replace_floats_with_base_year(df_1, df_2):
+    """
+    Replace float values in df_2 with the corresponding base_year from df_1 based on common columns.
+    
+    Parameters:
+    - df_1: DataFrame containing 'year', 'id_ns', 'date', and 'base_year' columns.
+    - df_2: DataFrame where float values will be replaced with the base_year from df_1.
+    
+    Returns:
+    - A DataFrame with float values replaced by base_year from df_1 where applicable.
+    """
+    
+    # Merge the two dataframes on the common columns
+    merged_df = pd.merge(df_2, df_1[['year', 'id_ns', 'date', 'base_year']], on=['year', 'id_ns', 'date'], how='left')
+    
+    # List of columns to exclude from replacement
+    exclude_columns = ['year', 'id_ns', 'date']
+    
+    # Get the list of columns where replacements should be made
+    columns_to_replace = [col for col in df_2.columns if col not in exclude_columns]
+    
+    # Iterate over each row in the merged dataframe
+    for index, row in merged_df.iterrows():
+        base_year = row['base_year']
+        # Replace all float values in the specified columns with base_year if they are not NaN
+        merged_df.loc[index, columns_to_replace] = row[columns_to_replace].apply(
+            lambda x: base_year if pd.notnull(x) and isinstance(x, float) else x
+        )
+    
+    # Drop the base_year column since it's no longer needed
+    merged_df = merged_df.drop(columns=['base_year'])
+    
+    return merged_df
+
+# Function to Create a Dictionary Mapping Columns to Base Year Indices
+#________________________________________________________________
+
+def create_dic_base_year(df):
+    """
+    Create a dictionary where each key is a column name and each value is a set of indices where the second unique 
+    value (if available) in that column is observed. Columns with fewer than two unique values are excluded.
+    
+    Parameters:
+    - df: DataFrame containing columns for which the second unique value will be identified.
+    
+    Returns:
+    - A dictionary mapping column names to sets of indices where the second unique value is observed.
+    """
+    
+    # Exclude 'year', 'id_ns', 'date' from the columns to process
+    exclude_columns = ['year', 'id_ns', 'date']
+    columns_to_check = [col for col in df.columns if col not in exclude_columns]
+    
+    # Initialize the dictionary
+    dic_base_year = {}
+    
+    # Iterate over the columns to check
+    for col in columns_to_check:
+        # Get the unique values in the column, excluding NaN
+        unique_values = df[col].dropna().unique()
+        
+        # If there are at least two unique values
+        if len(unique_values) >= 2:
+            # Sort the unique values to find the second unique value
+            unique_values.sort()
+            second_unique_value = unique_values[1]
+            
+            # Find the indices of the observations that contain the second unique value
+            indices = df.index[df[col] == second_unique_value].tolist()
+            
+            # Add to the dictionary if indices are found
+            if indices:
+                dic_base_year[col] = set(indices)
+    
+    return dic_base_year
+
+# Function to Remove Observations Affected by Base Year Indices
+#________________________________________________________________
+
+def remove_base_year_affected_obs(dic_base_year, df):
+    """
+    Remove observations from the DataFrame that are affected by the base year indices specified in the dictionary.
+    Values at the specified indices in each column are replaced with NaN if they are not already NaN.
+    
+    Parameters:
+    - dic_base_year: Dictionary where each key is a column name and each value is a set of indices to be updated.
+    - df: DataFrame from which the specified observations will be removed.
+    
+    Returns:
+    - A DataFrame with specified observations replaced by NaN.
+    """
+    
+    # Iterate over the dictionary
+    for col, indices in dic_base_year.items():
+        # Check if the column exists in the dataframe
+        if col in df.columns:
+            # Replace the values at the specified indices with NaN if they are not already NaN
+            df.loc[list(indices), col] = df.loc[list(indices), col].apply(lambda x: np.nan if pd.notnull(x) else x)
+    
+    return df
