@@ -520,8 +520,8 @@ def replace_services(df):
 
 # 16. Replace specific values in two columns.
 def replace_mineria(df):
-    # Check if 'mineria' is present in the columns 'sectores_economicos'
-    if ('mineria' in df['sectores_economicos'].values):
+    # Check if 'mineria' is present and 'mineria e hidrocarburos' is not present in the column 'sectores_economicos'
+    if ('mineria' in df['sectores_economicos'].values) and ('mineria e hidrocarburos' not in df['sectores_economicos'].values):
         # Replace the value
         df['sectores_economicos'].replace({'mineria': 'mineria e hidrocarburos'}, inplace=True)
     return df

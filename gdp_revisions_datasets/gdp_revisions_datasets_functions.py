@@ -375,11 +375,15 @@ def process_monthly(df):
     return convert_to_float_and_round(df)
 
 def process_monthly_services(df):
+    
+    # Ensure 'vintages_date' is a string
+    df['vintages_date'] = df['vintages_date'].astype(str)
+    
     # Remove duplicate columns, keeping the last occurrence
-    df = df.loc[:, ~df.columns.duplicated(keep='last')]
+    df = df.loc[:, ~df.columns.duplicated(keep='last')] # serives last and mining first
 
     # Remove the first 47 rows
-    df = df.iloc[47:].reset_index(drop=True)
+    #df = df.iloc[47:].reset_index(drop=True)
     
     # Extract month and year from 'vintages_date'
     df['month'] = df['vintages_date'].str.split('_').str[0]
