@@ -436,7 +436,7 @@ def process_annual(df):
     
     return convert_to_float_and_round(df)
 
-#  Generate horizon dataset (vintages as observations)
+# Generate horizon dataset (vintages as observations)
 #________________________________________________________________
 def filter_df_by_indices(df, records):
     # Create a dictionary to store the filtered columns
@@ -456,7 +456,7 @@ def filter_df_by_indices(df, records):
 
     # Add the 'horizon' column
     max_index = len(filtered_df) - 1
-    filtered_df.insert(0, 'horizon', ['t'] + [f't+{i}' for i in range(1, max_index + 1)])
+    filtered_df.insert(0, 'horizon', [f't+{i}' for i in range(1, max_index + 2)])
 
     # Return the filtered DataFrame
     return filtered_df
