@@ -93,4 +93,4 @@ END $$;
 -- SELECT
 --
 
-SELECT * FROM "gdp_monthly_growth_rates";
+--SELECT * FROM "gdp_monthly_growth_rates";
