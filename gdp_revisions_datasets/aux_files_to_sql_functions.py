@@ -211,6 +211,97 @@ def transpose_df(df, frequency):
     return df_transpuesto.reset_index(drop=True)
 
 
+# Function to add time trend column
+#________________________________________________________________
+def add_time_trend(df):
+    # Número de observaciones en el dataframe
+    n = len(df)
+    
+    # Columna 'horizon' que va de 1 hasta n
+    df['horizon'] = range(1, n + 1)
+    
+    # Columna 'target_date' que contiene el valor máximo (n)
+    df['target_date'] = n
+    
+    # Columna 'time_trend' que es la diferencia entre target_date y horizon
+    df['time_trend'] = df['target_date'] - df['horizon']
+    
+    # Convertir las columnas al tipo entero
+    df['horizon'] = df['horizon'].astype(int)
+    df['target_date'] = df['target_date'].astype(int)
+    df['time_trend'] = df['time_trend'].astype(int)
+    
+    return df
+
+
+# Function to remove NaN or zero columns
+#________________________________________________________________
+def remove_nan_or_zero_float_columns(df):
+    # Filtrar solo las columnas de tipo float
+    float_columns = df.select_dtypes(include=['float'])
+    
+    # Identificar las columnas a eliminar (todas NaN, todas 0.0 o ambas)
+    columns_to_drop = []
+    for col in float_columns.columns:
+        all_nan = float_columns[col].isna().all()         # Condición 1: todas NaN
+        all_zero = (float_columns[col] == 0.0).all()      # Condición 2: todas 0.0
+        nan_count = float_columns[col].isna().sum()        # Contar NaN
+        zero_count = (float_columns[col] == 0.0).sum()     # Contar 0.0
+        total_count = len(float_columns[col])               # Total de elementos en la columna
+        
+        # Condición 3: parte NaN y parte 0.0 y total debe ser igual a la longitud de la columna
+        complementary_nan_and_zero = (nan_count + zero_count == total_count) and (nan_count > 0 and zero_count > 0)
+
+        if all_nan or all_zero or complementary_nan_and_zero:
+            columns_to_drop.append(col)
+    
+    # Eliminar las columnas identificadas
+    df_filtered = df.drop(columns=columns_to_drop)
+    
+    return df_filtered
+
+
+# Function to converto to data panel
+#________________________________________________________________
+def convert_to_panel(df):
+    # Encontrar todos los sectores de las columnas
+    columns = df.columns
+    sectors = set()
+    
+    # Utilizar expresiones regulares para encontrar patrones de columnas como "r_1_2_{sector}" o "r_1_{sector}"
+    pattern = re.compile(r'r_(?:\d+(_\d+)?)?_(.+)')
+
+    for col in columns:
+        match = pattern.search(col)
+        if match:
+            sectors.add(match.group(2))  # Extraer el nombre del sector
+
+    # Inicializar el DataFrame resultante en formato panel
+    df_panel = pd.DataFrame()
+
+    # Para cada sector, hacer la conversión al formato largo (panel) y luego fusionar los resultados
+    for sector in sectors:
+        # Extraer las columnas que pertenecen a este sector
+        sector_columns = [col for col in columns if sector in col]
+        
+        # Convertir las columnas del sector en formato largo
+        sector_melted = pd.melt(df, id_vars=['vintages_date'], 
+                                value_vars=sector_columns, 
+                                var_name='revision', 
+                                value_name=sector)
+        
+        # Limpiar la columna 'revision' para que contenga solo la revisión (ej: "r_1" o "r_1_2")
+        sector_melted['revision'] = sector_melted['revision'].str.replace(f'_{sector}', '', regex=False)
+
+        # Si es el primer sector, inicializar df_panel
+        if df_panel.empty:
+            df_panel = sector_melted
+        else:
+            # Fusionar el sector actual con el panel general
+            df_panel = pd.merge(df_panel, sector_melted, on=['vintages_date', 'revision'], how='outer')
+
+    return df_panel
+
 
 ################################################################################################
 # Section 8. Create intermediate revisions
