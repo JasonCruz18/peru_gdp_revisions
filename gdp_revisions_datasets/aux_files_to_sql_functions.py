@@ -11,6 +11,7 @@
 #+++++++++++++++
 
 import pandas as pd
+import numpy as np
 import os
 from sqlalchemy import create_engine
 import re
@@ -104,7 +105,7 @@ def keep_revisions(df, frequency):
     # Step 1: Determine which columns to keep based on the frequency
     if frequency in ['quarterly', 'monthly']:
         # Step 1a: If frequency is quarterly or monthly, keep 'year_month' and all columns starting with 'r_'
-        cols_to_keep = ['year_month'] + [col for col in df.columns if col.startswith('r_')]
+        cols_to_keep = ['vintages_date'] + ['year_month'] + [col for col in df.columns if col.startswith('r_')]
     
     elif frequency == 'annual':
         # Step 1b: If frequency is annual, keep 'year' and all columns starting with 'r_'
@@ -130,13 +131,13 @@ def transpose_df(df, frequency):
         raise ValueError("frequency must be 'monthly', 'quarterly', or 'annual'")
     
     # Step 2: Extract sector categories (e.g., 'gdp', 'services', etc.)
-    sectores = sorted(set(col.split('_')[2] for col in df.columns if col.startswith('r_')))
+    sectors = sorted(set(col.split('_')[-1] for col in df.columns if col.startswith('r_')))
     
     # Step 3: Create a dictionary to store the transposed data
     data_transpuesta = {}
     
     # Step 4: For each sector, gather all columns related to that sector
-    for sector in sectores:
+    for sector in sectors:
         # Step 4a: Filter the columns corresponding to the current sector
         cols_sector = [col for col in df.columns if f'_{sector}' in col]
         
@@ -183,57 +184,53 @@ def transpose_df(df, frequency):
 # Function to calculate intermediate revisions between data releases
 #________________________________________________________________
 def calculate_intermediate_revisions(df):
-    # Step 1: Find the highest number following the pattern '_release_'
+    # Encontrar el número más alto que sigue el patrón '_release_'
     release_numbers = []
     
-    # Step 1a: Loop through the columns to identify release numbers
     for col in df.columns:
-        match = re.search(r'_release_(\d+)', col)  # Search for release numbers in the column names
+        match = re.search(r'_release_(\d+)', col)
         if match:
-            release_numbers.append(int(match.group(1)))  # Store the release numbers as integers
+            release_numbers.append(int(match.group(1)))
     
-    # Step 2: Determine the maximum release number
-    max_release = max(release_numbers) if release_numbers else 0  # Get the highest release number
+    # Determinar el número máximo de releases
+    max_release = max(release_numbers) if release_numbers else 0
     
-    # Step 3: Extract the names of variables without the '_release_' or '_most_recent' suffix
+    # Extraer los nombres de las variables con los sufijos especificados
     variable_names = [col.replace(f'_release_{i}', '').replace('_most_recent', '') 
                       for i in range(1, max_release + 1)
                       for col in df.columns if f'_release_{i}' in col or '_most_recent' in col]
     
-    # Step 3a: Remove duplicates from the list of variable names
+    # Eliminar duplicados de los nombres de variables
     variable_names = list(set(variable_names))
     
-    # Step 4: Create a list to store the new columns for intermediate revisions
+    # Crear una lista para contener las nuevas columnas
     new_columns = []
     
-    # Step 5: Create new variables for each intermediate revision
+    # Crear nuevas variables de revisión intermedia para cada variable encontrada
     for variable in variable_names:
-        # Step 5a: Loop through releases from release_2 to the maximum release
-        for i in range(2, max_release + 1):
-            previous_release_col = f"{variable}_release_{i-1}"  # Previous release
-            current_release_col = f"{variable}_release_{i}"      # Current release
+        for i in range(2, max_release + 1):  # Iterar desde release_2 hasta el release más alto
+            previous_release_col = f"{variable}_release_{i-1}"
+            current_release_col = f"{variable}_release_{i}"
             
-            # Step 5b: Check if both the previous and current releases exist in the DataFrame
             if previous_release_col in df.columns and current_release_col in df.columns:
-                new_column_name = f"r_{i-1}_{i}_{variable}"  # Create new column name for the difference
-                # Calculate the difference between the current release and the previous release
+                new_column_name = f"r_{i-1}_{i}_{variable}"
+                # Realizar la resta de la revisión actual menos la revisión anterior
                 new_columns.append((new_column_name, df[current_release_col] - df[previous_release_col]))
         
-        # Step 6: For the last revision, calculate the difference between the most recent release and the last release
+        # Para la última diferencia, entre most_recent y el release más reciente - 1
         most_recent_col = f"{variable}_most_recent"
         last_release_col = f"{variable}_release_{max_release}"
         
-        # Step 6a: Check if both the last release and most recent columns exist
         if last_release_col in df.columns and most_recent_col in df.columns:
-            new_column_name = f"r_{max_release}_{most_recent_col.replace(variable + '_', '')}"
-            # Calculate the difference between most recent and the last release
+            # Modificar el nombre de la columna según lo solicitado
+            new_column_name = f"r_{max_release}_most_recent_{variable}"
             new_columns.append((new_column_name, df[most_recent_col] - df[last_release_col]))
     
-    # Step 7: Concatenate all new columns into the DataFrame
+    # Concatenar todas las nuevas columnas al DataFrame
     if new_columns:
-        df_new_columns = pd.DataFrame(dict(new_columns))  # Convert the list of new columns into a DataFrame
-        df = pd.concat([df, df_new_columns], axis=1)      # Concatenate the new columns to the original DataFrame
+        df_new_columns = pd.DataFrame(dict(new_columns))
+        df = pd.concat([df, df_new_columns], axis=1)
 
-    # Step 8: Return the modified DataFrame and the maximum release value
+    # Retornar el DataFrame modificado
     return df, max_release
 
