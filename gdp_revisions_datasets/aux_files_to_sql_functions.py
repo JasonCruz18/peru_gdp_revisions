@@ -22,7 +22,7 @@ import re
 # Section 7. Create cumulative revisions
 ################################################################################################
 
-# Function to calculate cumulative revisions in a DataFrame based on release versions.
+# Function to calculate cumulative revisions (1/2).
 #________________________________________________________________
 def calculate_cumulative_revisions(df):
     # Step 1: Identify all release numbers from the column names
@@ -66,6 +66,42 @@ def calculate_cumulative_revisions(df):
 
     # Step 8: Return the modified DataFrame along with the maximum release number
     return df, max_release
+
+
+# Function to calculate cumulative revisions (2/2).
+#________________________________________________________________
+
+def calculate_specific_cumulative_revisions(df, frequency):
+    # Obtén los nombres de las variables con los sufijos especificados
+    suffixes = ['_release_1', '_release_6', '_release_12', '_release_24', '_most_recent']
+    variable_names = [col.replace(suffix, '') for col in df.columns for suffix in suffixes if col.endswith(suffix)]
+    variable_names = list(set(variable_names))  # Eliminar duplicados
+
+    # Crear nuevas variables de revisión según la frecuencia
+    for variable in variable_names:
+        try:
+            if frequency == 'monthly':
+                # Verificar si las columnas existen para monthly
+                if all(f'{variable}{suffix}' in df.columns for suffix in ['_most_recent', '_release_12', '_release_6', '_release_1']):
+                    df[f'r_12_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_12']
+                    df[f'r_6_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_6']
+                    df[f'r_1_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_1']
+                else:
+                    print(f"Skipping {variable}: not all expected columns for 'monthly' are present.")
+            elif frequency in ['annual', 'quarterly']:
+                # Verificar si las columnas existen para annual o quarterly
+                if all(f'{variable}{suffix}' in df.columns for suffix in ['_most_recent', '_release_24', '_release_12', '_release_1']):
+                    df[f'r_24_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_24']
+                    df[f'r_12_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_12']
+                    df[f'r_1_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_1']
+                else:
+                    print(f"Skipping {variable}: not all expected columns for 'annual' or 'quarterly' are present.")
+            else:
+                print(f"Frequency {frequency} is not supported.")
+        except KeyError as e:
+            print(f"Error processing {variable}: {e}")
+    
+    return df
 
 
 # Function to extract year or year_month based on the specified frequency
@@ -181,7 +217,7 @@ def transpose_df(df, frequency):
 ################################################################################################
 
 
-# Function to calculate intermediate revisions between data releases
+# Function to calculate intermediate revisions (1/2)
 #________________________________________________________________
 def calculate_intermediate_revisions(df):
     # Encontrar el número más alto que sigue el patrón '_release_'
@@ -233,4 +269,38 @@ def calculate_intermediate_revisions(df):
 
     # Retornar el DataFrame modificado
     return df, max_release
+
+# Function to calculate intermediate revisions (2/2)
+#________________________________________________________________
+def calculate_specific_intermediate_revisions(df, frequency):
+    # Obtén los nombres de las variables con los sufijos especificados
+    suffixes = ['_release_1', '_release_6', '_release_12', '_release_24', '_most_recent']
+    variable_names = [col.replace(suffix, '') for col in df.columns for suffix in suffixes if col.endswith(suffix)]
+    variable_names = list(set(variable_names))  # Eliminar duplicados
+
+    # Crear nuevas variables de revisión según la frecuencia
+    for variable in variable_names:
+        try:
+            if frequency == 'monthly':
+                # Verificar si las columnas existen para monthly
+                if all(f'{variable}{suffix}' in df.columns for suffix in ['_most_recent', '_release_12', '_release_6', '_release_1']):
+                    df[f'r_12_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_12']
+                    df[f'r_6_12_{variable}'] = df[f'{variable}_release_12'] - df[f'{variable}_release_6']
+                    df[f'r_1_6_{variable}'] = df[f'{variable}_release_6'] - df[f'{variable}_release_1']
+                else:
+                    print(f"Skipping {variable}: not all expected columns for 'monthly' are present.")
+            elif frequency in ['annual', 'quarterly']:
+                # Verificar si las columnas existen para annual o quarterly
+                if all(f'{variable}{suffix}' in df.columns for suffix in ['_most_recent', '_release_24', '_release_12', '_release_1']):
+                    df[f'r_24_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_24']
+                    df[f'r_12_24_{variable}'] = df[f'{variable}_release_24'] - df[f'{variable}_release_12']
+                    df[f'r_1_12_{variable}'] = df[f'{variable}_release_12'] - df[f'{variable}_release_1']
+                else:
+                    print(f"Skipping {variable}: not all expected columns for 'annual' or 'quarterly' are present.")
+            else:
+                print(f"Frequency {frequency} is not supported.")
+        except KeyError as e:
+            print(f"Error processing {variable}: {e}")
+    
+    return df
 
