@@ -300,7 +300,13 @@ def convert_to_panel(df):
             # Fusionar el sector actual con el panel general
             df_panel = pd.merge(df_panel, sector_melted, on=['vintages_date', 'revision'], how='outer')
 
-    return df_panel
+
+# Function to replace "-" by "_" in columns
+#________________________________________________________________
+def replace_hyphen_in_columns(df):
+    # Reemplaza "-" por "_" en los nombres de las columnas
+    df.columns = df.columns.str.replace("-", "_", regex=False)
+    return df
 
 
 ################################################################################################
