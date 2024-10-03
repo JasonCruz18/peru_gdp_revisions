@@ -63,3 +63,46 @@ end of do-file
 
 . br
 
+. doed
+
+. do "C:\Users\JASONC~1\AppData\Local\Temp\STD8f74_000000.tmp"
+
+. /********************
+> Variance Bounds Tests
+> ***
+> 
+>                 Author
+>                 ---------------------
+>                 Jason Cruz
+>                 *********************/
+. 
+.                 *** Program: variance_bounds_tests.do
+.                 **      First Created: 09/15/24
+.                 **      Last Updated:  10/03/24
+.                         
+.         ***
+.         ** Just click on the "Run (do)" button, the code will do the rest for you.
+.         ***
+. 
+.         
+.         
+.         /*----------------------
+>         Initial script configuration
+>         -----------------------*/
+. 
+.         cls                                     // Clears the screen.
+
+.         clear all                               // Frees all memory.
+
+.         version                                 // Displays the software version.
+version 18.0
+
+.                 
+.         set more off                    // Turns off pagination for output.
+
+.         cap set maxvar 12000    // Sets the maximum number of variables to 12000.
+
+.         program drop _all               // Deletes all user-defined programs.
+
+.                         
+.         capture log close               // Closes the log file if open.
