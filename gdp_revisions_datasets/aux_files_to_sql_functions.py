@@ -300,6 +300,8 @@ def convert_to_panel(df):
             # Fusionar el sector actual con el panel general
             df_panel = pd.merge(df_panel, sector_melted, on=['vintages_date', 'revision'], how='outer')
 
+    return df_panel  # Asegurarse de retornar el DataFrame resultante
+
 
 # Function to replace "-" by "_" in columns
 #________________________________________________________________
