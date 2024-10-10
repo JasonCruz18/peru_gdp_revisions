@@ -325,6 +325,7 @@ def calculate_intermediate_revisions(df):
     for col in df.columns:
         match = re.search(r'_release_(\d+)', col)
         if match:
+
             release_numbers.append(int(match.group(1)))
     
     # Determinar el número máximo de releases
@@ -348,7 +349,7 @@ def calculate_intermediate_revisions(df):
             current_release_col = f"{variable}_release_{i}"
             
             if previous_release_col in df.columns and current_release_col in df.columns:
-                new_column_name = f"r_{i-1}_{i}_{variable}"
+                new_column_name = f"r_{i}_{variable}"
                 # Realizar la resta de la revisión actual menos la revisión anterior
                 new_columns.append((new_column_name, df[current_release_col] - df[previous_release_col]))
         
