@@ -213,25 +213,25 @@ def transpose_df(df, frequency):
 
 # Function to add time trend column
 #________________________________________________________________
-def add_time_trend(df):
-    # Número de observaciones en el dataframe
-    n = len(df)
+# def add_time_trend(df):
+#     # Número de observaciones en el dataframe
+#     n = len(df)
     
-    # Columna 'horizon' que va de 1 hasta n
-    df['horizon'] = range(1, n + 1)
+#     # Columna 'horizon' que va de 1 hasta n
+#     df['horizon'] = range(1, n + 1)
     
-    # Columna 'target_date' que contiene el valor máximo (n)
-    df['target_date'] = n
+#     # Columna 'target_date' que contiene el valor máximo (n)
+#     df['target_date'] = n
     
-    # Columna 'time_trend' que es la diferencia entre target_date y horizon
-    df['time_trend'] = df['target_date'] - df['horizon']
+#     # Columna 'time_trend' que es la diferencia entre target_date y horizon
+#     df['time_trend'] = df['target_date'] - df['horizon']
     
-    # Convertir las columnas al tipo entero
-    df['horizon'] = df['horizon'].astype(int)
-    df['target_date'] = df['target_date'].astype(int)
-    df['time_trend'] = df['time_trend'].astype(int)
+#     # Convertir las columnas al tipo entero
+#     df['horizon'] = df['horizon'].astype(int)
+#     df['target_date'] = df['target_date'].astype(int)
+#     df['time_trend'] = df['time_trend'].astype(int)
     
-    return df
+#     return df
 
 
 # Function to remove NaN or zero columns
