@@ -118,48 +118,55 @@ Efficiency Tests
 		
 		xtset target_date horizon // Using 'target_date' as the time var and 'horizon' as the panel id.
 		
-		* Extract all variables that start with 'r_'
-		
-		ds r_*
+		* Create a list of variables that start with "e_"
+		ds e_*
 
-		* Standard errors NOT corrected for HAC
+		* Extract the suffixes after "e_" to build the list of sectors
+		
+		local sectors
+		
+		foreach var of varlist e_* {
+			local suffix = substr("`var'", 3, .)  // Extract the suffix (sector)
+			local sectors `sectors' `suffix'
+		}
+
+		* Verify the extracted list of sectors
+		di "Sectors found: `sectors'"
+
+		* Standard errors NOT corrected
 
 		** Run fixed effects regression
+		
+		*** Loop through each sector and run regressions
+		foreach var in `sectors' {
+			
+			**** Run regression for each sector
+			xtreg e_`var' r_L1.`var' r_L2.`var', fe
+		}
+		
+		* Standard errors corrected for Newey West
+		
+		** Run regression
 		
 		*** Loop through each sector and run regressions
 		foreach var of varlist r_* {
 			
 			**** Run regression for each sector
-			xtreg `var' L1.`var' L2.`var', fe // Run fixed effects regression for the current sector
-		} 
-		
-		* Standard errors corrected for HAC
-		
-		** Run fixed effects regression
-		
-		*** Loop through each sector and run regressions
-		foreach var of varlist r_* {
-			
-			**** Run regression for each sector
-			xtreg `var' L1.`var' L2.`var', fe vce(robust) // Run fixed effects regression for the current sector
-		} 
+			newey e_`var' r_L1.`var' r_L2.`var', lag(2) force // Using Newey-West
+		}
 		
 		
-	
+		
 	/*----------------------
 	Regression (intermediate
 	revisions)
 	-----------------------*/
 	
-		* Setting up the panel data structure
-		
-		xtset target_date horizon // Using 'target_date' as the time var and 'horizon' as the panel id.
-		
 		* Extract all variables that start with 'r_'
 		
 		ds r_*
-
-		* Standard errors NOT corrected for HAC
+		
+		* Standard errors NOT corrected
 
 		** Run fixed effects regression
 		
@@ -170,17 +177,18 @@ Efficiency Tests
 			xtreg `var' L1.`var' L2.`var', fe // Run fixed effects regression for the current sector
 		} 
 		
-		* Standard errors corrected for HAC
+		* Standard errors corrected for Newey West
 		
-		** Run fixed effects regression
+		** Run regression
 		
 		*** Loop through each sector and run regressions
 		foreach var of varlist r_* {
 			
 			**** Run regression for each sector
-			xtreg `var' L1.`var' L2.`var', fe vce(cluster horizon)// Run fixed effects regression for the current sector
-		} 
-
+			newey `var' L1.`var' L2.`var', lag(2) force // Using Newey-West
+		}
+		
+		
 		
 	/*----------------------
 	Drop aux data (.dta)
@@ -193,14 +201,5 @@ Efficiency Tests
 	foreach file of local dta_files {
 		erase "`file'"
 	}	
-		
-		
-		xtreg r_gdp L1.r_gdp L2.r_gdp, fe 
-		
-		
-		estimates store aux_results
-		
-		estimates table aux_results
-		
 		
 		
