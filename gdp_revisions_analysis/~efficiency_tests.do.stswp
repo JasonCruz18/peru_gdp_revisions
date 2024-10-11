@@ -86,16 +86,19 @@ Efficiency Tests
 	
 	use temp_data.dta, clear
 
+	
 		* Order and sort
 		
 		sort vintages_date horizon // Key step to set both the ID and time vars for panel data.
 
+		
 		* At a glance (inspect data)
 
 		d // Check entire dataset vars to understand its structure.
 		sum // Summarize stats for all vars in the dataset (mean, standard deviation, etc.).
 		count // Count the total number of observations, expected to be 6,696.
 
+		
 		* Fixing date format
 		
 		gen numeric_date = dofc(vintages_date) // To a Stata date in days.
@@ -114,13 +117,16 @@ Efficiency Tests
 	Regression (nowcast error)
 	-----------------------*/
 	
+	
 		* Setting up the panel data structure
 		
 		xtset target_date horizon // Using 'target_date' as the time var and 'horizon' as the panel id.
 		
+		
 		* Create a list of variables that start with "e_"
 		ds e_*
 
+		
 		* Extract the suffixes after "e_" to build the list of sectors
 		
 		local sectors
@@ -130,24 +136,23 @@ Efficiency Tests
 			local sectors `sectors' `suffix'
 		}
 
+		
 		* Verify the extracted list of sectors
 		di "Sectors found: `sectors'"
 
-		* Standard errors NOT corrected
-
-		** Run fixed effects regression
 		
+		* Standard errors NOT corrected
+		** Run fixed effects regression
 		*** Loop through each sector and run regressions
 		foreach var in `sectors' {
 			
 			**** Run regression for each sector
 			xtreg e_`var' r_L1.`var' r_L2.`var', fe
 		}
-		
+	
+	
 		* Standard errors corrected for Newey West
-		
 		** Run regression
-		
 		*** Loop through each sector and run regressions
 		foreach var of varlist r_* {
 			
@@ -162,14 +167,14 @@ Efficiency Tests
 	revisions)
 	-----------------------*/
 	
+	
 		* Extract all variables that start with 'r_'
 		
 		ds r_*
 		
-		* Standard errors NOT corrected
-
-		** Run fixed effects regression
 		
+		* Standard errors NOT corrected
+		** Run fixed effects regression
 		*** Loop through each sector and run regressions
 		foreach var of varlist r_* {
 			
@@ -177,10 +182,9 @@ Efficiency Tests
 			xtreg `var' L1.`var' L2.`var', fe // Run fixed effects regression for the current sector
 		} 
 		
+		
 		* Standard errors corrected for Newey West
-		
 		** Run regression
-		
 		*** Loop through each sector and run regressions
 		foreach var of varlist r_* {
 			
