@@ -140,7 +140,8 @@ def keep_revisions(df, frequency):
     # Step 1: Determine which columns to keep based on the frequency
     if frequency in ['quarterly', 'monthly']:
         # Step 1a: If frequency is quarterly or monthly, keep 'year_month' and all columns starting with 'r_'
-        cols_to_keep = ['vintages_date'] + ['year_month'] + [col for col in df.columns if col.startswith('r_')]
+        #cols_to_keep = ['vintages_date'] + ['year_month'] + [col for col in df.columns if col.startswith('r_')]
+        cols_to_keep = ['vintages_date'] + [col for col in df.columns if col.startswith('r_')]
     
     elif frequency == 'annual':
         # Step 1b: If frequency is annual, keep 'year' and all columns starting with 'r_'
