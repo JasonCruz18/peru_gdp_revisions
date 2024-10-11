@@ -1,28 +1,31 @@
-* Create a dialog box to select the frequency
-dialog define select_frequency
-    dialog setbutton "Annual" `=1'
-    dialog setbutton "Quarterly" `=2'
-    dialog setbutton "Monthly" `=3'
+* Ask the user to input the frequency
+display "Select the frequency for the dataset:"
+display "1. Annual"
+display "2. Quarterly"
+display "3. Monthly"
 
-dialog show select_frequency, title("Select the frequency")
+* Capture user input
+input freq
 
-* Capture the selection
-if r(button) == 1 {
+* Define the frequency based on user input
+local frequency = ""
+if `freq' == 1 {
     local frequency "annual"
 }
-else if r(button) == 2 {
+else if `freq' == 2 {
     local frequency "quarterly"
 }
-else if r(button) == 3 {
+else if `freq' == 3 {
     local frequency "monthly"
 }
 else {
-    display "Invalid selection. Please run the do-file again."
+    display "Invalid selection. Please select 1, 2, or 3 and rerun the do-file."
     exit
 }
 
-* Display the selection to the user
+* Display the selected frequency
 display "You have selected the frequency: `frequency'"
 
-* Save the frequency in a global macro
+* Save the frequency as a global macro
 global frequency `frequency'
+
