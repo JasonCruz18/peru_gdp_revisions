@@ -70,38 +70,37 @@ def calculate_cumulative_revisions(df):
 
 # Function to calculate cumulative revisions (2/2).
 #________________________________________________________________
+# def calculate_specific_cumulative_revisions(df, frequency):
+#     # Obtén los nombres de las variables con los sufijos especificados
+#     suffixes = ['_release_1', '_release_6', '_release_12', '_release_24', '_most_recent']
+#     variable_names = [col.replace(suffix, '') for col in df.columns for suffix in suffixes if col.endswith(suffix)]
+#     variable_names = list(set(variable_names))  # Eliminar duplicados
 
-def calculate_specific_cumulative_revisions(df, frequency):
-    # Obtén los nombres de las variables con los sufijos especificados
-    suffixes = ['_release_1', '_release_6', '_release_12', '_release_24', '_most_recent']
-    variable_names = [col.replace(suffix, '') for col in df.columns for suffix in suffixes if col.endswith(suffix)]
-    variable_names = list(set(variable_names))  # Eliminar duplicados
-
-    # Crear nuevas variables de revisión según la frecuencia
-    for variable in variable_names:
-        try:
-            if frequency == 'monthly':
-                # Verificar si las columnas existen para monthly
-                if all(f'{variable}{suffix}' in df.columns for suffix in ['_most_recent', '_release_12', '_release_6', '_release_1']):
-                    df[f'r_12_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_12']
-                    df[f'r_6_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_6']
-                    df[f'r_1_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_1']
-                else:
-                    print(f"Skipping {variable}: not all expected columns for 'monthly' are present.")
-            elif frequency in ['annual', 'quarterly']:
-                # Verificar si las columnas existen para annual o quarterly
-                if all(f'{variable}{suffix}' in df.columns for suffix in ['_most_recent', '_release_24', '_release_12', '_release_1']):
-                    df[f'r_24_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_24']
-                    df[f'r_12_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_12']
-                    df[f'r_1_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_1']
-                else:
-                    print(f"Skipping {variable}: not all expected columns for 'annual' or 'quarterly' are present.")
-            else:
-                print(f"Frequency {frequency} is not supported.")
-        except KeyError as e:
-            print(f"Error processing {variable}: {e}")
+#     # Crear nuevas variables de revisión según la frecuencia
+#     for variable in variable_names:
+#         try:
+#             if frequency == 'monthly':
+#                 # Verificar si las columnas existen para monthly
+#                 if all(f'{variable}{suffix}' in df.columns for suffix in ['_most_recent', '_release_12', '_release_6', '_release_1']):
+#                     df[f'r_12_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_12']
+#                     df[f'r_6_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_6']
+#                     df[f'r_1_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_1']
+#                 else:
+#                     print(f"Skipping {variable}: not all expected columns for 'monthly' are present.")
+#             elif frequency in ['annual', 'quarterly']:
+#                 # Verificar si las columnas existen para annual o quarterly
+#                 if all(f'{variable}{suffix}' in df.columns for suffix in ['_most_recent', '_release_24', '_release_12', '_release_1']):
+#                     df[f'r_24_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_24']
+#                     df[f'r_12_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_12']
+#                     df[f'r_1_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_1']
+#                 else:
+#                     print(f"Skipping {variable}: not all expected columns for 'annual' or 'quarterly' are present.")
+#             else:
+#                 print(f"Frequency {frequency} is not supported.")
+#         except KeyError as e:
+#             print(f"Error processing {variable}: {e}")
     
-    return df
+#     return df
 
 
 # Function to extract year or year_month based on the specified frequency
@@ -263,44 +262,47 @@ def remove_nan_or_zero_float_columns(df):
 
 # Function to converto to data panel
 #________________________________________________________________
-def convert_to_panel(df):
-    # Encontrar todos los sectores de las columnas
+def cum_convert_to_panel(df):
+    # Obtener todas las columnas del dataframe
     columns = df.columns
-    sectors = set()
     
-    # Utilizar expresiones regulares para encontrar patrones de columnas como "r_1_2_{sector}" o "r_1_{sector}"
-    pattern = re.compile(r'r_(?:\d+(_\d+)?)?_(.+)')
+    # Conjunto para almacenar los sectores únicos
+    sectors = set()
 
+    # Expresión regular para el patrón 'r_{i}_{sector}'
+    pattern = re.compile(r'r_(\d+)_(.+)')
+
+    # Identificar todos los sectores a partir de las columnas
     for col in columns:
         match = pattern.search(col)
         if match:
-            sectors.add(match.group(2))  # Extraer el nombre del sector
+            sectors.add(match.group(2))  # Extraer el sector y añadirlo al conjunto
 
     # Inicializar el DataFrame resultante en formato panel
     df_panel = pd.DataFrame()
 
-    # Para cada sector, hacer la conversión al formato largo (panel) y luego fusionar los resultados
+    # Para cada sector, transformar y fusionar los datos
     for sector in sectors:
-        # Extraer las columnas que pertenecen a este sector
-        sector_columns = [col for col in columns if sector in col]
+        # Filtrar las columnas que pertenecen a este sector
+        sector_columns = [col for col in columns if f'_{sector}' in col]
         
-        # Convertir las columnas del sector en formato largo
+        # Convertir las columnas del sector al formato largo
         sector_melted = pd.melt(df, id_vars=['vintages_date'], 
                                 value_vars=sector_columns, 
-                                var_name='revision', 
-                                value_name=sector)
+                                var_name='horizon', 
+                                value_name=f'e_{sector}')
         
-        # Limpiar la columna 'revision' para que contenga solo la revisión (ej: "r_1" o "r_1_2")
-        sector_melted['revision'] = sector_melted['revision'].str.replace(f'_{sector}', '', regex=False)
+        # Extraer el número de revisión y eliminar el nombre del sector del campo 'horizon'
+        sector_melted['horizon'] = sector_melted['horizon'].str.extract(r'r_(\d+)_')[0].astype(int)
 
         # Si es el primer sector, inicializar df_panel
         if df_panel.empty:
             df_panel = sector_melted
         else:
             # Fusionar el sector actual con el panel general
-            df_panel = pd.merge(df_panel, sector_melted, on=['vintages_date', 'revision'], how='outer')
+            df_panel = pd.merge(df_panel, sector_melted, on=['vintages_date', 'horizon'], how='outer')
 
-    return df_panel  # Asegurarse de retornar el DataFrame resultante
+    return df_panel
 
 
 # Function to replace "-" by "_" in columns
@@ -372,37 +374,37 @@ def calculate_intermediate_revisions(df):
 
 # Function to calculate intermediate revisions (2/2)
 #________________________________________________________________
-def calculate_specific_intermediate_revisions(df, frequency):
-    # Obtén los nombres de las variables con los sufijos especificados
-    suffixes = ['_release_1', '_release_6', '_release_12', '_release_24', '_most_recent']
-    variable_names = [col.replace(suffix, '') for col in df.columns for suffix in suffixes if col.endswith(suffix)]
-    variable_names = list(set(variable_names))  # Eliminar duplicados
+# def calculate_specific_intermediate_revisions(df, frequency):
+#     # Obtén los nombres de las variables con los sufijos especificados
+#     suffixes = ['_release_1', '_release_6', '_release_12', '_release_24', '_most_recent']
+#     variable_names = [col.replace(suffix, '') for col in df.columns for suffix in suffixes if col.endswith(suffix)]
+#     variable_names = list(set(variable_names))  # Eliminar duplicados
 
-    # Crear nuevas variables de revisión según la frecuencia
-    for variable in variable_names:
-        try:
-            if frequency == 'monthly':
-                # Verificar si las columnas existen para monthly
-                if all(f'{variable}{suffix}' in df.columns for suffix in ['_most_recent', '_release_12', '_release_6', '_release_1']):
-                    df[f'r_12_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_12']
-                    df[f'r_6_12_{variable}'] = df[f'{variable}_release_12'] - df[f'{variable}_release_6']
-                    df[f'r_1_6_{variable}'] = df[f'{variable}_release_6'] - df[f'{variable}_release_1']
-                else:
-                    print(f"Skipping {variable}: not all expected columns for 'monthly' are present.")
-            elif frequency in ['annual', 'quarterly']:
-                # Verificar si las columnas existen para annual o quarterly
-                if all(f'{variable}{suffix}' in df.columns for suffix in ['_most_recent', '_release_24', '_release_12', '_release_1']):
-                    df[f'r_24_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_24']
-                    df[f'r_12_24_{variable}'] = df[f'{variable}_release_24'] - df[f'{variable}_release_12']
-                    df[f'r_1_12_{variable}'] = df[f'{variable}_release_12'] - df[f'{variable}_release_1']
-                else:
-                    print(f"Skipping {variable}: not all expected columns for 'annual' or 'quarterly' are present.")
-            else:
-                print(f"Frequency {frequency} is not supported.")
-        except KeyError as e:
-            print(f"Error processing {variable}: {e}")
+#     # Crear nuevas variables de revisión según la frecuencia
+#     for variable in variable_names:
+#         try:
+#             if frequency == 'monthly':
+#                 # Verificar si las columnas existen para monthly
+#                 if all(f'{variable}{suffix}' in df.columns for suffix in ['_most_recent', '_release_12', '_release_6', '_release_1']):
+#                     df[f'r_12_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_12']
+#                     df[f'r_6_12_{variable}'] = df[f'{variable}_release_12'] - df[f'{variable}_release_6']
+#                     df[f'r_1_6_{variable}'] = df[f'{variable}_release_6'] - df[f'{variable}_release_1']
+#                 else:
+#                     print(f"Skipping {variable}: not all expected columns for 'monthly' are present.")
+#             elif frequency in ['annual', 'quarterly']:
+#                 # Verificar si las columnas existen para annual o quarterly
+#                 if all(f'{variable}{suffix}' in df.columns for suffix in ['_most_recent', '_release_24', '_release_12', '_release_1']):
+#                     df[f'r_24_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_24']
+#                     df[f'r_12_24_{variable}'] = df[f'{variable}_release_24'] - df[f'{variable}_release_12']
+#                     df[f'r_1_12_{variable}'] = df[f'{variable}_release_12'] - df[f'{variable}_release_1']
+#                 else:
+#                     print(f"Skipping {variable}: not all expected columns for 'annual' or 'quarterly' are present.")
+#             else:
+#                 print(f"Frequency {frequency} is not supported.")
+#         except KeyError as e:
+#             print(f"Error processing {variable}: {e}")
     
-    return df
+#     return df
 
 
 # Function to convert to panel data
@@ -435,7 +437,7 @@ def int_convert_to_panel(df):
         sector_melted = pd.melt(df, id_vars=['vintages_date'], 
                                 value_vars=sector_columns, 
                                 var_name='horizon', 
-                                value_name=sector)
+                                value_name=f'r_{sector}')
         
         # Extraer el número de revisión y eliminar el nombre del sector del campo 'horizon'
         sector_melted['horizon'] = sector_melted['horizon'].str.extract(r'r_(\d+)_')[0].astype(int)
