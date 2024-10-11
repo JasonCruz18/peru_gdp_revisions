@@ -1,5 +1,5 @@
 	/********************
-	Efficiency cross sectors
+	Efficiency Cross-Sectors
 	***
 
 			Author
@@ -116,3 +116,12 @@
 		/*----------------------
 		Regression (nowcast error)
 		-----------------------*/
+		
+			* Run
+			//xtreg r_gdp_x r_gdp_y, fe vce(cluster target_date)
+			//xtreg r_gdp_x L1.r_gdp_y L2.r_gdp_y, fe vce(cluster target_date)
+			
+			newey r_gdp_x L1.r_gdp_y L2.r_gdp_y, lag(2) force
+		
+		
+		

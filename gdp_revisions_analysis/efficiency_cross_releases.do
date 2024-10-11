@@ -1,5 +1,5 @@
 	/********************
-	Efficiency cross sectors
+	Efficiency Cross-Releases
 	***
 
 			Author
@@ -7,7 +7,7 @@
 			Jason Cruz
 			*********************/
 
-			*** Program: efficiency_cross_sectors.do
+			*** Program: efficiency_cross_releases.do
 			** 	First Created: 10/11/24
 			** 	Last Updated:  10/11/24
 				
@@ -122,6 +122,3 @@
 			//xtreg r_gdp_x L1.r_gdp_y L2.r_gdp_y, fe vce(cluster target_date)
 			
 			newey r_gdp_x L1.r_gdp_y L2.r_gdp_y, lag(2) force
-		
-		
-		
