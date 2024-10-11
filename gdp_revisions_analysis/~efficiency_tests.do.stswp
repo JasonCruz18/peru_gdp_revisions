@@ -72,9 +72,6 @@ Efficiency Tests
 	-----------------------*/
 		
 		
-	* Calling the do-file that selects the frequency
-	do select_frequency.do	
-		
 	odbc load, exec("select * from sectorial_gdp_monthly_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Loads data from PostgresSQL using ODBC.
 		
 	
