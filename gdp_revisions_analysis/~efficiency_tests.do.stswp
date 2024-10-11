@@ -67,7 +67,7 @@ Efficiency Tests
 		
 		
 	/*----------------------
-	Import ODBC merged dataset and
+	Import ODBC dataset and
 	save temp
 	-----------------------*/
 		
@@ -75,7 +75,7 @@ Efficiency Tests
 	odbc load, exec("select * from sectorial_gdp_monthly_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Loads data from PostgresSQL using ODBC.
 		
 	
-	save temp_data, replace
+	save temp_panel_data, replace
 
 
 	
@@ -84,7 +84,7 @@ Efficiency Tests
 	-----------------------*/
 
 	
-	use temp_data.dta, clear
+	use temp_panel_data, clear
 
 	
 		* Order and sort
@@ -160,6 +160,19 @@ Efficiency Tests
 			newey e_`var' r_L1.`var' r_L2.`var', lag(2) force // Using Newey-West
 		}
 		
+	
+	
+	/*----------------------
+	Import ODBC dataset and
+	save temp
+	-----------------------*/
+		
+		
+	odbc load, exec("select * from sectorial_gdp_monthly_int_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Loads data from PostgresSQL using ODBC.
+		
+	
+	save temp_inter_panel_data, replace
+		
 		
 		
 	/*----------------------
@@ -168,6 +181,9 @@ Efficiency Tests
 	-----------------------*/
 	
 	
+	use temp_inter_panel_data, clear
+	
+		
 		* Extract all variables that start with 'r_'
 		
 		ds r_*

@@ -9,7 +9,7 @@ Variance Bounds Tests
 
 		*** Program: variance_bounds_tests.do
 		** 	First Created: 09/15/24
-		** 	Last Updated:  10/03/24
+		** 	Last Updated:  10/11/24
 			
 	***
 	** Just click on the "Run (do)" button, the code will do the rest for you.
@@ -34,7 +34,7 @@ Variance Bounds Tests
 	pause on 				// Enables pauses in programs.
 	set varabbrev off 		// Turns off variable abbreviation.
 			
-	//log using twin_deficits_weo_wdi.txt, text replace // Opens a log file and replaces it if it exists.
+	//log using efficiency_tests.txt, text replace // Opens a log file and replaces it if it exists.
 
 	
 
@@ -70,37 +70,141 @@ Variance Bounds Tests
 	Import ODBC merged dataset and
 	save temp
 	-----------------------*/
-											
-	odbc load, exec("select * from cum_monthly_fixed_event_part_0") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Loads WEO, WDI and PF merged from PostgresSQL using ODBC.
+		
+		
+	odbc load, exec("select * from sectorial_gdp_monthly_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Loads data from PostgresSQL using ODBC.
 		
 	
-	save fixed_event_temp, replace
+	save temp_data, replace
 
 
 	
 	/*----------------------
-	calculate absolute value
-	and square of regressor
+	On-the-fly data cleaning
 	-----------------------*/
-	
-	* Abs value
-	gen abs_electricity_2020_01 = abs(electricity_2020_01)
-
-	* Square
-	gen square_electricity_2020_01 = electricity_2020_01^2
 
 	
+	use temp_data.dta, clear
+
+	
+		* Order and sort
+		
+		sort vintages_date horizon // Key step to set both the ID and time vars for panel data.
+
+		
+		* At a glance (inspect data)
+
+		d // Check entire dataset vars to understand its structure.
+		sum // Summarize stats for all vars in the dataset (mean, standard deviation, etc.).
+		count // Count the total number of observations, expected to be 6,696.
+
+		
+		* Fixing date format
+		
+		gen numeric_date = dofc(vintages_date) // To a Stata date in days.
+		format numeric_date %td // To standard Stata date (e.g., day-month-year).
+
+		gen target_date = mofd(numeric_date) // To a monthly date format.
+		format target_date %tm // To standard Stata month (e.g., Jan 2023).
+
+		drop vintages_date numeric_date // Drop the original vars since they are no longer needed.
+
+		order target_date horizon // Reorder vars so that 'target_date' and 'horizon' appear first in the dataset.
+
+		
+		
 	/*----------------------
-	OLS Regression
+	Regression (nowcast error)
 	-----------------------*/
 	
-	// Please, install Newey if is needed
 	
-	//ssc install ivreg2
+		* Setting up the panel data structure
+		
+		xtset target_date horizon // Using 'target_date' as the time var and 'horizon' as the panel id.
+		
+		
+		* Create a list of variables that start with "e_"
+		ds e_*
+
+		
+		* Extract the suffixes after "e_" to build the list of sectors
+		
+		local sectors
+		
+		foreach var of varlist e_* {
+			local suffix = substr("`var'", 3, .)  // Extract the suffix (sector)
+			local sectors `sectors' `suffix'
+		}
+
+		
+		* Verify the extracted list of sectors
+		di "Sectors found: `sectors'"
+
+		
+		* Standard errors NOT corrected
+		** Run fixed effects regression
+		*** Loop through each sector and run regressions
+		foreach var in `sectors' {
+			
+			**** Run regression for each sector
+			xtreg e_`var' r_L1.`var' r_L2.`var', fe
+		}
 	
-	* Run the regression
 	
-	ivreg2 abs_electricity_2020_01 time_trend, robust
+		* Standard errors corrected for Newey West
+		** Run regression
+		*** Loop through each sector and run regressions
+		foreach var of varlist r_* {
+			
+			**** Run regression for each sector
+			newey e_`var' r_L1.`var' r_L2.`var', lag(2) force // Using Newey-West
+		}
+		
+		
+		
+	/*----------------------
+	Regression (intermediate
+	revisions)
+	-----------------------*/
+	
+	
+		* Extract all variables that start with 'r_'
+		
+		ds r_*
+		
+		
+		* Standard errors NOT corrected
+		** Run fixed effects regression
+		*** Loop through each sector and run regressions
+		foreach var of varlist r_* {
+			
+			**** Run regression for each sector
+			xtreg `var' L1.`var' L2.`var', fe // Run fixed effects regression for the current sector
+		} 
+		
+		
+		* Standard errors corrected for Newey West
+		** Run regression
+		*** Loop through each sector and run regressions
+		foreach var of varlist r_* {
+			
+			**** Run regression for each sector
+			newey `var' L1.`var' L2.`var', lag(2) force // Using Newey-West
+		}
+		
+		
+		
+	/*----------------------
+	Drop aux data (.dta)
+	-----------------------*/	
+
+	// List all .dta files in the current directory and store in a local macro
+	local dta_files : dir . files "*.dta"
+
+	// Iterate over each .dta file and delete it
+	foreach file of local dta_files {
+		erase "`file'"
+	}	
 
 	
 	
