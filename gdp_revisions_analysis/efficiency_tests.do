@@ -72,7 +72,7 @@ Efficiency Tests
 	-----------------------*/
 		
 		
-	odbc load, exec("select * from sectorial_gdp_monthly_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Loads data from PostgresSQL using ODBC.
+	odbc load, exec("select * from sectorial_gdp_monthly_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
 	save temp_panel_data, replace
@@ -168,7 +168,7 @@ Efficiency Tests
 	-----------------------*/
 		
 		
-	odbc load, exec("select * from sectorial_gdp_monthly_int_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Loads data from PostgresSQL using ODBC.
+	odbc load, exec("select * from sectorial_gdp_monthly_int_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
 	save temp_inter_panel_data, replace

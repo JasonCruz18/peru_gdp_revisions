@@ -72,7 +72,7 @@ Variance Bounds Tests
 	-----------------------*/
 		
 		
-	odbc load, exec("select * from sectorial_gdp_annual_cum_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Loads data from PostgresSQL using ODBC.
+	odbc load, exec("select * from sectorial_gdp_annual_cum_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
 	save temp_cum_panel_data, replace
