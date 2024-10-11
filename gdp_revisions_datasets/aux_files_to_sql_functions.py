@@ -145,7 +145,8 @@ def keep_revisions(df, frequency):
     
     elif frequency == 'annual':
         # Step 1b: If frequency is annual, keep 'year' and all columns starting with 'r_'
-        cols_to_keep = ['year'] + [col for col in df.columns if col.startswith('r_')]
+        #cols_to_keep = ['year'] + [col for col in df.columns if col.startswith('r_')]
+        cols_to_keep = ['vintages_date'] + [col for col in df.columns if col.startswith('r_')]
     
     else:
         # Step 2: Raise an error if the frequency argument is invalid
