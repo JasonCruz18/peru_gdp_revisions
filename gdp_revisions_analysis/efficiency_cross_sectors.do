@@ -1,5 +1,5 @@
 	/********************
-	Benchmark Frequency Revisions
+	Efficiency cross sectors
 	***
 
 			Author
@@ -7,7 +7,7 @@
 			Jason Cruz
 			*********************/
 
-			*** Program: benchmark_frequency_revisions.do
+			*** Program: efficiency_cross_sectors.do
 			** 	First Created: 10/11/24
 			** 	Last Updated:  10/11/24
 				
@@ -72,7 +72,7 @@
 		-----------------------*/
 			
 			
-		odbc load, exec("select * from sectorial_gdp_monthly_revisions_panel_cross_frequency") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+		odbc load, exec("select * from sectorial_gdp_monthly_int_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 			
 		
 		save temp_panel_data, replace
@@ -116,31 +116,3 @@
 		/*----------------------
 		Regression (nowcast error)
 		-----------------------*/
-		
-		
-			* Setting up the panel data structure
-			
-			xtset target_date horizon // Using 'target_date' as the time var and 'horizon' as the panel id.
-			
-			
-			* Run
-			//xtreg r_gdp_x r_gdp_y, fe vce(cluster target_date)
-			//xtreg r_gdp_x L1.r_gdp_y L2.r_gdp_y, fe vce(cluster target_date)
-			
-			newey r_gdp_x L1.r_gdp_y L2.r_gdp_y, lag(2) force
-			newey r_commerce_x L1.r_commerce_y L2.r_commerce_y, lag(2) force
-			newey r_services_x L1.r_services_y L2.r_services_y, lag(2) force
-			newey r_mining_x L1.r_mining_y L2.r_mining_y, lag(2) force
-			newey r_electricity_x L1.r_electricity_y L2.r_electricity_y, lag(2) force
-			newey r_agriculture_x L1.r_agriculture_y L2.r_agriculture_y, lag(2) force
-			newey r_construction_x L1.r_construction_y L2.r_construction_y, lag(2) force
-			newey r_fishing_x L1.r_fishing_y L2.r_fishing_y, lag(2) force
-			newey r_manufacturing_x L1.r_manufacturing_y L2.r_manufacturing_y, lag(2) force
-			
-				
-				
-				
-				
-				
-				
-				
