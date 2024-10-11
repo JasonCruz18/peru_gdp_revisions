@@ -67,15 +67,15 @@ Variance Bounds Tests
 		
 		
 	/*----------------------
-	Import ODBC merged dataset and
+	Import ODBC dataset and
 	save temp
 	-----------------------*/
 		
 		
-	odbc load, exec("select * from sectorial_gdp_monthly_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Loads data from PostgresSQL using ODBC.
+	odbc load, exec("select * from sectorial_gdp_monthly_cum_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Loads data from PostgresSQL using ODBC.
 		
 	
-	save temp_data, replace
+	save temp_cum_panel_data, replace
 
 
 	
@@ -84,7 +84,7 @@ Variance Bounds Tests
 	-----------------------*/
 
 	
-	use temp_data.dta, clear
+	use temp_cum_panel_data.dta, clear
 
 	
 		* Order and sort
@@ -110,11 +110,21 @@ Variance Bounds Tests
 		drop vintages_date numeric_date // Drop the original vars since they are no longer needed.
 
 		order target_date horizon // Reorder vars so that 'target_date' and 'horizon' appear first in the dataset.
+		
+		
+		* Generate time-trend var
+		
+		** Get max value from horizon
+		egen max_horizon = max(horizon)
+		
+		** Gen new var as the difference between max_horizon and horizon
+		gen time_trend = max_horizon - horizon // This is a kind of trend var (H-j)
+		
 
 		
-		
 	/*----------------------
-	Regression (nowcast error)
+	Regression (nowcast error
+	abs value) [1/2]
 	-----------------------*/
 	
 	
@@ -123,75 +133,85 @@ Variance Bounds Tests
 		xtset target_date horizon // Using 'target_date' as the time var and 'horizon' as the panel id.
 		
 		
-		* Create a list of variables that start with "e_"
+		* Extract all variables that start with 'e_'
+		
 		ds e_*
-
-		
-		* Extract the suffixes after "e_" to build the list of sectors
-		
-		local sectors
-		
-		foreach var of varlist e_* {
-			local suffix = substr("`var'", 3, .)  // Extract the suffix (sector)
-			local sectors `sectors' `suffix'
-		}
-
-		
-		* Verify the extracted list of sectors
-		di "Sectors found: `sectors'"
-
-		
-		* Standard errors NOT corrected
-		** Run fixed effects regression
-		*** Loop through each sector and run regressions
-		foreach var in `sectors' {
-			
-			**** Run regression for each sector
-			xtreg e_`var' r_L1.`var' r_L2.`var', fe
-		}
 	
 	
 		* Standard errors corrected for Newey West
-		** Run regression
+		** Run regression (abs value)
 		*** Loop through each sector and run regressions
-		foreach var of varlist r_* {
+		foreach var of varlist e_* {
+    
+			**** Create a new variable with the absolute value
+			gen abs_`var' = abs(`var')
 			
-			**** Run regression for each sector
-			newey e_`var' r_L1.`var' r_L2.`var', lag(2) force // Using Newey-West
+			**** Run the Newey-West regression
+			newey abs_`var' time_trend, lag(2) force
 		}
 		
+		
+		* Standard errors corrected for Newey West
+		** Run regression (square)
+		*** Loop through each sector and run regressions
+		foreach var of varlist e_* {
+
+			**** Create a new variable with the squared value
+			gen sq_`var' = `var'^2
+
+			**** Run the Newey-West regression with the squared variable
+			newey sq_`var' time_trend, lag(2) force
+		}
+				
 		
 		
 	/*----------------------
-	Regression (intermediate
-	revisions)
+	Regression (nowcast error
+	abs value) [2/2]
 	-----------------------*/
 	
 	
-		* Extract all variables that start with 'r_'
+		* Setting up the panel data structure
 		
-		ds r_*
+		xtset target_date horizon // Using 'target_date' as the time var and 'horizon' as the panel id.
 		
 		
-		* Standard errors NOT corrected
-		** Run fixed effects regression
+		* Extract all variables that start with 'e_'
+		
+		ds e_*
+		
+		
+		* Gen square of time trend varabbrev
+		
+		gen sq_time_trend = time_trend^2
+	
+	
+		* Standard errors corrected for Newey West
+		** Run regression (abs value)
 		*** Loop through each sector and run regressions
-		foreach var of varlist r_* {
+		foreach var of varlist e_* {
+    
+			**** Create a new variable with the absolute value
+			gen abs_`var' = abs(`var')
 			
-			**** Run regression for each sector
-			xtreg `var' L1.`var' L2.`var', fe // Run fixed effects regression for the current sector
-		} 
+			**** Run the Newey-West regression
+			newey abs_`var' sq_time_trend, lag(2) force
+		}
 		
 		
 		* Standard errors corrected for Newey West
-		** Run regression
+		** Run regression (square)
 		*** Loop through each sector and run regressions
-		foreach var of varlist r_* {
-			
-			**** Run regression for each sector
-			newey `var' L1.`var' L2.`var', lag(2) force // Using Newey-West
+		foreach var of varlist e_* {
+
+			**** Create a new variable with the squared value
+			gen sq_`var' = `var'^2
+
+			**** Run the Newey-West regression with the squared variable
+			newey sq_`var' sq_time_trend, lag(2) force
 		}
-		
+	
+
 		
 		
 	/*----------------------
