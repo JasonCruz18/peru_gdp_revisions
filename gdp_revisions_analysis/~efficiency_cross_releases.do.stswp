@@ -55,7 +55,7 @@
 		shell mkdir "output" 			// Creates folder to save outputs.
 		//shell mkdir "output/graphs" 	// Creates folder to save graphs.
 		shell mkdir "output/tables" 	// Creates folder to save tables.
-		//shell mkdir "output/data" 		// Creates folder to save data.
+		//shell mkdir "output/data" 	// Creates folder to save data.
 			
 		
 		* Set as global vars
