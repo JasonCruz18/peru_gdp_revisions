@@ -70,7 +70,8 @@ Efficiency Tests
 	Import ODBC merged dataset and
 	save temp
 	-----------------------*/
-											
+		
+		
 	odbc load, exec("select * from sectorial_gdp_monthly_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Loads data from PostgresSQL using ODBC.
 		
 	
@@ -79,36 +80,110 @@ Efficiency Tests
 
 	
 	/*----------------------
-	Cleaning dataset
+	On-the-fly data cleaning
 	-----------------------*/
 
+	
 	use temp_data.dta, clear
 
 		* Order and sort
 		
-		order country year
-		sort country year
+		sort vintages_date horizon // Key step to set both the ID and time vars for panel data.
+
+		* At a glance (inspect data)
+
+		d // Check entire dataset vars to understand its structure.
+		sum // Summarize stats for all vars in the dataset (mean, standard deviation, etc.).
+		count // Count the total number of observations, expected to be 6,696.
+
+		* Fixing date format
 		
-		
-		* At a glance
-		
-		d // Check entire dataset variables.
-		sum // Summarize stats for entire dataset variables.
-		count // How many obs?: 8,624.
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
+		gen numeric_date = dofc(vintages_date) // To a Stata date in days.
+		format numeric_date %td // To standard Stata date (e.g., day-month-year).
+
+		gen target_date = mofd(numeric_date) // To a monthly date format.
+		format target_date %tm // To standard Stata month (e.g., Jan 2023).
+
+		drop vintages_date numeric_date // Drop the original vars since they are no longer needed.
+
+		order target_date horizon // Reorder vars so that 'target_date' and 'horizon' appear first in the dataset.
+
 		
 		
 	/*----------------------
-	Drop aux data .dta
+	Regression (nowcast error)
+	-----------------------*/
+	
+		* Setting up the panel data structure
+		
+		xtset target_date horizon // Using 'target_date' as the time var and 'horizon' as the panel id.
+		
+		* Extract all variables that start with 'r_'
+		
+		ds r_*
+
+		* Standard errors NOT corrected for HAC
+
+		** Run fixed effects regression
+		
+		*** Loop through each sector and run regressions
+		foreach var of varlist r_* {
+			
+			**** Run regression for each sector
+			xtreg `var' L1.`var' L2.`var', fe // Run fixed effects regression for the current sector
+		} 
+		
+		* Standard errors corrected for HAC
+		
+		** Run fixed effects regression
+		
+		*** Loop through each sector and run regressions
+		foreach var of varlist r_* {
+			
+			**** Run regression for each sector
+			xtreg `var' L1.`var' L2.`var', fe vce(robust) // Run fixed effects regression for the current sector
+		} 
+		
+		
+	
+	/*----------------------
+	Regression (intermediate
+	revisions)
+	-----------------------*/
+	
+		* Setting up the panel data structure
+		
+		xtset target_date horizon // Using 'target_date' as the time var and 'horizon' as the panel id.
+		
+		* Extract all variables that start with 'r_'
+		
+		ds r_*
+
+		* Standard errors NOT corrected for HAC
+
+		** Run fixed effects regression
+		
+		*** Loop through each sector and run regressions
+		foreach var of varlist r_* {
+			
+			**** Run regression for each sector
+			xtreg `var' L1.`var' L2.`var', fe // Run fixed effects regression for the current sector
+		} 
+		
+		* Standard errors corrected for HAC
+		
+		** Run fixed effects regression
+		
+		*** Loop through each sector and run regressions
+		foreach var of varlist r_* {
+			
+			**** Run regression for each sector
+			xtreg `var' L1.`var' L2.`var', fe vce(cluster horizon)// Run fixed effects regression for the current sector
+		} 
+
+		
+	/*----------------------
+	Drop aux data (.dta)
 	-----------------------*/	
 
 	// List all .dta files in the current directory and store in a local macro
@@ -120,6 +195,12 @@ Efficiency Tests
 	}	
 		
 		
+		xtreg r_gdp L1.r_gdp L2.r_gdp, fe 
+		
+		
+		estimates store aux_results
+		
+		estimates table aux_results
 		
 		
 		
