@@ -359,7 +359,7 @@ def calculate_intermediate_revisions(df):
         
         if last_release_col in df.columns and most_recent_col in df.columns:
             # Modificar el nombre de la columna según lo solicitado
-            new_column_name = f"r_{max_release}_most_recent_{variable}"
+            new_column_name = f"r_{max_release +1}_{variable}"
             new_columns.append((new_column_name, df[most_recent_col] - df[last_release_col]))
     
     # Concatenar todas las nuevas columnas al DataFrame
@@ -403,4 +403,49 @@ def calculate_specific_intermediate_revisions(df, frequency):
             print(f"Error processing {variable}: {e}")
     
     return df
+
+
+# Function to convert to panel data
+#________________________________________________________________
+def int_convert_to_panel(df):
+    # Obtener todas las columnas del dataframe
+    columns = df.columns
+    
+    # Conjunto para almacenar los sectores únicos
+    sectors = set()
+
+    # Expresión regular para el patrón 'r_{i}_{sector}'
+    pattern = re.compile(r'r_(\d+)_(.+)')
+
+    # Identificar todos los sectores a partir de las columnas
+    for col in columns:
+        match = pattern.search(col)
+        if match:
+            sectors.add(match.group(2))  # Extraer el sector y añadirlo al conjunto
+
+    # Inicializar el DataFrame resultante en formato panel
+    df_panel = pd.DataFrame()
+
+    # Para cada sector, transformar y fusionar los datos
+    for sector in sectors:
+        # Filtrar las columnas que pertenecen a este sector
+        sector_columns = [col for col in columns if f'_{sector}' in col]
+        
+        # Convertir las columnas del sector al formato largo
+        sector_melted = pd.melt(df, id_vars=['vintages_date'], 
+                                value_vars=sector_columns, 
+                                var_name='horizon', 
+                                value_name=sector)
+        
+        # Extraer el número de revisión y eliminar el nombre del sector del campo 'horizon'
+        sector_melted['horizon'] = sector_melted['horizon'].str.extract(r'r_(\d+)_')[0].astype(int)
+
+        # Si es el primer sector, inicializar df_panel
+        if df_panel.empty:
+            df_panel = sector_melted
+        else:
+            # Fusionar el sector actual con el panel general
+            df_panel = pd.merge(df_panel, sector_melted, on=['vintages_date', 'horizon'], how='outer')
+
+    return df_panel
 
