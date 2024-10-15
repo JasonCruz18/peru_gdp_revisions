@@ -72,7 +72,7 @@
 		-----------------------*/
 			
 			
-		odbc load, exec("select * from sectorial_gdp_annual_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+		odbc load, exec("select * from sectorial_gdp_monthly_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 			
 		
 		save temp_panel_data, replace
@@ -112,16 +112,26 @@
 			order target_date horizon // Reorder vars so that 'target_date' and 'horizon' appear first in the dataset.
 
 			
-					
+		
+		
 		/*----------------------
-		Regression (nowcast error)
-		-----------------------*/
+		 Regression
+		 (nowcast error)
+		 ----------------------*/
 
 		/* Definir la estructura de datos de panel */
 		xtset target_date horizon
 
 		/* Limpiar cualquier estimación previa */
 		estimates clear
+
+		/* Verificar si el archivo ya está abierto y cerrarlo si es necesario */
+		capture file close myfile
+
+		/* Crear o abrir el archivo de salida LaTeX */
+		file open myfile using "error_m", write replace
+		file write myfile "{\small \begin{tabular}{lcc} \hline" _n
+		file write myfile "Variable & (1) & (2) \\ \hline" _n
 
 		/* Loop para correr las regresiones */
 		foreach var of varlist e_* {
@@ -131,50 +141,39 @@
 			/* Correr la regresión de efectos fijos */
 			xtreg `var' L1.r_`suffix' L2.r_`suffix', fe vce(cluster target_date)
 			
-			test (L1.r_`suffix' = 0) (L2.r_`suffix' = 0) (_cons = 0)
+			estimates store FEC_`suffix'  // Guardar los resultados de FE
 			
-			estimates store FE_`suffix'  // Guardar los resultados de FE
-
+			/* Correr la regresión de efectos fijos DK */
+			// ssc install xtscc
+			xtscc `var' L1.r_`suffix' L2.r_`suffix', fe
+			
+			estimates store FEDK_`suffix'  // Guardar los resultados de FE
+			
 			/* Correr la regresión de efectos aleatorios */
 			xtreg `var' L1.r_`suffix' L2.r_`suffix', re vce(cluster target_date)
+					
+			estimates store REC_`suffix'  // Guardar los resultados de RE
 			
-			test (L1.r_`suffix' = 0) (L2.r_`suffix' = 0) (_cons = 0)
 			
-			estimates store RE_`suffix'  // Guardar los resultados de RE
+			/* Correr la regresión de efectos fijos DK*/
+			// ssc install xtscc
+			xtscc `var' L1.r_`suffix' L2.r_`suffix', re
+			
+			estimates store REDK_`suffix'  // Guardar los resultados de FE
+			
+			/* Reportar resultados usando esttab */
+			/* Esttab para mostrar coeficientes, intercepto y test F */
+			esttab FEC_`suffix' FEDK_`suffix' REC_`suffix' REDK_`suffix' using "error_m.txt", append ///
+				b(%9.3f) se(%9.3f) scalars(F chi2 p) ///
+				order(_cons L1.r_`suffix' L2.r_`suffix') ///
+				varlabels(_cons "Intercepto" L1.r_`suffix' "L1" L2.r_`suffix' "L2")
 		}
 
-		/* Guardar los resultados de las tablas en un archivo .txt */
-		/* Modificación: usar append para combinar los resultados en filas */
-		esttab FE_* RE_* using results.txt, replace ///
-		se scalars(F p) compress
-		
-		test (L1.r_`suffix' = 0) (L2.r_`suffix' = 0) (_cons = 0)
-
-
-
+		/* Cerrar el archivo de salida */
+		file write myfile "\\hline \\end{tabular}}" _n
+		file close myfile
 
 				
-		
-
-
- 
-
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			**** Aux
-				
-			estout, cells(b(star fmt(3)) se(par fmt(3)))
-				
-			collect layout (colname)
 		
 			/*----------------------
 			Post-estimation inspection
