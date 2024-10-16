@@ -112,6 +112,14 @@ Efficiency Tests
 		order target_date horizon // Reorder vars so that 'target_date' and 'horizon' appear first in the dataset.
 
 		
+		/* Definir la estructura de datos de panel */
+		xtset target_date horizon
+
+		
+		* global
+		
+		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
+	
 	
 	
 	/*----------------------
@@ -119,12 +127,6 @@ Efficiency Tests
 	 (nowcast error)
 	 ----------------------*/
 
-		/* Definir la estructura de datos de panel */
-		xtset target_date horizon
-
-		* global
-		
-		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
 		
 		/* Limpiar cualquier estimación previa */
 		estimates clear
@@ -172,9 +174,6 @@ Efficiency Tests
 	revisions)
 	-----------------------*/
 		
-		
-		* Standard errors NOT corrected
-		** Run fixed effects regression
 		
 		/* Limpiar cualquier estimación previa */
 		estimates clear
