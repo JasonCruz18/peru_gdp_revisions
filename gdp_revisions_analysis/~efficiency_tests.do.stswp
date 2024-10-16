@@ -161,6 +161,7 @@ Efficiency Tests
 				order(_cons) longtable ///
 				varlabels(_cons "Intercepto" L.r_`sector' "r(-1)" L2.r_`sector' "r(-2)") ///
 				noobs ///
+				star(* 0.1 ** 0.05 *** 0.01) ///
 				tex
 		}
 	
@@ -210,6 +211,7 @@ Efficiency Tests
 				order(_cons) longtable ///
 				varlabels(_cons "Intercepto" L.r_`sector' "r(-1)" L2.r_`sector' "r(-2)") ///
 				noobs ///
+				star(* 0.1 ** 0.05 *** 0.01) ///
 				tex
 		}
 	
