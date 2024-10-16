@@ -72,7 +72,7 @@ Efficiency Tests
 	-----------------------*/
 		
 		
-	odbc load, exec("select * from sectorial_gdp_monthly_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+	odbc load, exec("select * from sectorial_gdp_annual_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
 	save temp_panel_data, replace
@@ -217,7 +217,7 @@ Efficiency Tests
 	
 	
 	/*----------------------
-	Drop aux data (.dta)
+	Drop aux data and tables
 	-----------------------*/	
 
 		// List all .dta, .txt and .tex files in the current directory and store in a local macro

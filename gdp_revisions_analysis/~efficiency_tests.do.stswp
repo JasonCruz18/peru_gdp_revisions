@@ -217,7 +217,7 @@ Efficiency Tests
 	
 	
 	/*----------------------
-	Drop aux data (.dta)
+	Drop aux data and tables
 	-----------------------*/	
 
 		// List all .dta, .txt and .tex files in the current directory and store in a local macro
