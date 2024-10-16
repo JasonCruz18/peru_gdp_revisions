@@ -130,7 +130,7 @@
 		estimates clear
 		
 		/* Loop para correr las regresiones */
-		foreach sector of ${sectors} {
+		foreach sector of global sectors {
 			
 			/* Correr la regresión de efectos fijos */
 			xtreg e_`sector' L1.r_`sector' L2.r_`sector', fe vce(cluster target_date)
