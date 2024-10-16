@@ -156,11 +156,12 @@ Efficiency Tests
 			
 			/* Reportar resultados usando esttab */
 			/* Esttab para mostrar coeficientes, intercepto y test F */
-			esttab FEC_`sector' FEDK_`sector' REC_`sector' REDK_`sector' using "error_m.txt", append ///
+			esttab FEC_`sector' FEDK_`sector' REC_`sector' REDK_`sector' using "error.tex", append ///
 				b(%9.3f) se(%9.3f) scalars(F chi2 p) ///
 				order(_cons) longtable ///
 				varlabels(_cons "Intercepto" L.r_`sector' "r(-1)" L2.r_`sector' "r(-2)") ///
-				noobs
+				noobs ///
+				tex
 		}
 	
 			
