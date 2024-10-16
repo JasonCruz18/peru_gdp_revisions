@@ -120,47 +120,61 @@ Variance Bounds Tests
 		** Gen new var as the difference between max_horizon and horizon
 		gen time_trend = max_horizon - horizon // This is a kind of trend var (H-j)
 		
+		
+		/* Definir la estructura de datos de panel */
+		xtset target_date horizon
+
+		
+		* global
+		
+		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
 
 		
 	/*----------------------
 	Regression (nowcast error
 	abs value) [1/2]
 	-----------------------*/
-	
-	
-		* Setting up the panel data structure
-		
-		xtset target_date horizon // Using 'target_date' as the time var and 'horizon' as the panel id.
 		
 		
-		* Extract all variables that start with 'e_'
+		/* Limpiar cualquier estimación previa */
+		estimates clear
 		
-		ds e_*
-	
-	
-		* Standard errors corrected for Newey West
-		** Run regression (abs value)
-		*** Loop through each sector and run regressions
-		foreach var of varlist e_* {
-    
-			**** Create a new variable with the absolute value
-			gen abs_`var' = abs(`var')
+		/* Loop para correr las regresiones */
+		foreach sector of global sectors {
 			
-			**** Run the Newey-West regression
-			newey abs_`var' time_trend, lag(2) force
-		}
-		
-		
-		* Standard errors corrected for Newey West
-		** Run regression (square)
-		*** Loop through each sector and run regressions
-		foreach var of varlist e_* {
-
-			**** Create a new variable with the squared value
-			gen sq_`var' = `var'^2
-
-			**** Run the Newey-West regression with the squared variable
-			newey sq_`var' time_trend, lag(2) force
+			gen log_abs_e_`sector' = ln(abs(e_`sector'))
+			
+			/* Correr la regresión de efectos fijos */
+			xtreg log_abs_e_`sector' time_trend, fe vce(cluster target_date)
+			
+			estimates store FEC_`sector'  // Guardar los resultados de FE
+			
+			/* Correr la regresión de efectos fijos DK */
+			// ssc install xtscc
+			xtscc log_abs_e_`sector' time_trend, fe
+			
+			estimates store FEDK_`sector'  // Guardar los resultados de FE
+			
+			/* Correr la regresión de efectos aleatorios */
+			xtreg log_abs_e_`sector' time_trend, re vce(cluster target_date)
+					
+			estimates store REC_`sector'  // Guardar los resultados de RE
+			
+			/* Correr la regresión de efectos fijos DK*/
+			// ssc install xtscc
+			xtscc log_abs_e_`sector' time_trend, re
+			
+			estimates store REDK_`sector'  // Guardar los resultados de FE
+			
+			/* Reportar resultados usando esttab */
+			/* Esttab para mostrar coeficientes, intercepto y test F */
+			esttab FEC_`sector' FEDK_`sector' REC_`sector' REDK_`sector' using "log_abs_error.tex", append ///
+				b(%9.3f) se(%9.3f) scalars(F chi2 p) ///
+				order(_cons) longtable ///
+				varlabels(_cons "Intercepto" time_trend "(H-h)") ///
+				noobs ///
+				star(* 0.1 ** 0.05 *** 0.01) ///
+				tex
 		}
 				
 		
@@ -171,46 +185,47 @@ Variance Bounds Tests
 	-----------------------*/
 	
 	
-		* Setting up the panel data structure
+		/* Limpiar cualquier estimación previa */
+		estimates clear
 		
-		xtset target_date horizon // Using 'target_date' as the time var and 'horizon' as the panel id.
-		
-		
-		* Extract all variables that start with 'e_'
-		
-		ds e_*
-		
-		
-		* Gen square of time trend varabbrev
-		
-		gen sq_time_trend = time_trend^2
-	
-	
-		* Standard errors corrected for Newey West
-		** Run regression (abs value)
-		*** Loop through each sector and run regressions
-		foreach var of varlist e_* {
-    
-			**** Create a new variable with the absolute value
-			gen abs_`var' = abs(`var')
+		/* Loop para correr las regresiones */
+		foreach sector of global sectors {
 			
-			**** Run the Newey-West regression
-			newey abs_`var' sq_time_trend, lag(2) force
+			gen log_sq_e_`sector' = ln((e_`sector')^2)
+			
+			/* Correr la regresión de efectos fijos */
+			xtreg log_sq_e_`sector' time_trend, fe vce(cluster target_date)
+			
+			estimates store FEC_`sector'  // Guardar los resultados de FE
+			
+			/* Correr la regresión de efectos fijos DK */
+			// ssc install xtscc
+			xtscc log_sq_e_`sector' time_trend, fe
+			
+			estimates store FEDK_`sector'  // Guardar los resultados de FE
+			
+			/* Correr la regresión de efectos aleatorios */
+			xtreg log_sq_e_`sector' time_trend, re vce(cluster target_date)
+					
+			estimates store REC_`sector'  // Guardar los resultados de RE
+			
+			/* Correr la regresión de efectos fijos DK*/
+			// ssc install xtscc
+			xtscc log_sq_e_`sector' time_trend, re
+			
+			estimates store REDK_`sector'  // Guardar los resultados de FE
+			
+			/* Reportar resultados usando esttab */
+			/* Esttab para mostrar coeficientes, intercepto y test F */
+			esttab FEC_`sector' FEDK_`sector' REC_`sector' REDK_`sector' using "log_abs_error.tex", append ///
+				b(%9.3f) se(%9.3f) scalars(F chi2 p) ///
+				order(_cons) longtable ///
+				varlabels(_cons "Intercepto" L.r_`sector' "r(-1)" L2.r_`sector' "r(-2)") ///
+				noobs ///
+				star(* 0.1 ** 0.05 *** 0.01) ///
+				tex
 		}
 		
-		
-		* Standard errors corrected for Newey West
-		** Run regression (square)
-		*** Loop through each sector and run regressions
-		foreach var of varlist e_* {
-
-			**** Create a new variable with the squared value
-			gen sq_`var' = `var'^2
-
-			**** Run the Newey-West regression with the squared variable
-			newey sq_`var' sq_time_trend, lag(2) force
-		}
-	
 		
 		
 	/*----------------------
