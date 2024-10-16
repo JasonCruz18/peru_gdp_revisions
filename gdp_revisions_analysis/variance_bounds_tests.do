@@ -72,7 +72,7 @@ Variance Bounds Tests
 	-----------------------*/
 		
 		
-	odbc load, exec("select * from sectorial_gdp_annual_cum_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+	odbc load, exec("select * from sectorial_gdp_monthly_cum_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
 	save temp_cum_panel_data, replace
@@ -169,7 +169,7 @@ Variance Bounds Tests
 			/* Reportar resultados usando esttab */
 			/* Esttab para mostrar coeficientes, intercepto y test F */
 			esttab FEC_`sector' FEDK_`sector' REC_`sector' REDK_`sector' using "log_abs_error.tex", append ///
-				b(%9.3f) se(%9.3f) scalars(F chi2 p) ///
+				b(%9.3f) se(%9.3f) ///
 				order(_cons) longtable ///
 				varlabels(_cons "Intercepto" time_trend "(H-h)") ///
 				noobs ///
@@ -218,7 +218,7 @@ Variance Bounds Tests
 			/* Reportar resultados usando esttab */
 			/* Esttab para mostrar coeficientes, intercepto y test F */
 			esttab FEC_`sector' FEDK_`sector' REC_`sector' REDK_`sector' using "log_abs_error.tex", append ///
-				b(%9.3f) se(%9.3f) scalars(F chi2 p) ///
+				b(%9.3f) se(%9.3f) ///
 				order(_cons) longtable ///
 				varlabels(_cons "Intercepto" time_trend "(H-h)") ///
 				noobs ///
