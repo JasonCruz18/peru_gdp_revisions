@@ -602,3 +602,23 @@ def remove_base_year_affected_obs(dic_base_year, df):
             df.loc[list(indices), col] = df.loc[list(indices), col].apply(lambda x: np.nan if pd.notnull(x) else x)
     
     return df
+
+# Function to Keep Observations Affected by Base Year Indices
+#________________________________________________________________
+def keep_base_year_affected_obs(dic_base_year, df):
+    """
+    Keep only the columns from the DataFrame that are specified as keys in the dictionary.
+    Remove any columns from the DataFrame that are not present in the dictionary.
+    
+    Parameters:
+    - dic_base_year: Dictionary where each key is a column name.
+    - df: DataFrame from which columns will be filtered.
+    
+    Returns:
+    - A DataFrame with only the columns specified in the dictionary.
+    """
+    
+    # Keep only the columns from df that are keys in dic_base_year
+    df = df[[col for col in df.columns if col in dic_base_year]]
+    
+    return df
