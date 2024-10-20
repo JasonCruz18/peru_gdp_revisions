@@ -129,7 +129,7 @@ Efficiency Tests
 
 		
 		/* Limpiar cualquier estimación previa */
-		estimates clear
+		estimates clear	
 		
 		/* Loop para correr las regresiones */
 		foreach sector of global sectors {
@@ -166,8 +166,40 @@ Efficiency Tests
 				star(* 0.1 ** 0.05 *** 0.01) ///
 				tex
 		}
-	
-			
+		
+		xtscc e_gdp L1.r_gdp L2.r_gdp, re
+		
+		* Estimar los modelos (presumiblemente ya hecho)
+		* test sobre las restricciones
+		test (L1.r_gdp = 0) (L2.r_gdp = 0)
+
+		* Guardar los valores de F y p
+		scalar F_value = r(F)
+		scalar p_value = r(p)
+
+		* Agregar los scalars a los resultados
+		estadd scalar F F_value
+		estadd scalar p p_value
+						
+						
+		* Guardar el número de grupos (número de unidades individuales del panel)
+		scalar n_grupos = r(N_g)  // número de grupos (entre grupos)
+		scalar n_periodos = r(T)   // número de periodos (dentro de los grupos)
+		scalar N_total = r(N)      // número total de observaciones (puedes usar directamente r(N) en lugar de multiplicar)
+
+		* Agregar las dimensiones del panel a los resultados
+		estadd scalar Grupos = n_grupos
+		estadd scalar Periodos = n_periodos
+		estadd scalar Total_observaciones = N_total
+
+
+		* Usar esttab para generar la tabla de resultados
+		esttab, ///
+						b(%9.3f) se(%9.3f) scalars(F p Grupos Periodos Total_observaciones) /// 
+						order(_cons) longtable ///
+						star(* 0.1 ** 0.05 *** 0.01) ///
+						tex
+		
 		
 	/*----------------------
 	Regression (intermediate
