@@ -603,7 +603,64 @@ def remove_base_year_affected_obs(dic_base_year, df):
     
     return df
 
-# Function to 
+# Function to replace 't+\d' with dummies
 #________________________________________________________________
+def replace_strings_with_dummies(df_1, df_2):
+    """
+    Matches rows from df_1 to df_2 based on 'year' and 'id_ns' columns and replaces 't+\\d' values 
+    in rows of df_2 with either 1 or 0 based on the match criteria, checking if the row below has 
+    matching 't+\\d' values in corresponding columns.
 
+    Args:
+        df_1 (pd.DataFrame): DataFrame containing 'year' and 'id_ns' columns.
+        df_2 (pd.DataFrame): DataFrame containing 'year' and 'id_ns' columns along with other string columns.
 
+    Returns:
+        pd.DataFrame: Modified df_2 with 't+\\d' values replaced by 1 or 0 based on the conditions.
+    """
+    
+    # Ensure 'year' and 'id_ns' columns are of the same type
+    df_1['year'] = df_1['year'].astype(str)
+    df_1['id_ns'] = df_1['id_ns'].astype(str)
+    df_2['year'] = df_2['year'].astype(str)
+    df_2['id_ns'] = df_2['id_ns'].astype(str)
+    
+    # Create a set of (year, id_ns) pairs from df_1 for fast lookup
+    df_1_pairs = set(zip(df_1['year'], df_1['id_ns']))
+    
+    # Add a boolean column to df_2 to indicate if the (year, id_ns) pair exists in df_1
+    df_2['matched'] = df_2[['year', 'id_ns']].apply(lambda row: (row['year'], row['id_ns']) in df_1_pairs, axis=1)
+
+    # Define a regex pattern to identify 't+<number>' strings
+    pattern = re.compile(r't\+\d+')
+
+    # Process rows in df_2 based on 'matched' column
+    for i in range(len(df_2) - 1):
+        if df_2.at[i, 'matched']:
+            # Identify 't+<number>' columns in the row
+            columns_to_check = [col for col in df_2.columns if isinstance(df_2.at[i, col], str) and pattern.match(df_2.at[i, col])]
+            
+            # Check if the next row has the same values in these columns
+            if all(df_2.at[i + 1, col] == df_2.at[i, col] for col in columns_to_check):
+                # Replace both the identified row and the next row with 1 for the matched 't+<number>' columns
+                for col in columns_to_check:
+                    df_2.at[i, col] = 1
+                    df_2.at[i + 1, col] = 1
+            else:
+                # Replace only the identified row with 1 and the next row's matched columns with 0
+                for col in columns_to_check:
+                    df_2.at[i, col] = 1
+                    if pd.notna(df_2.at[i + 1, col]):
+                        df_2.at[i + 1, col] = 0
+
+    # Replace any remaining 't+<number>' values with 0 in df_2
+    for i in range(len(df_2)):
+        columns_to_check = [col for col in df_2.columns if isinstance(df_2.at[i, col], str) and pattern.match(df_2.at[i, col])]
+        for col in columns_to_check:
+            if df_2.at[i, col] != 1 and df_2.at[i, col] != 0:
+                df_2.at[i, col] = 0
+    
+    # Drop the auxiliary column 'matched'
+    df_2.drop(columns=['matched'], inplace=True)
+    
+    return df_2
