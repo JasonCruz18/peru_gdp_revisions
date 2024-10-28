@@ -603,26 +603,7 @@ def remove_base_year_affected_obs(dic_base_year, df):
     
     return df
 
-# Function to Keep Observations Affected by Base Year Indices
+# Function to 
 #________________________________________________________________
-def keep_base_year_affected_obs(dic_base_year, df):
-    """
-    Keep only the columns from the DataFrame that are specified as keys in the dictionary,
-    along with the columns 'year', 'id_ns', and 'date'.
-    
-    Parameters:
-    - dic_base_year: Dictionary where each key is a column name.
-    - df: DataFrame from which columns will be filtered.
-    
-    Returns:
-    - A DataFrame with only the columns specified in the dictionary and the columns 'year', 'id_ns', 'date'.
-    """
-    
-    # Define the additional columns to keep
-    additional_columns = ['year', 'id_ns', 'date']
-    
-    # Keep only the columns that are keys in dic_base_year or in the additional_columns list
-    df = df[[col for col in df.columns if col in dic_base_year or col in additional_columns]]
-    
-    return df
+
 
