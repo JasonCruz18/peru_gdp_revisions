@@ -156,6 +156,28 @@ def keep_revisions(df, frequency):
     return df[cols_to_keep]
 
 
+# Function to retain only 'vintages_date' and columns that start with 'r_' for revisions
+#________________________________________________________________
+def keep_nowcast_errors(df, frequency):
+    # Step 1: Determine which columns to keep based on the frequency
+    if frequency in ['quarterly', 'monthly']:
+        # Step 1a: If frequency is quarterly or monthly, keep 'year_month' and all columns starting with 'e_'
+        #cols_to_keep = ['vintages_date'] + ['year_month'] + [col for col in df.columns if col.startswith('e_')]
+        cols_to_keep = ['vintages_date'] + [col for col in df.columns if col.startswith('e_')]
+    
+    elif frequency == 'annual':
+        # Step 1b: If frequency is annual, keep 'year' and all columns starting with 'e_'
+        #cols_to_keep = ['year'] + [col for col in df.columns if col.startswith('e_')]
+        cols_to_keep = ['vintages_date'] + [col for col in df.columns if col.startswith('e_')]
+    
+    else:
+        # Step 2: Raise an error if the frequency argument is invalid
+        raise ValueError("Invalid frequency value. Please use 'quarterly', 'monthly', or 'annual'.")
+    
+    # Step 3: Return the DataFrame with only the selected columns
+    return df[cols_to_keep]
+
+
 # Function to transpose data by sector based on the given frequency
 #________________________________________________________________
 def transpose_df(df, frequency):
