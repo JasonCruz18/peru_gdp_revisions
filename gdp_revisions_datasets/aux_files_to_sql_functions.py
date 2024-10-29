@@ -453,3 +453,62 @@ def int_convert_to_panel(df):
 
     return df_panel
 
+
+################################################################################################
+# Section 12. Create intermediate revisions for dummies
+################################################################################################
+
+
+# Function to calculate intermediate revisions for dummies
+#________________________________________________________________
+def calculate_intermediate_revisions_dummies(df):
+    # Encontrar el número más alto que sigue el patrón '_release_'
+    release_numbers = []
+    
+    for col in df.columns:
+        match = re.search(r'_release_(\d+)', col)
+        if match:
+
+            release_numbers.append(int(match.group(1)))
+    
+    # Determinar el número máximo de releases
+    max_release = max(release_numbers) if release_numbers else 0
+    
+    # Extraer los nombres de las variables con los sufijos especificados
+    variable_names = [col.replace(f'_release_{i}', '').replace('_most_recent', '') 
+                      for i in range(1, max_release + 1)
+                      for col in df.columns if f'_release_{i}' in col or '_most_recent' in col]
+    
+    # Eliminar duplicados de los nombres de variables
+    variable_names = list(set(variable_names))
+    
+    # Crear una lista para contener las nuevas columnas
+    new_columns = []
+    
+    # Crear nuevas variables de revisión intermedia para cada variable encontrada
+    for variable in variable_names:
+        for i in range(2, max_release + 1):  # Iterar desde release_2 hasta el release más alto
+            previous_release_col = f"{variable}_release_{i-1}"
+            current_release_col = f"{variable}_release_{i}"
+            
+            if previous_release_col in df.columns and current_release_col in df.columns:
+                new_column_name = f"r_{i}_{variable}"
+                # Realizar la resta de la revisión actual menos la revisión anterior
+                new_columns.append((new_column_name, df[current_release_col]))
+        
+        # Para la última diferencia, entre most_recent y el release más reciente - 1
+        most_recent_col = f"{variable}_most_recent"
+        last_release_col = f"{variable}_release_{max_release}"
+        
+        if last_release_col in df.columns and most_recent_col in df.columns:
+            # Modificar el nombre de la columna según lo solicitado
+            new_column_name = f"r_{max_release +1}_{variable}"
+            new_columns.append((new_column_name, df[most_recent_col]))
+    
+    # Concatenar todas las nuevas columnas al DataFrame
+    if new_columns:
+        df_new_columns = pd.DataFrame(dict(new_columns))
+        df = pd.concat([df, df_new_columns], axis=1)
+
+    # Retornar el DataFrame modificado
+    return df, max_release
