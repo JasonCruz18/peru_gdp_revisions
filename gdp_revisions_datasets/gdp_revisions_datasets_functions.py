@@ -634,32 +634,32 @@ def replace_strings_with_dummies(df_1, df_2):
     # Define a regex pattern to identify 't+<number>' strings
     pattern = re.compile(r't\+\d+')
 
-    # Process rows in df_2 based on 'matched' column
-    for i in range(len(df_2) - 1):
-        if df_2.at[i, 'matched']:
-            # Identify 't+<number>' columns in the row
-            columns_to_check = [col for col in df_2.columns if isinstance(df_2.at[i, col], str) and pattern.match(df_2.at[i, col])]
-            
-            # Check if the next row has the same values in these columns
-            if all(df_2.at[i + 1, col] == df_2.at[i, col] for col in columns_to_check):
-                # Replace both the identified row and the next row with 1 for the matched 't+<number>' columns
-                for col in columns_to_check:
-                    df_2.at[i, col] = 1
-                    df_2.at[i + 1, col] = 1
-            else:
-                # Replace only the identified row with 1 and the next row's matched columns with 0
-                for col in columns_to_check:
-                    df_2.at[i, col] = 1
-                    if pd.notna(df_2.at[i + 1, col]):
-                        df_2.at[i + 1, col] = 0
+    # Process only the rows in df_2 where 'matched' is True
+    matched_indices = df_2.index[df_2['matched']].tolist()
 
-    # Replace any remaining 't+<number>' values with 0 in df_2
-    for i in range(len(df_2)):
+    # Loop through matched indices and apply the exact logic to replace strings with 1 or 0
+    for i in matched_indices:
+        # Identify 't+<number>' columns in the row
         columns_to_check = [col for col in df_2.columns if isinstance(df_2.at[i, col], str) and pattern.match(df_2.at[i, col])]
-        for col in columns_to_check:
-            if df_2.at[i, col] != 1 and df_2.at[i, col] != 0:
-                df_2.at[i, col] = 0
-    
+        
+        # Check if the next row has the same values in these columns
+        if i + 1 < len(df_2) and all(df_2.at[i + 1, col] == df_2.at[i, col] for col in columns_to_check):
+            # Replace both the identified row and the next row with 1 for the matched 't+<number>' columns
+            for col in columns_to_check:
+                df_2.at[i, col] = 1
+                df_2.at[i + 1, col] = 1
+        else:
+            # Replace only the identified row with 1 and the next row's matched columns with 0
+            for col in columns_to_check:
+                df_2.at[i, col] = 1
+                if i + 1 < len(df_2) and pd.notna(df_2.at[i + 1, col]):
+                    df_2.at[i + 1, col] = 0
+
+    # Replace any remaining 't+<number>' values with 0 in df_2 for columns to check
+    for col in df_2.columns:
+        if df_2[col].dtype == object:  # Ensures we only check string columns
+            df_2[col] = df_2[col].apply(lambda x: 0 if isinstance(x, str) and pattern.match(x) else x)
+
     # Drop the auxiliary column 'matched'
     df_2.drop(columns=['matched'], inplace=True)
     
