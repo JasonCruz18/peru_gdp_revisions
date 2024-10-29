@@ -55,7 +55,7 @@ def calculate_cumulative_revisions(df):
             release_col = f"{variable}_release_{i}"  # Example: var_release_1
             most_recent_col = f"{variable}_most_recent"  # Example: var_most_recent
             if release_col in df.columns and most_recent_col in df.columns:
-                new_column_name = f"r_{i}_{variable}"  # Naming the new revision column
+                new_column_name = f"e_{i}_{variable}"  # Naming the new revision column
                 # Subtract release value from the most recent value
                 new_columns.append((new_column_name, df[most_recent_col] - df[release_col]))
     
@@ -271,8 +271,8 @@ def cum_convert_to_panel(df):
     # Conjunto para almacenar los sectores únicos
     sectors = set()
 
-    # Expresión regular para el patrón 'r_{i}_{sector}'
-    pattern = re.compile(r'r_(\d+)_(.+)')
+    # Expresión regular para el patrón 'e_{i}_{sector}'
+    pattern = re.compile(r'e_(\d+)_(.+)')
 
     # Identificar todos los sectores a partir de las columnas
     for col in columns:
@@ -295,7 +295,7 @@ def cum_convert_to_panel(df):
                                 value_name=f'e_{sector}')
         
         # Extraer el número de revisión y eliminar el nombre del sector del campo 'horizon'
-        sector_melted['horizon'] = sector_melted['horizon'].str.extract(r'r_(\d+)_')[0].astype(int)
+        sector_melted['horizon'] = sector_melted['horizon'].str.extract(r'e_(\d+)_')[0].astype(int)
 
         # Si es el primer sector, inicializar df_panel
         if df_panel.empty:
