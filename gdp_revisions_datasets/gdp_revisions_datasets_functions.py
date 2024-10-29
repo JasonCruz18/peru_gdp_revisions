@@ -667,11 +667,14 @@ def replace_strings_with_dummies(df_1, df_2):
 
 # Function to convert columns to integer type
 #________________________________________________________________
-def convert_columns_to_int(df):
+def convert_columns_to_float(df):
     columns_to_exclude = ['year', 'id_ns', 'date']
-    # Iteramos sobre cada columna y verificamos si no está en la lista de exclusión
+    # Reemplazamos valores vacíos '' por NaN antes de la conversión
+    df.replace('', np.nan, inplace=True)
+    
     for col in df.columns:
         if col not in columns_to_exclude:
-            # Convertimos la columna a entero usando pd.to_numeric con downcast para optimizar el tipo
-            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
+            # Convertimos la columna a float con pd.to_numeric
+            df[col] = pd.to_numeric(df[col], errors='coerce').astype(float)
+    
     return df
