@@ -123,23 +123,23 @@ from tkinter import simpledialog
 
 # Show h_initial window to ask for user to enter a number
 #________________________________________________________________
-def show_h_initial_window():
-    root = tk.Tk()
-    root.withdraw()  # Hide the root window
-    h_initial = simpledialog.askinteger("Input", "Please enter an initial horizon value (h_initial):",
-                                        minvalue=1)  # Only accept positive integers
-    root.destroy()
-    return h_initial
+# def show_h_initial_window():
+#     root = tk.Tk()
+#     root.withdraw()  # Hide the root window
+#     h_initial = simpledialog.askinteger("Input", "Please enter an initial horizon value (h_initial):",
+#                                         minvalue=1)  # Only accept positive integers
+#     root.destroy()
+#     return h_initial
 
 # Show start_row window to ask for user to enter a number
 #________________________________________________________________
-def show_start_row_window():
-    root = tk.Tk()
-    root.withdraw()  # Hide the root window
-    start_row = simpledialog.askinteger("Input", "Please enter a start row number (start_row):",
-                                        minvalue=0)  # Only accept positive integers
-    root.destroy()
-    return start_row
+# def show_start_row_window():
+#     root = tk.Tk()
+#     root.withdraw()  # Hide the root window
+#     start_row = simpledialog.askinteger("Input", "Please enter a start row number (start_row):",
+#                                         minvalue=0)  # Only accept positive integers
+#     root.destroy()
+#     return start_row
 
 # Setting main horizon rows on growth rates datasets
 #________________________________________________________________
