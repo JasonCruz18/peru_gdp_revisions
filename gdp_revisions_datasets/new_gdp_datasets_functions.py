@@ -1287,6 +1287,46 @@ def show_option_window():
 
     return selected_option.get()
 
+# Function to show frequency window
+#________________________________________________________________
+def show_frequency_window():
+    # Define the list of options
+    frequencies = [
+        "monthly", 
+        "quarterly",
+        "annual"
+    ]
+
+    # Function to save the selected option and close the window
+    def save_frequency():
+        global frequency
+        frequency = selected_frequency.get()
+        root.destroy()  # Close the window after selecting an option
+
+    # Create the popup window
+    root = tk.Tk()
+    root.title("Select Frequency")
+
+    # Variable to store the selected option
+    selected_frequency = tk.StringVar(root)
+    selected_frequency.set(frequencies[0])  # Default option
+
+    # Create the option menu
+    menu = tk.OptionMenu(root, selected_frequency, *frequencies)
+    menu.pack(pady=10)
+
+    # Button to confirm the selection
+    confirm_button = tk.Button(root, text="Confirm", command=save_frequency)
+    confirm_button.pack()
+
+    # Show the window
+    root.update_idletasks()
+    root.wait_window()
+    
+    return selected_frequency.get()
+
+
+
 #**********************************************************************************************
 # Section 4.1. Annual Concatenation
 #----------------------------------------------------------------------------------------------
