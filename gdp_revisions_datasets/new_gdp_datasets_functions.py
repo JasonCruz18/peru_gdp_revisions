@@ -1158,111 +1158,48 @@ import tkinter as tk  # Import the tkinter library for creating the GUI
 from tkinter import simpledialog  # Import the simpledialog module from tkinter for creating dialog boxes
 
 
-# Define the options you want to display
-spanish_options = [
-    "pbi",
-    "agropecuario",
-    "pesca",
-    "mineria e hidrocarburos",
-    "manufactura",
-    "electricidad y agua",
-    "construccion",
-    "comercio",
-    "otros servicios"
-]
 
-english_options = [
-    "gdp",
-    "agriculture and livestock",
+# Define the options and their mappings
+options = [
+    "gdp", 
+    "agriculture",  # agriculture and livestock
     "fishing",
-    "mining and fuel",
+    "mining",  # mining and fuel
     "manufacturing",
-    "electricity and water",
+    "electricity",  # electricity and water
     "construction",
     "commerce",
-    "other services"
+    "services"  # other services
 ]
 
+# Mapping each option with its Spanish and English counterparts
+option_mapping = {
+    "gdp": ("pbi", "gdp"),
+    "agriculture": ("agropecuario", "agriculture and livestock"),
+    "fishing": ("pesca", "fishing"),
+    "mining": ("mineria e hidrocarburos", "mining and fuel"),
+    "manufacturing": ("manufactura", "manufacturing"),
+    "electricity": ("electricidad y agua", "electricity and water"),
+    "construction": ("construccion", "construction"),
+    "commerce": ("comercio", "commerce"),
+    "services": ("otros servicios", "other services")
+}
 
-# Function for selecting an economic sector
-# _________________________________________________________________________
-def select_economic_sector(spanish_options, english_options):
-    """
-    This function creates a Tkinter window with two dropdown menus for selecting an economic sector
-    in Spanish and English. It returns the selected options 'sector_economico' and 'economic_sector'
-    when the user confirms their selection.
-
-    Args:
-    - spanish_options (list): A list containing the options to display in Spanish.
-    - english_options (list): A list containing the options to display in English.
-
-    Returns:
-    - tuple: A tuple containing the selected options 'sector_economico' (Spanish) and 'economic_sector' (English).
-    """
-    sector_economico = None  # Define variable in the enclosing scope
-    economic_sector = None  # Define variable in the enclosing scope
-
-    def save_options():
-        """
-        This function saves the selected options from the dropdown menus and closes the popup window.
-        """
-        nonlocal sector_economico, economic_sector
-        sector_economico = spanish_option.get()
-        economic_sector = english_option.get()
-        root.destroy()
-
-    # Create the popup window
-    root = tk.Tk()
-    root.title("Select economic sector")
-
-    # Variables to store the selected options
-    spanish_option = tk.StringVar(root)
-    english_option = tk.StringVar(root)
-
-    # Set default options
-    spanish_option.set(spanish_options[0])
-    english_option.set(english_options[0])
-
-    # Create dropdown menus
-    spanish_menu = tk.OptionMenu(root, spanish_option, *spanish_options)
-    english_menu = tk.OptionMenu(root, english_option, *english_options)
-
-    # Pack dropdown menus
-    spanish_menu.pack(pady=10)
-    english_menu.pack(pady=10)
-
-    # Button to confirm selection
-    confirm_button = tk.Button(root, text="Confirm", command=save_options)
-    confirm_button.pack()
-
-    # Display the window
-    root.update_idletasks()
-    root.wait_window()
-
-    # Return selected values
-    return sector_economico, economic_sector
-
-# Function to show option window
-#________________________________________________________________
-
+# Function to show the option window
 def show_option_window():
-    # Define the list of options
-    options = [
-        "gdp", 
-        "agriculture",  # agriculture and livestock
-        "fishing",
-        "mining",  # mining and fuel
-        "manufacturing",
-        "electricity",  # electricity and water
-        "construction",
-        "commerce",
-        "services"  # other services
-    ]
+    """
+    Displays a Tkinter window to select an option, and returns the corresponding 
+    selected values for 'selected_spanish', 'selected_english', and 'sector'.
+    """
+    # Variables to store the selected options
+    selected_spanish = None
+    selected_english = None
+    sector = None
 
-    # Function to save the selected option and close the window
     def save_option():
-        global sector
+        nonlocal selected_spanish, selected_english, sector
         sector = selected_option.get()
+        selected_spanish, selected_english = option_mapping[sector]
         root.destroy()  # Close the window after selecting an option
 
     # Create the popup window
@@ -1285,7 +1222,53 @@ def show_option_window():
     root.update_idletasks()
     root.wait_window()
 
-    return selected_option.get()
+    # Return the selected values
+    return selected_spanish, selected_english, sector
+
+# Function to show option window
+#________________________________________________________________
+
+# def show_option_window():
+#     # Define the list of options
+#     options = [
+#         "gdp", 
+#         "agriculture",  # agriculture and livestock
+#         "fishing",
+#         "mining",  # mining and fuel
+#         "manufacturing",
+#         "electricity",  # electricity and water
+#         "construction",
+#         "commerce",
+#         "services"  # other services
+#     ]
+
+#     # Function to save the selected option and close the window
+#     def save_option():
+#         global sector
+#         sector = selected_option.get()
+#         root.destroy()  # Close the window after selecting an option
+
+#     # Create the popup window
+#     root = tk.Tk()
+#     root.title("Select Option")
+
+#     # Variable to store the selected option
+#     selected_option = tk.StringVar(root)
+#     selected_option.set(options[0])  # Default option
+
+#     # Create the option menu
+#     menu = tk.OptionMenu(root, selected_option, *options)
+#     menu.pack(pady=10)
+
+#     # Button to confirm the selection
+#     confirm_button = tk.Button(root, text="Confirm", command=save_option)
+#     confirm_button.pack()
+
+#     # Show the window
+#     root.update_idletasks()
+#     root.wait_window()
+
+#     return selected_option.get()
 
 # Function to show frequency window
 #________________________________________________________________
