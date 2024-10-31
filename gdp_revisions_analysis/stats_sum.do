@@ -96,18 +96,33 @@ Summary of Statistics
 	
 		* // ssc install estout
 		
-		* Paso 1: Calcula los estadísticos con `estpost`
-		estpost tabstat e_*_gdp, statistics(mean p1 p25 p50 p75 p99 sd) columns(statistics)
 
-		* Paso 2: Exporta a LaTeX con `esttab`, redondeando a 3 decimales
-		esttab using "stats_sum_e.tex", replace label cells("mean(fmt(3)) p1(fmt(3)) p25(fmt(3)) p75(fmt(3)) p99(fmt(3)) sd(fmt(3))") title("Estadísticos Descriptivos") varwidth(15)
+		// Define los sectores como una macro global
+		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
+
+		// Inicializa una tabla vacía
+		eststo clear
+
+		// Bucle para calcular los estadísticos y almacenarlos
+		foreach sector in $sectors {
+			// Calcula los estadísticos para cada sector
+			estpost tabstat e_*_`sector', statistics(mean p1 p25 p50 p75 p99 sd) columns(statistics)
+			
+			// Almacena los resultados
+			eststo `sector'
+			
+			// Exporta los resultados a LaTeX, asegurando que estén bajo las mismas columnas
+		esttab `sector' using "stats_sum_e.tex", append label cells("Mean(fmt(3)) p1(fmt(3)) p25(fmt(3)) p50(fmt(3)) p75(fmt(3)) p99(fmt(3)) SD(fmt(3))") ///
+			varlabels(e_*_* "h") ///
+			longtable ///
+			title("Estadísticos Descriptivos") ///
+			varwidth(15) ///
+			tex ///
+			not noobs
+		}
 
 
 	restore // Return to on-call status
-	
-	
-	
-	use int_ts_data, clear
 	
 	
 	
@@ -121,11 +136,29 @@ Summary of Statistics
 	preserve // Save the current status
 	
 	
-		* Paso 1: Calcula los estadísticos con `estpost`
-		estpost tabstat r_*_gdp, statistics(mean p1 p25 p75 p99 sd) columns(statistics)
+		// Define los sectores como una macro global
+		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
 
-		* Paso 2: Exporta a LaTeX con `esttab`, redondeando a 3 decimales
-		esttab using "stats_sum_r.tex", replace label cells("mean(fmt(3)) p1(fmt(3)) p25(fmt(3)) p75(fmt(3)) p99(fmt(3)) sd(fmt(3))") title("Estadísticos Descriptivos") varwidth(15)
+		// Inicializa una tabla vacía
+		eststo clear
+
+		// Bucle para calcular los estadísticos y almacenarlos
+		foreach sector in $sectors {
+			// Calcula los estadísticos para cada sector
+			estpost tabstat r_*_`sector', statistics(mean p1 p25 p50 p75 p99 sd) columns(statistics)
+			
+			// Almacena los resultados
+			eststo `sector'
+			
+			// Exporta los resultados a LaTeX, asegurando que estén bajo las mismas columnas
+		esttab `sector' using "stats_sum_r.tex", append label cells("Mean(fmt(3)) p1(fmt(3)) p25(fmt(3)) p50(fmt(3)) p75(fmt(3)) p99(fmt(3)) SD(fmt(3))") ///
+			varlabels(r_*_* "h") ///
+			longtable ///
+			title("Estadísticos Descriptivos") ///
+			varwidth(15) ///
+			tex ///
+			not noobs
+		}
 
 
 	restore // Return to on-call status
