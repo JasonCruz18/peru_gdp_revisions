@@ -72,7 +72,7 @@ Variance Bounds Tests
 	-----------------------*/
 		
 		
-	odbc load, exec("select * from sectorial_gdp_annual_cum_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+	odbc load, exec("select * from sectorial_gdp_monthly_cum_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
 	save temp_cum_panel_data, replace
@@ -206,12 +206,13 @@ Variance Bounds Tests
 		process_sector_abs `sector' xtscc_re
 		
 		/* Reportar los resultados usando esttab */
-		esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "variance_bounds_test_abs.txt", append ///
+		esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "variance_bounds_test_abs.tex", append ///
 			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "h" "N") fmt(%9.0f %9.0f %9.0f)) ///
 			order(_cons) longtable ///
 			varlabels(_cons "Intercepto" time_trend "(H-h)") ///
 			noobs ///
-			star(* 0.1 ** 0.05 *** 0.01)
+			star(* 0.1 ** 0.05 *** 0.01) ///
+			tex
 	}
 
 	
@@ -283,12 +284,13 @@ Variance Bounds Tests
 		process_sector_sq `sector' xtscc_re
 		
 		/* Reportar los resultados usando esttab */
-		esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "variance_bounds_test_sq.txt", append ///
+		esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "variance_bounds_test_sq.tex", append ///
 			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "h" "N") fmt(%9.0f %9.0f %9.0f)) ///
 			order(_cons) longtable ///
 			varlabels(_cons "Intercepto" time_trend "(H-h)") ///
 			noobs ///
-			star(* 0.1 ** 0.05 *** 0.01)
+			star(* 0.1 ** 0.05 *** 0.01) ///
+			tex
 	}
 		
 		
