@@ -339,13 +339,13 @@ Efficiency Tests
 	Regression (revisions)
 	-----------------------*/
 
+	* r_t(h) vs r_t(h-1) r_t(h-2)	
+	*.........................................................................
+	
 	
 	use int_temp_panel_data_cleaned, clear
 	preserve // Save the current status
 	
-	
-	* r_t(h) vs r_t(h-1) r_t(h-2)	
-	*.........................................................................
 	
 		/* Limpiar cualquier estimación previa */
 		estimates clear	
@@ -455,6 +455,10 @@ Efficiency Tests
 	restore // Return to on-call status
 	
 	
+	
+	/*----------------------
+	Regression (benchmark revisions)
+	-----------------------*/
 	
 	* r_t(h) vs r_t(h-1) r_t(h-2) r_t(h-1)xDummy r_t(h-2)xDummy	
 	*.........................................................................
