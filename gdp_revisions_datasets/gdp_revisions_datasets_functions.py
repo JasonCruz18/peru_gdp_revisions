@@ -622,8 +622,8 @@ def replace_base_year_with_dummies(dic_base_year, df):
     # Iterate over the dictionary and replace values at specified indices
     for col, indices in dic_base_year.items():
         if col in df.columns:
-            # Use the indices directly to set values to 1
-            df.loc[indices, col] = 1
+            # Convert indices to list and use it directly to set values to 1
+            df.loc[list(indices), col] = 1
     
     # Optimized pass to replace all 't+\d' values that are not in the dictionary with 0
     # Create a mask where the values are of type string and start with 't+'
