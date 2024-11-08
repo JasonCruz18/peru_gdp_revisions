@@ -125,7 +125,7 @@ Summary of Statistics
 		*.....................................................................
 		
 		* Definir el archivo de salida
-		local output_file "aux_e.txt"
+		local output_file "unbiassdness_e.txt"
 
 		* Borrar el archivo de salida si ya existe
 		capture erase `output_file'
@@ -146,8 +146,6 @@ Summary of Statistics
 					
 					* Guardar los resultados en el archivo con append
 					esttab using `output_file', append ///
-						longtable ///
-						tex ///
 						title("unbiassdness (e)") ///
 						varwidth(15) ///
 						not noobs
@@ -224,8 +222,6 @@ Summary of Statistics
 					
 					* Guardar los resultados en el archivo con append
 					esttab using `output_file', append ///
-						longtable ///
-						tex ///
 						title("unbiassdness (r)") ///
 						varwidth(15) ///
 						not noobs
