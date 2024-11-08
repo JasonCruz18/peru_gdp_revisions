@@ -360,7 +360,7 @@ def releases_convert_to_panel(df):
                                 id_vars=['vintages_date'], 
                                 value_vars=sector_columns, 
                                 var_name='horizon', 
-                                value_name=f'{sector}_release')
+                                value_name=f'release_{sector}')
         
         # Extraer el número de revisión y eliminar el nombre del sector del campo 'horizon'
         sector_melted['horizon'] = sector_melted['horizon'].str.extract(r'release_(\d+)')[0].astype(int)
