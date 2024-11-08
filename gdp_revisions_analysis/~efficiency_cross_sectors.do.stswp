@@ -1,19 +1,19 @@
-	/********************
-	Efficiency Cross-Sectors
+/********************
+Efficiency Cross-Sectors
+***
+
+		Author
+		---------------------
+		Jason Cruz
+		*********************/
+
+		*** Program: efficiency_cross_sectors.do
+		** 	First Created: 10/11/24
+		** 	Last Updated:  10/11/24
+			
 	***
-
-			Author
-			---------------------
-			Jason Cruz
-			*********************/
-
-			*** Program: efficiency_cross_sectors.do
-			** 	First Created: 10/11/24
-			** 	Last Updated:  10/11/24
-				
-		***
-		** Just click on the "Run (do)" button, the code will do the rest for you.
-		***
+	** Just click on the "Run (do)" button, the code will do the rest for you.
+	***
 
 		
 		
@@ -247,7 +247,7 @@
 
 		// List all .dta, .txt and .tex files in the current directory and store in a local macro
 		local dta_files : dir . files "*.dta"
-		local txt_files : dir . files "*.txt"
+		//local txt_files : dir . files "*.txt"
 		local tex_files : dir . files "*.tex"
 
 		// Iterate over each .dta file and delete it

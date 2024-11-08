@@ -247,7 +247,7 @@ Efficiency Cross-Sectors
 
 		// List all .dta, .txt and .tex files in the current directory and store in a local macro
 		local dta_files : dir . files "*.dta"
-		local txt_files : dir . files "*.txt"
+		//local txt_files : dir . files "*.txt"
 		local tex_files : dir . files "*.tex"
 
 		// Iterate over each .dta file and delete it
