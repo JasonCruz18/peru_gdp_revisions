@@ -580,13 +580,15 @@ Efficiency Tests
 			estadd scalar p_`sector' p_value
 			
 			/* Reportar los resultados usando esttab */
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "benchmark_revisions_efficiency_test.txt", append ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "benchmark_revisions_efficiency_test.tex", append ///
 				b(%9.3f) se(%9.3f) stats(chi_`sector' p_`sector' n_`sector' h_`sector' N_`sector', label("Chi2" "p" "n" "h" "N") fmt(%9.3f %9.3f %9.0f %9.0f %9.0f)) ///
 				order(_cons) ///
-				varlabels(_cons "Intercepto" L.r_`sector' "r(-1)" L2.r_`sector' "r(-2)" cL.r_`sector'#L.dummy_`sector' "r(-1)#dummy(-1)" L2.r_`sector'#cL2.dummy_`sector' "r(-2)#dummy(-2)") ///
+				keep(_cons L.r_`sector' L2.r_`sector' 1L.dummy_`sector'#cL.r_`sector' 1L2.dummy_`sector'#cL2.r_`sector') ///
+				varlabels(_cons "Intercepto" L.r_`sector' "r(-1)" L2.r_`sector' "r(-2)" 1L.dummy_`sector'#cL.r_`sector' "r(-1)\#dummy(-1)" 1L2.dummy_`sector'#cL2.r_`sector' "r(-2)\#dummy(-2)") ///
 				noobs ///
-				star(* 0.1 ** 0.05 *** 0.01)
-				//tex
+				star(* 0.1 ** 0.05 *** 0.01) ///
+				tex ///
+				longtable
 		}
 	
 	
