@@ -124,6 +124,9 @@ Summary of Statistics
 		* Unbiassdness (e)
 		*.....................................................................
 		
+		// Inicializa una tabla vacía
+		eststo clear
+		
 		* Definir el archivo de salida
 		local output_file "unbiassdness_e.txt"
 
@@ -199,6 +202,9 @@ Summary of Statistics
 
 		* Unbiassdness (r)
 		*.....................................................................
+		
+		// Inicializa una tabla vacía
+		eststo clear
 		
 		* Definir el archivo de salida
 		local output_file "unbiassdness_r.txt"
