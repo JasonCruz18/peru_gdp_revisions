@@ -633,6 +633,13 @@ def replace_base_year_with_dummies(dic_base_year, df):
                 elif isinstance(value, str) and value.startswith('t+'):
                     df.loc[i, col] = 0
 
+    # Final pass to replace all 't+\d' values not handled previously
+    for col in df.columns:
+        for i in range(len(df)):
+            value = df.loc[i, col]
+            if isinstance(value, str) and value.startswith('t+'):
+                df.loc[i, col] = 0
+
     return df
 
 
