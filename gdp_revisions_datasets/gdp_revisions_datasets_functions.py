@@ -619,17 +619,26 @@ def replace_base_year_with_dummies(dic_base_year, df):
     - A DataFrame with specified observations replaced by 1 or 0.
     """
     
-    # Iterate over the dictionary and replace values at specified indices
+    # Iterate over the dictionary
     for col, indices in dic_base_year.items():
+        # Check if the column exists in the dataframe
         if col in df.columns:
-            # Convert indices to list and use it directly to set values to 1
-            df.loc[list(indices), col] = 1
-    
-    # Optimized pass to replace all 't+\d' values that are not in the dictionary with 0
-    # Use apply to check if the cell value is a string and starts with 't+' (only for object-type columns)
-    for col in df.select_dtypes(include=['object']).columns:
-        mask = df[col].str.startswith('t+')
-        df.loc[mask, col] = 0  # Replace 't+' values with 0 in the identified mask positions
+            # Iterate over each index in the DataFrame
+            for i in range(len(df)):
+                value = df.loc[i, col]
+                # If the index is in the dic_base_year indices, replace the value with 1
+                if i in indices:
+                    df.loc[i, col] = 1
+                # If the value is of type string and starts with 't+' (e.g., t+1, t+2) and is not in the indices, replace with 0
+                elif isinstance(value, str) and value.startswith('t+'):
+                    df.loc[i, col] = 0
+
+    # Final pass to replace all 't+\d' values not handled previously
+    for col in df.columns:
+        for i in range(len(df)):
+            value = df.loc[i, col]
+            if isinstance(value, str) and value.startswith('t+'):
+                df.loc[i, col] = 0
 
     return df
 
