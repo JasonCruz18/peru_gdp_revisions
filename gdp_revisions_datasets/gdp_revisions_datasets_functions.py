@@ -626,10 +626,10 @@ def replace_base_year_with_dummies(dic_base_year, df):
             df.loc[list(indices), col] = 1
     
     # Optimized pass to replace all 't+\d' values that are not in the dictionary with 0
-    # Use apply to check if the cell value is a string and starts with 't+'
-    mask = df.apply(lambda x: x.str.startswith('t+') if x.dtype == 'O' else False)
-    # Replace all such values with 0, except those already set to 1
-    df[mask] = df[mask].where(~mask, 0)
+    # Use apply to check if the cell value is a string and starts with 't+' (only for object-type columns)
+    for col in df.select_dtypes(include=['object']).columns:
+        mask = df[col].str.startswith('t+')
+        df.loc[mask, col] = 0  # Replace 't+' values with 0 in the identified mask positions
 
     return df
 
