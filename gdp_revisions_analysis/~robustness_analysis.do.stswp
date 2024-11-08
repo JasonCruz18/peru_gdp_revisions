@@ -221,7 +221,7 @@ Robustness Analysis
 	benchmark revisions)
 	-----------------------*/
 	
-	* r_t(h) vs _const _constxDummy	
+	* r_t(h) vs _cons _consxDummy	
 	*.........................................................................
 	
 	
@@ -243,6 +243,10 @@ Robustness Analysis
 			
 		/* Definir la estructura de datos de panel */
 		xtset target_date horizon
+		
+		** Generate constant varabbrev
+		
+		gen constant = 1
 
 		* global
 		
@@ -256,7 +260,8 @@ Robustness Analysis
 		program define base_year_dummy_process_sector_r
 			args sector model_type
 			local dep_var r_`sector'
-			local indep_vars _cons _cons#i.dummy_`sector'	
+			local indep_vars 
+
 			
 			/* Ejecutar el modelo según el tipo (fe, re, xtscc) */
 			if "`model_type'" == "fe" {
@@ -292,60 +297,23 @@ Robustness Analysis
 			
 			/* Correr regresión de efectos fijos */
 			base_year_dummy_process_sector_r `sector' fe
-			
-			/* Test sobre las restricciones */
-			test (L1.r_`sector' = 0) (L2.r_`sector' = 0)
-			
-			/* Guardar los valores de F y p */
-			scalar chi_value = 2*r(F) // Don't report chi2
-			scalar p_value = r(p)
-			estadd scalar chi_`sector' chi_value
-			estadd scalar p_`sector' p_value
-			
+						
 			/* Correr regresión de efectos fijos con Driscoll-Kraay */
 			base_year_dummy_process_sector_r `sector' xtscc_fe
-
-			/* Test sobre las restricciones */
-			test (L1.r_`sector' = 0) (L2.r_`sector' = 0)
-			
-			/* Guardar los valores de F y p */
-			scalar chi_value = 2*r(F) // Don't report chi2
-			scalar p_value = r(p)
-			estadd scalar chi_`sector' chi_value
-			estadd scalar p_`sector' p_value
 
 			/* Correr regresión de efectos aleatorios */
 			base_year_dummy_process_sector_r `sector' re
 			
-			/* Test sobre las restricciones */
-			test (L1.r_`sector' = 0) (L2.r_`sector' = 0)
-			
-			/* Guardar los valores de F y p */
-			scalar chi_value = r(chi2)
-			scalar p_value = r(p)
-			estadd scalar chi_`sector' chi_value
-			estadd scalar p_`sector' p_value
-
 			/* Correr regresión de efectos aleatorios con Driscoll-Kraay */
 			base_year_dummy_process_sector_r `sector' xtscc_re
 			
-			/* Test sobre las restricciones */
-			test (L1.r_`sector' = 0) (L2.r_`sector' = 0)
-			
-			/* Guardar los valores de F y p */
-			scalar chi_value = 2*r(F) // Alternatively e(chi2) 
-			scalar p_value = r(p)
-			estadd scalar chi_`sector' chi_value
-			estadd scalar p_`sector' p_value
-			
 			/* Reportar los resultados usando esttab */
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "robustness_analysis.tex", append ///
-				b(%9.3f) se(%9.3f) stats(chi_`sector' p_`sector' n_`sector' h_`sector' N_`sector', label("Chi2" "p" "n" "h" "N") fmt(%9.3f %9.3f %9.0f %9.0f %9.0f)) ///
-				order(_cons) longtable ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "robustness_analysis.txt", append ///
+				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "h" "N") fmt(%9.0f %9.0f %9.0f)) ///
+				order(_cons) ///
 				varlabels(_cons "Intercepto") ///
 				noobs ///
-				star(* 0.1 ** 0.05 *** 0.01) ///
-				tex
+				star(* 0.1 ** 0.05 *** 0.01)
 		}
 	
 	
