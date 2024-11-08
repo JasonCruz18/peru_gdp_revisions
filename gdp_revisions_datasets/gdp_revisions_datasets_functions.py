@@ -623,13 +623,14 @@ def replace_base_year_with_dummies(dic_base_year, df):
     for col, indices in dic_base_year.items():
         # Check if the column exists in the dataframe
         if col in df.columns:
-            # Iterate over each index
+            # Iterate over each index in the DataFrame
             for i in range(len(df)):
-                # Check if the current index is in the specified indices
+                value = df.loc[i, col]
+                # If the index is in the dic_base_year indices, replace the value with 1
                 if i in indices:
                     df.loc[i, col] = 1
-                elif isinstance(df.loc[i, col], str) and df.loc[i, col].startswith('t+'):
-                    # Replace with 0 if it's a 't+\d' value and not in the indices
+                # If the value is of type string and starts with 't+' (e.g., t+1, t+2) and is not in the indices, replace with 0
+                elif isinstance(value, str) and value.startswith('t+'):
                     df.loc[i, col] = 0
 
     return df
