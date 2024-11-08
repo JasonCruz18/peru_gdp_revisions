@@ -338,28 +338,29 @@ def releases_convert_to_panel(df):
     # Conjunto para almacenar los sectores únicos
     sectors = set()
 
-    # Expresión regular para el patrón '{sector}_release_{i}'
-    pattern = re.compile(r'{sector}_release_(\d+)')
+    # Expresión regular para identificar sectores y sus releases
+    pattern = re.compile(r'(.+?)_release_(\d+)')
 
     # Identificar todos los sectores a partir de las columnas
     for col in columns:
-        match = pattern.search(col)
+        match = pattern.match(col)
         if match:
-            sectors.add(match.group(2))  # Extraer el sector y añadirlo al conjunto
-
+            sectors.add(match.group(1))  # Extraer el nombre del sector
+    
     # Inicializar el DataFrame resultante en formato panel
     df_panel = pd.DataFrame()
 
     # Para cada sector, transformar y fusionar los datos
     for sector in sectors:
         # Filtrar las columnas que pertenecen a este sector
-        sector_columns = [col for col in columns if f'_{sector}' in col]
+        sector_columns = [col for col in columns if col.startswith(f'{sector}_release_')]
         
         # Convertir las columnas del sector al formato largo
-        sector_melted = pd.melt(df, id_vars=['vintages_date'], 
+        sector_melted = pd.melt(df, 
+                                id_vars=['vintages_date'], 
                                 value_vars=sector_columns, 
                                 var_name='horizon', 
-                                value_name=f'release_{sector}')
+                                value_name=f'{sector}_release')
         
         # Extraer el número de revisión y eliminar el nombre del sector del campo 'horizon'
         sector_melted['horizon'] = sector_melted['horizon'].str.extract(r'release_(\d+)')[0].astype(int)
