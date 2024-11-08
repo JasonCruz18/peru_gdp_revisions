@@ -603,6 +603,32 @@ def remove_base_year_affected_obs(dic_base_year, df):
     
     return df
 
+# Function to Replace Observations with Base Year Dummies
+#________________________________________________________________
+def replace_base_year_with_dummies(dic_base_year, df):
+    """
+    Replace observations from the DataFrame that are affected by the base year indices specified in the dictionary.
+    Values at the specified indices in each column are replaced with 1 if they meet the criteria,
+    and with 0 if they don't meet the criteria and are not already NaN.
+    
+    Parameters:
+    - dic_base_year: Dictionary where each key is a column name and each value is a set of indices to be updated.
+    - df: DataFrame from which the specified observations will be updated.
+    
+    Returns:
+    - A DataFrame with specified observations replaced by 1 or 0.
+    """
+    
+    # Iterate over the dictionary
+    for col, indices in dic_base_year.items():
+        # Check if the column exists in the dataframe
+        if col in df.columns:
+            # Replace the values at the specified indices with 1 or 0
+            df.loc[list(indices), col] = df.loc[list(indices), col].apply(lambda x: 1 if pd.notnull(x) else 0)
+    
+    return df
+
+
 # Function to replace 't+\d' with dummies
 #________________________________________________________________
 def replace_strings_with_dummies(df_1, df_2):
