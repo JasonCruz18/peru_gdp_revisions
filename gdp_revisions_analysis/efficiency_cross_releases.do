@@ -268,3 +268,5 @@
 		foreach file of local tex_files {
 			erase "`file'"
 		}	
+		
+		
