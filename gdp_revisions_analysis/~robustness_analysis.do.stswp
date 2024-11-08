@@ -260,7 +260,7 @@ Robustness Analysis
 		program define base_year_dummy_process_sector_r
 			args sector model_type
 			local dep_var r_`sector'
-			local indep_vars 
+			local indep_vars c.constant#i.dummy_`sector'
 
 			
 			/* Ejecutar el modelo según el tipo (fe, re, xtscc) */
