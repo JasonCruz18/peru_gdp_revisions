@@ -308,13 +308,15 @@ Robustness Analysis
 			base_year_dummy_process_sector_r `sector' xtscc_re
 			
 			/* Reportar los resultados usando esttab */
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "robustness_analysis.txt", append ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "robustness_analysis.tex", append ///
 				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "h" "N") fmt(%9.0f %9.0f %9.0f)) ///
 				order(_cons) ///
-				varlabels(_cons "Intercepto" 1.dummy_`sector' "1.`sector'") ///
 				noobs ///
 				star(* 0.1 ** 0.05 *** 0.01) ///
-				keep(_cons 1.dummy_`sector')
+				keep(_cons 1.dummy_`sector') ///
+				varlabels(_cons "Intercepto" 1.dummy_`sector' "Base year dummy") ///
+				tex ///
+				longtable
 		}
 	
 	
