@@ -340,4 +340,6 @@ Robustness Analysis
 		// Iterate over each .tex file and delete it
 		foreach file of local tex_files {
 			erase "`file'"
-		}	
+		}
+		
+		
