@@ -1,19 +1,19 @@
-	/********************
-	Efficiency Cross-Sectors
+/********************
+Efficiency Cross-Sectors
+***
+
+		Author
+		---------------------
+		Jason Cruz
+		*********************/
+
+		*** Program: efficiency_cross_sectors.do
+		** 	First Created: 10/11/24
+		** 	Last Updated:  10/11/24
+			
 	***
-
-			Author
-			---------------------
-			Jason Cruz
-			*********************/
-
-			*** Program: efficiency_cross_sectors.do
-			** 	First Created: 10/11/24
-			** 	Last Updated:  10/11/24
-				
-		***
-		** Just click on the "Run (do)" button, the code will do the rest for you.
-		***
+	** Just click on the "Run (do)" button, the code will do the rest for you.
+	***
 
 		
 		
