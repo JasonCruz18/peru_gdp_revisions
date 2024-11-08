@@ -284,7 +284,7 @@ def remove_nan_or_zero_float_columns(df):
     return df_filtered
 
 
-# Function to converto to data panel
+# Function to convert to to data panel
 #________________________________________________________________
 def cum_convert_to_panel(df):
     # Obtener todas las columnas del dataframe
@@ -318,6 +318,51 @@ def cum_convert_to_panel(df):
         
         # Extraer el número de revisión y eliminar el nombre del sector del campo 'horizon'
         sector_melted['horizon'] = sector_melted['horizon'].str.extract(r'e_(\d+)_')[0].astype(int)
+
+        # Si es el primer sector, inicializar df_panel
+        if df_panel.empty:
+            df_panel = sector_melted
+        else:
+            # Fusionar el sector actual con el panel general
+            df_panel = pd.merge(df_panel, sector_melted, on=['vintages_date', 'horizon'], how='outer')
+
+    return df_panel
+
+
+# Function to convert releases to to data panel
+#________________________________________________________________
+def releases_convert_to_panel(df):
+    # Obtener todas las columnas del dataframe
+    columns = df.columns
+    
+    # Conjunto para almacenar los sectores únicos
+    sectors = set()
+
+    # Expresión regular para el patrón '{sector}_release_{i}'
+    pattern = re.compile(r'{sector}_release_(\d+)')
+
+    # Identificar todos los sectores a partir de las columnas
+    for col in columns:
+        match = pattern.search(col)
+        if match:
+            sectors.add(match.group(2))  # Extraer el sector y añadirlo al conjunto
+
+    # Inicializar el DataFrame resultante en formato panel
+    df_panel = pd.DataFrame()
+
+    # Para cada sector, transformar y fusionar los datos
+    for sector in sectors:
+        # Filtrar las columnas que pertenecen a este sector
+        sector_columns = [col for col in columns if f'_{sector}' in col]
+        
+        # Convertir las columnas del sector al formato largo
+        sector_melted = pd.melt(df, id_vars=['vintages_date'], 
+                                value_vars=sector_columns, 
+                                var_name='horizon', 
+                                value_name=f'release_{sector}')
+        
+        # Extraer el número de revisión y eliminar el nombre del sector del campo 'horizon'
+        sector_melted['horizon'] = sector_melted['horizon'].str.extract(r'release_(\d+)')[0].astype(int)
 
         # Si es el primer sector, inicializar df_panel
         if df_panel.empty:
