@@ -1,5 +1,5 @@
 #*******************************************************************************
-# Box plots: backast errors by horizon by pooling fixed-event forecasts
+# Boxplots: Backast Errors by Horizon by Pooling Fixed-Event Forecasts
 #*******************************************************************************
 
 # Author
