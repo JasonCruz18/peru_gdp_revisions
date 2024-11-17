@@ -26,6 +26,7 @@ library(sandwich)     # For robust standard errors
 library(lmtest)       # For hypothesis testing
 library(tcltk)        # For creating GUI elements
 
+
 #...............................................................................
 # Initial Setup
 #...............................................................................
@@ -97,12 +98,15 @@ df <- df %>%
 # Filter data by horizon values (< 20)
 df <- df %>% filter(horizon < 20)
 
+
 # Convert 'horizon' to a factor for categorical analysis
 df$horizon <- as.factor(df$horizon)
 
 # Further filter data for sector values within a specific range (-0.9 to 0.9)
+#df_filtered <- df
+
 df_filtered <- df %>%
-  filter(.data[[paste0("e_", sector)]] >= -0.9 & .data[[paste0("e_", sector)]] <= 0.9)
+  filter(.data[[paste0("e_", sector)]] >= -2.5 & .data[[paste0("e_", sector)]] <= 5)
 
 # Display summary statistics of the filtered sector values
 summary(df_filtered[[paste0("e_", sector)]])
@@ -111,15 +115,49 @@ summary(df_filtered[[paste0("e_", sector)]])
 # Visualization
 #...............................................................................
 
-# Create a boxplot for the filtered sector data
+# Calcular la mediana para cada horizonte
+median_data <- df_filtered %>%
+  group_by(horizon = factor(horizon)) %>%
+  summarize(
+    median_value = mean(.data[[paste0("e_", sector)]], na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Crear el boxplot minimalista
 ggplot(df_filtered, aes(x = factor(horizon), y = .data[[paste0("e_", sector)]])) +
-  geom_boxplot() +                                    # Add boxplot layer
-  labs(
-    title = "Boxplot of GDP Revisions",               # Set the plot title
-    x = "Horizon",                                    # Label for x-axis
-    y = "Revision Values"                             # Label for y-axis
+  geom_boxplot(
+    color = "black",                                # Color de los bordes y bigotes
+    fill = NA,                                        # Sin relleno en las cajas
+    linewidth = 1.5,                                    # Grosor de los bordes y bigotes
+    outlier.shape = 4,                                # Outliers como contornos
+    outlier.color = "white",                        # Contornos de outliers
+    outlier.size = 1,                                  # Grosor de los outliers
+    outlier.stroke = 1.5
+    ) +
+  geom_segment(
+    data = median_data,                               # Datos con medianas calculadas
+    aes(
+      x = as.numeric(horizon) - 0.33,                  # Ajuste horizontal para centrado
+      xend = as.numeric(horizon) + 0.33,               # Extensión horizontal
+      y = median_value, yend = median_value           # Coordenadas de la mediana
+    ),
+    color = "#0079FF", linewidth = 2.5                  # Color y grosor de la línea de la mediana
   ) +
-  theme_minimal()                                     # Apply a minimal theme
+  labs(
+    #title = "Minimalist Boxplot of GDP Revisions",    # Título
+    x = "Horizon",                                    # Etiqueta eje X
+    y = "Revision Values"                             # Etiqueta eje Y
+  ) +
+  theme_minimal(base_size = 14) +                     # Tema minimalista
+  theme(
+    #plot.title = element_text(hjust = 0.5, face = "bold"), # Título centrado y en negrita
+    axis.text = element_text(color = "black"),       # Color del texto de los ejes
+    #axis.title = element_text(face = "bold"),         # Ejes en negrita
+    panel.grid.major = element_blank(),              # Sin rejillas mayores
+    panel.grid.minor = element_blank(),              # Sin rejillas menores
+    panel.background = element_rect(fill = "white", color = NA) # Fondo blanco puro
+  )
+
 
 
 
