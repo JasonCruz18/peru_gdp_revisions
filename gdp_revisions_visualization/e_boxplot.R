@@ -96,7 +96,7 @@ df <- df %>%
            !is.na(vintages_date))
 
 # Filter data by horizon values (< 20)
-df <- df %>% filter(horizon < 20)
+df <- df %>% filter(horizon < 11)
 
 
 # Convert 'horizon' to a factor for categorical analysis
@@ -106,7 +106,7 @@ df$horizon <- as.factor(df$horizon)
 #df_filtered <- df
 
 df_filtered <- df %>%
-  filter(.data[[paste0("e_", sector)]] >= -2.5 & .data[[paste0("e_", sector)]] <= 5)
+  filter(.data[[paste0("e_", sector)]] >= -2 & .data[[paste0("e_", sector)]] <= 2)
 
 # Display summary statistics of the filtered sector values
 summary(df_filtered[[paste0("e_", sector)]])
@@ -123,40 +123,56 @@ median_data <- df_filtered %>%
     .groups = "drop"
   )
 
-# Crear el boxplot minimalista
-ggplot(df_filtered, aes(x = factor(horizon), y = .data[[paste0("e_", sector)]])) +
+# Calcular los cuartiles y los valores de los bigotes para el boxplot
+df_filtered <- df_filtered %>%
+  mutate(
+    q1 = quantile(.data[[paste0("e_", sector)]], 0.25, na.rm = TRUE),  # Primer cuartil
+    q3 = quantile(.data[[paste0("e_", sector)]], 0.75, na.rm = TRUE),  # Tercer cuartil
+    iqr = q3 - q1,  # Rango intercuartílico
+    lower_bound = q1 - 1.5 * iqr,  # Límite inferior de los bigotes
+    upper_bound = q3 + 1.5 * iqr  # Límite superior de los bigotes
+  )
+
+# Filtrar los datos para eliminar los outliers
+df_filtered_no_outliers <- df_filtered %>%
+  filter(
+    .data[[paste0("e_", sector)]] >= lower_bound & .data[[paste0("e_", sector)]] <= upper_bound
+  )
+
+# Crear el boxplot sin considerar los outliers para la escala
+ggplot(df_filtered_no_outliers, aes(x = factor(horizon), y = .data[[paste0("e_", sector)]])) +
   geom_boxplot(
-    color = "black",                                # Color de los bordes y bigotes
-    fill = NA,                                        # Sin relleno en las cajas
-    linewidth = 1.5,                                    # Grosor de los bordes y bigotes
-    outlier.shape = 4,                                # Outliers como contornos
-    outlier.color = "white",                        # Contornos de outliers
-    outlier.size = 1,                                  # Grosor de los outliers
-    outlier.stroke = 1.5
-    ) +
+    color = "#000000D9",                                # Color de los bordes y bigotes
+    fill = NA,                                          # Sin relleno en las cajas
+    linewidth = 2,                                      # Grosor de los bordes y bigotes
+    outlier.shape = NA,                                  # No mostrar los outliers
+    outlier.color = NA,                                  # Sin color para los outliers
+    outlier.size = 3,                                    # Inactivo porque outlier.shape es NA
+    outlier.stroke = 3                                   # Inactivo porque outlier.shape es NA
+  ) +
   geom_segment(
-    data = median_data,                               # Datos con medianas calculadas
+    data = median_data,                                 # Datos con medianas calculadas
     aes(
-      x = as.numeric(horizon) - 0.33,                  # Ajuste horizontal para centrado
-      xend = as.numeric(horizon) + 0.33,               # Extensión horizontal
-      y = median_value, yend = median_value           # Coordenadas de la mediana
+      x = as.numeric(horizon) - 0.34,                    # Ajuste horizontal para centrado
+      xend = as.numeric(horizon) + 0.34,                 # Extensión horizontal
+      y = median_value, yend = median_value             # Coordenadas de la mediana
     ),
-    color = "#0079FF", linewidth = 2.5                  # Color y grosor de la línea de la mediana
+    color = "#0079FF", linewidth = 3                      # Color y grosor de la línea de la mediana
   ) +
   labs(
-    #title = "Minimalist Boxplot of GDP Revisions",    # Título
-    x = "Horizon",                                    # Etiqueta eje X
-    y = "Revision Values"                             # Etiqueta eje Y
+    #title = "Minimalist Boxplot of GDP Revisions",      # Título
+    x = "Horizon",                                      # Etiqueta eje X
+    y = "Revision Values"                               # Etiqueta eje Y
   ) +
-  theme_minimal(base_size = 14) +                     # Tema minimalista
+  theme_minimal(base_size = 14) +                       # Tema minimalista
   theme(
-    #plot.title = element_text(hjust = 0.5, face = "bold"), # Título centrado y en negrita
-    axis.text = element_text(color = "black"),       # Color del texto de los ejes
-    #axis.title = element_text(face = "bold"),         # Ejes en negrita
-    panel.grid.major = element_blank(),              # Sin rejillas mayores
-    panel.grid.minor = element_blank(),              # Sin rejillas menores
+    axis.text = element_text(color = "#000000D9"),         # Color del texto de los ejes
+    panel.grid.major = element_blank(),                  # Sin rejillas mayores
+    panel.grid.minor = element_blank(),                  # Sin rejillas menores
     panel.background = element_rect(fill = "white", color = NA) # Fondo blanco puro
   )
+
+
 
 
 
