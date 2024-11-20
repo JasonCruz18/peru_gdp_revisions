@@ -7,6 +7,8 @@
 # First Created: 09/20/24
 # Last Updated: 11/16/24
 
+
+
 #*******************************************************************************
 # Libraries
 #*******************************************************************************
@@ -22,19 +24,35 @@ library(tcltk)        # GUI elements for user input
 library(sandwich)     # Robust standard errors
 library(lmtest)       # Hypothesis testing
 
+
+
 #*******************************************************************************
 # Initial Setup
 #*******************************************************************************
 
+
+# Ask path directory to user where folders will be created
+cat("Enter the path where you want to create the folders (leave empty to use current working directory): ")
+user_path <- readline()
+
+# If user doesn't provide a path, use the current working directory
+if (user_path == "") {
+  user_path <- getwd()
+}
+
 # Define output directories
-output_dir <- file.path(getwd(), "output")
+output_dir <- file.path(user_path, "output")
 figures_dir <- file.path(output_dir, "figures")
 tables_dir <- file.path(output_dir, "tables")
 
 # Create output directories if they do not exist
-if (!dir.exists(output_dir)) dir.create(output_dir)
-if (!dir.exists(figures_dir)) dir.create(figures_dir)
-if (!dir.exists(tables_dir)) dir.create(tables_dir)
+if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
+if (!dir.exists(figures_dir)) dir.create(figures_dir, recursive = TRUE)
+if (!dir.exists(tables_dir)) dir.create(tables_dir, recursive = TRUE)
+
+cat("Directories created successfully in:", user_path, "\n")
+
+
 
 #*******************************************************************************
 # Sector Selection
@@ -54,6 +72,8 @@ tkbutton(win, text = "OK", command = function() tkdestroy(win)) %>% tkpack()
 # Wait for user input
 tkwait.window(win)
 sector <- tclvalue(selected_sector)
+
+
 
 #*******************************************************************************
 # Database Connection
@@ -81,6 +101,8 @@ df <- dbGetQuery(con, query)
 # Close database connection
 dbDisconnect(con)
 
+
+
 #*******************************************************************************
 # Data Preparation
 #*******************************************************************************
@@ -91,38 +113,46 @@ df$horizon <- factor(df$horizon, levels = unique(df$horizon))
 # Filter for specific horizons
 df_filtered <- df %>% filter(horizon %in% c('t+1', 't+6', 't+12', 't+18', 't+24'))
 
-# Select specific years and reshape data
-df_filtered <- df_filtered %>% select(horizon, starts_with("year_199"))
-df_long <- pivot_longer(df_filtered, cols = starts_with("year_"), 
-                        names_to = "year", values_to = "value")
+# Select columns to plot (user-defined)
+columns_to_plot <- c("year_1998", "year_1999")
+
+# Transform the data: select relevant columns and reshape to long format
+df_long <- df_filtered %>%
+  select(horizon, all_of(columns_to_plot)) %>%  # Keep only the necessary columns
+  pivot_longer(cols = all_of(columns_to_plot),  # Reshape to long format
+               names_to = "year",              # Column for years
+               values_to = "value") %>%        # Column for values
+  mutate(year = gsub("year_", "", year))       # Remove 'year_' prefix from column names
+
+
 
 #*******************************************************************************
 # Visualization
 #*******************************************************************************
 
-# Create the line plot
+# Create the dynamic plot
 plot <- ggplot(df_long, aes(x = horizon, y = value, color = year, group = year)) +
-  geom_line(linewidth = 1.3) +
-  geom_point(size = 3) +
-  labs(x = NULL, y = NULL, title = NULL, color = NULL) +
-  theme_minimal() +
+  geom_line(linewidth = 1.5) +                 # Add lines for each series
+  geom_point(size = 3.5) +                     # Add points for each series
+  labs(x = NULL, y = NULL, title = NULL, color = NULL) +  # Remove default labels
+  theme_minimal() +                            # Apply minimal theme
   theme(
-    panel.grid.major = element_line(linewidth = 1.3),
-    panel.grid.minor = element_blank(),
-    axis.text = element_text(color = "black", size = 14),
-    legend.position = "bottom",
-    legend.title = element_blank(),
-    legend.text = element_text(size = 12, color = "black"),
-    legend.background = element_rect(color = "black", linewidth = 0.65),
-    axis.line = element_line(color = "black", linewidth = 0.65),
-    axis.ticks = element_line(color = "black", linewidth = 0.65),
-    panel.border = element_rect(color = "black", linewidth = 0.65, fill = NA)
+    panel.grid.major = element_line(linewidth = 1.3),  # Customize grid lines
+    panel.grid.minor = element_blank(),               # Remove minor grid lines
+    axis.text = element_text(color = "black", size = 24),  # Customize axis text
+    legend.position = "bottom",                       # Place legend at the bottom
+    legend.title = element_blank(),                   # Remove legend title
+    legend.text = element_text(size = 24, color = "black"),  # Customize legend text
+    legend.background = element_rect(color = "black", linewidth = 1.2),  # Add legend border
+    axis.line = element_line(color = "black", linewidth = 0.8),  # Customize axis lines
+    axis.ticks = element_line(color = "black", linewidth = 0.8),  # Customize axis ticks
+    panel.border = element_rect(color = "black", linewidth = 0.8, fill = NA)  # Add panel border
   ) +
   scale_color_manual(
-    values = c("first_event" = "#FF0060", "second_event" = "#0079FF"),
-    labels = c("first_event" = "1998", "second_event" = "1999")
+    values = setNames(c("#FF0060", "#0079FF"), c("1998", "1999")),  # Map colors to years
+    labels = c("1998", "1999")  # Set legend labels
   ) +
-  coord_cartesian(clip = "off")
+  coord_cartesian(clip = "off")  # Prevent clipping of data outside panel
 
 # Display the plot
 print(plot)
