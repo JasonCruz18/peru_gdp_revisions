@@ -30,13 +30,17 @@ library(lmtest)       # Hypothesis testing
 # Initial Setup
 #*******************************************************************************
 
-# Ask path directory to user where folders will be created
-cat("Enter the path where you want to create the folders (leave empty to use current working directory): ")
-user_path <- readline()
-
-# If user doesn't provide a path, use the current working directory
-if (user_path == "") {
-  user_path <- getwd()
+# Use a dialog box to select the folder
+if (requireNamespace("rstudioapi", quietly = TRUE)) {
+  user_path <- rstudioapi::selectDirectory()
+  if (!is.null(user_path)) {
+    setwd(user_path)
+    cat("The working directory has been set to:", getwd(), "\n")
+  } else {
+    cat("No folder was selected.\n")
+  }
+} else {
+  cat("Install the 'rstudioapi' package to use this functionality.\n")
 }
 
 # Define output directories
@@ -136,16 +140,17 @@ plot <- ggplot(df_long, aes(x = horizon, y = value, color = year, group = year))
   labs(x = NULL, y = NULL, title = NULL, color = NULL) +  # Remove default labels
   theme_minimal() +                            # Apply minimal theme
   theme(
-    panel.grid.major = element_line(linewidth = 1.3),  # Customize grid lines
-    panel.grid.minor = element_blank(),               # Remove minor grid lines
+    panel.grid.major = element_line(color = "#f5f5f5", linewidth = 1),  # Major grid lines
+    panel.grid.minor.x = element_line(color = "#f5f5f5", linewidth = 0.8),  # Minor grid lines for x-axis
+    panel.grid.minor.y = element_blank(),               # Remove minor grid lines for y-axis
     axis.text = element_text(color = "black", size = 24),  # Customize axis text
     legend.position = "bottom",                       # Place legend at the bottom
     legend.title = element_blank(),                   # Remove legend title
     legend.text = element_text(size = 24, color = "black"),  # Customize legend text
-    legend.background = element_rect(color = "black", linewidth = 1.2),  # Add legend border
-    axis.line = element_line(color = "black", linewidth = 0.8),  # Customize axis lines
-    axis.ticks = element_line(color = "black", linewidth = 0.8),  # Customize axis ticks
-    panel.border = element_rect(color = "black", linewidth = 0.8, fill = NA)  # Add panel border
+    legend.background = element_rect(color = "black", linewidth = 1),  # Add legend border
+    axis.line = element_line(color = "black", linewidth = 1),  # Customize axis lines
+    axis.ticks = element_line(color = "black", linewidth = 1),  # Customize axis ticks
+    panel.border = element_rect(color = "black", linewidth = 1, fill = NA)  # Add panel border
   ) +
   scale_color_manual(
     values = setNames(c("#FF0060", "#0079FF"), c("1998", "1999")),  # Map colors to years
