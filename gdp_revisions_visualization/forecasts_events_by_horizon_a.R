@@ -23,6 +23,7 @@ library(tidyr)        # Data reshaping (pivot_longer)
 library(tcltk)        # GUI elements for user input
 library(sandwich)     # Robust standard errors
 library(lmtest)       # Hypothesis testing
+library(scales)
 
 
 
@@ -133,32 +134,31 @@ df_long <- df_filtered %>%
 # Visualization
 #*******************************************************************************
 
-# Create the dynamic plot
 plot <- ggplot(df_long, aes(x = horizon, y = value, color = year, group = year)) +
-  geom_line(linewidth = 1.5) +                 # Add lines for each series
-  geom_point(size = 3.5) +                     # Add points for each series
-  labs(x = NULL, y = NULL, title = NULL, color = NULL) +  # Remove default labels
-  theme_minimal() +                            # Apply minimal theme
+  geom_line(linewidth = 1.8) +
+  geom_point(size = 3.8) +
+  labs(x = NULL, y = NULL, title = NULL, color = NULL) +
+  theme_minimal() +
   theme(
-    panel.grid.major = element_line(color = "#f5f5f5", linewidth = 1),  # Major grid lines
-    panel.grid.minor.x = element_line(color = "#f5f5f5", linewidth = 0.8),  # Minor grid lines for x-axis
-    panel.grid.minor.y = element_blank(),               # Remove minor grid lines for y-axis
-    axis.text = element_text(color = "black", size = 24),  # Customize axis text
-    legend.position = "bottom",                       # Place legend at the bottom
-    legend.title = element_blank(),                   # Remove legend title
-    legend.text = element_text(size = 24, color = "black"),  # Customize legend text
-    legend.background = element_rect(color = "black", linewidth = 1),  # Add legend border
-    axis.line = element_line(color = "black", linewidth = 1),  # Customize axis lines
-    axis.ticks = element_line(color = "black", linewidth = 1),  # Customize axis ticks
-    panel.border = element_rect(color = "black", linewidth = 1, fill = NA)  # Add panel border
+    panel.grid.major = element_line(color = "#f5f5f5", linewidth = 1.2),
+    panel.grid.minor.x = element_line(color = "#f5f5f5", linewidth = 1.2),
+    panel.grid.minor.y = element_blank(),
+    axis.text = element_text(color = "black", size = 24),
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.text = element_text(size = 24, color = "black"),
+    legend.background = element_rect(fill = "white", color = "black", linewidth = 0.8),
+    axis.line = element_line(color = "black", linewidth = 0.8),
+    panel.border = element_rect(color = "black", linewidth = 0.8, fill = NA),
+    plot.margin = margin(10, 10, 10, 10)  # Márgenes: top, right, bottom, left
   ) +
   scale_color_manual(
-    values = setNames(c("#FF0060", "#0079FF"), c("1998", "1999")),  # Map colors to years
-    labels = c("1998", "1999")  # Set legend labels
+    values = setNames(c("#FF0060", "#0079FF"), c("1998", "1999")),
+    labels = c("1998", "1999")
   ) +
-  coord_cartesian(clip = "off")  # Prevent clipping of data outside panel
+  scale_y_continuous(labels = number_format(accuracy = 0.1)) +
+  coord_cartesian(clip = "off")
 
-# Display the plot
 print(plot)
 
 # Save the plot as a PNG file
