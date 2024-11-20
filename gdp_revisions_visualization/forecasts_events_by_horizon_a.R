@@ -66,7 +66,7 @@ sectors <- c("gdp", "agriculture", "fishing", "mining", "manufacturing",
              "construction", "commerce", "electricity", "services")
 
 # GUI for sector selection
-selected_sector <- tclVar("services")  # Default sector
+selected_sector <- tclVar("gdp")  # Default sector
 win <- tktoplevel()
 tklabel(win, text = "Select a sector:") %>% tkpack()
 dropdown <- ttkcombobox(win, values = sectors, textvariable = selected_sector) %>% tkpack()
