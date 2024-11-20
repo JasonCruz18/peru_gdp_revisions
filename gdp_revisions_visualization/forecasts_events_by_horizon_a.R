@@ -30,7 +30,6 @@ library(lmtest)       # Hypothesis testing
 # Initial Setup
 #*******************************************************************************
 
-
 # Ask path directory to user where folders will be created
 cat("Enter the path where you want to create the folders (leave empty to use current working directory): ")
 user_path <- readline()
