@@ -26,7 +26,7 @@ library(tidyr)        # Data reshaping (pivot_longer)
 library(tcltk)        # GUI elements for user input
 library(sandwich)     # Robust standard errors
 library(lmtest)       # Hypothesis testing
-library(scales)
+library(scales)       # Format number
 
 
 
@@ -143,8 +143,8 @@ plot <- ggplot(df_long, aes(x = horizon, y = value, color = year, group = year))
   labs(x = NULL, y = NULL, title = NULL, color = NULL) +
   theme_minimal() +
   theme(
-    panel.grid.major = element_line(color = "#f5f5f5", linewidth = 1.2),
-    panel.grid.minor.x = element_line(color = "#f5f5f5", linewidth = 1.2),
+    panel.grid.major = element_line(color = "#F5F5F5", linewidth = 1.2),
+    panel.grid.minor.x = element_line(color = "#F5F5F5", linewidth = 1.2),
     panel.grid.minor.y = element_blank(),
     axis.text = element_text(color = "black", size = 24),
     legend.position = "bottom",

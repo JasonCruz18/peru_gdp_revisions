@@ -26,6 +26,7 @@ library(tidyr)        # For reshaping data
 library(sandwich)     # For robust standard errors
 library(lmtest)       # For hypothesis testing
 library(tcltk)        # For creating GUI elements
+library(scales)       # Format number
 
 
 
@@ -33,15 +34,30 @@ library(tcltk)        # For creating GUI elements
 # Initial Setup
 #*******************************************************************************
 
-# Define output directories
-output_dir <- file.path(getwd(), "output")         # Base directory for output files
-figures_dir <- file.path(output_dir, "figures")    # Directory for figures
-tables_dir <- file.path(output_dir, "tables")      # Directory for tables
+# Use a dialog box to select the folder
+if (requireNamespace("rstudioapi", quietly = TRUE)) {
+  user_path <- rstudioapi::selectDirectory()
+  if (!is.null(user_path)) {
+    setwd(user_path)
+    cat("The working directory has been set to:", getwd(), "\n")
+  } else {
+    cat("No folder was selected.\n")
+  }
+} else {
+  cat("Install the 'rstudioapi' package to use this functionality.\n")
+}
 
-# Create directories if they do not exist
-dir.create(output_dir, showWarnings = FALSE)
-dir.create(figures_dir, showWarnings = FALSE)
-dir.create(tables_dir, showWarnings = FALSE)
+# Define output directories
+output_dir <- file.path(user_path, "output")
+figures_dir <- file.path(output_dir, "figures")
+tables_dir <- file.path(output_dir, "tables")
+
+# Create output directories if they do not exist
+if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
+if (!dir.exists(figures_dir)) dir.create(figures_dir, recursive = TRUE)
+if (!dir.exists(tables_dir)) dir.create(tables_dir, recursive = TRUE)
+
+cat("Directories created successfully in:", user_path, "\n")
 
 
 
@@ -102,17 +118,17 @@ df <- df %>%
            !is.na(vintages_date))
 
 # Filter data by horizon values (< 20)
-df <- df %>% filter(horizon < 11)
+#df <- df %>% filter(horizon < 11)
 
 
 # Convert 'horizon' to a factor for categorical analysis
 df$horizon <- as.factor(df$horizon)
 
 # Further filter data for sector values within a specific range (-0.9 to 0.9)
-#df_filtered <- df
+df_filtered <- df
 
-df_filtered <- df %>%
-  filter(.data[[paste0("e_", sector)]] >= -2 & .data[[paste0("e_", sector)]] <= 2)
+#df_filtered <- df %>%
+#  filter(.data[[paste0("e_", sector)]] >= -10 & .data[[paste0("e_", sector)]] <= 10)
 
 # Display summary statistics of the filtered sector values
 summary(df_filtered[[paste0("e_", sector)]])
@@ -148,15 +164,15 @@ df_filtered_no_outliers <- df_filtered %>%
   )
 
 # Crear el boxplot sin considerar los outliers para la escala
-ggplot(df_filtered_no_outliers, aes(x = factor(horizon), y = .data[[paste0("e_", sector)]])) +
+plot <- ggplot(df_filtered_no_outliers, aes(x = factor(horizon), y = .data[[paste0("e_", sector)]])) +
   geom_boxplot(
-    color = "#000000D9",                                # Color de los bordes y bigotes
-    fill = NA,                                          # Sin relleno en las cajas
+    color = "#222831",                                # Color de los bordes y bigotes
+    fill = alpha("#F5F5F5", 0.45),                                          # Sin relleno en las cajas
     linewidth = 2,                                      # Grosor de los bordes y bigotes
-    outlier.shape = NA,                                  # No mostrar los outliers
-    outlier.color = NA,                                  # Sin color para los outliers
-    outlier.size = 3,                                    # Inactivo porque outlier.shape es NA
-    outlier.stroke = 3                                   # Inactivo porque outlier.shape es NA
+    outlier.shape = 4,                                  # No mostrar los outliers
+    outlier.color = "#0079FF",                          # Sin color para los outliers
+    outlier.size = 2,                                   # Inactivo porque outlier.shape es NA
+    outlier.stroke = 2                                  # Inactivo porque outlier.shape es NA
   ) +
   geom_segment(
     data = median_data,                                 # Datos con medianas calculadas
@@ -167,23 +183,30 @@ ggplot(df_filtered_no_outliers, aes(x = factor(horizon), y = .data[[paste0("e_",
     ),
     color = "#0079FF", linewidth = 3                      # Color y grosor de la línea de la mediana
   ) +
-  labs(
+  #labs(
     #title = "Minimalist Boxplot of GDP Revisions",      # Título
-    x = "Horizon",                                      # Etiqueta eje X
-    y = "Revision Values"                               # Etiqueta eje Y
-  ) +
+    #x = "Horizon",                                      # Etiqueta eje X
+    #y = "Revision Values"                               # Etiqueta eje Y
+  #) +
   theme_minimal(base_size = 14) +                       # Tema minimalista
   theme(
-    axis.text = element_text(color = "#000000D9"),         # Color del texto de los ejes
-    panel.grid.major = element_blank(),                  # Sin rejillas mayores
-    panel.grid.minor = element_blank(),                  # Sin rejillas menores
-    panel.background = element_rect(fill = "white", color = NA) # Fondo blanco puro
-  )
+    panel.grid.major = element_line(color = "#F5F5F5", linewidth = 1.2),
+    panel.grid.minor.x = element_line(color = "#F5F5F5", linewidth = 1.2),
+    panel.grid.minor.y = element_blank(),
+    axis.text = element_text(color = "black", size = 24),
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.text = element_text(size = 24, color = "black"),
+    legend.background = element_rect(fill = "white", color = "black", linewidth = 0.8),
+    axis.line = element_line(color = "black", linewidth = 0.8),
+    panel.border = element_rect(color = "black", linewidth = 0.8, fill = NA),
+    plot.margin = margin(10, 10, 10, 10)  # Márgenes: top, right, bottom, left
+  ) +
+  scale_y_continuous(labels = number_format(accuracy = 0.1)) +
+  coord_cartesian(clip = "off")
 
+print(plot)
 
-
-
-
-
-
-
+# Save the plot as a PNG file
+ggsave(file.path(figures_dir, paste0("e_boxplot_", sector, "_m_1", ".png")), 
+       plot, width = 10, height = 6, dpi = 300)
