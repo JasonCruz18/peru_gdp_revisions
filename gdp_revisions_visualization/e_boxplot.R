@@ -118,7 +118,7 @@ df <- df %>%
            !is.na(vintages_date))
 
 # Filter data by horizon values (< 20)
-#df <- df %>% filter(horizon < 11)
+df <- df %>% filter(horizon < 21)
 
 
 # Convert 'horizon' to a factor for categorical analysis
@@ -139,11 +139,11 @@ summary(df_filtered[[paste0("e_", sector)]])
 # Visualization
 #*******************************************************************************
 
-# Calcular la mediana para cada horizonte
-median_data <- df_filtered %>%
+# Calcular la media para cada horizonte
+media_data <- df_filtered %>%
   group_by(horizon = factor(horizon)) %>%
   summarize(
-    median_value = mean(.data[[paste0("e_", sector)]], na.rm = TRUE),
+    media_value = mean(.data[[paste0("e_", sector)]], na.rm = TRUE),
     .groups = "drop"
   )
 
@@ -163,32 +163,39 @@ df_filtered_no_outliers <- df_filtered %>%
     .data[[paste0("e_", sector)]] >= lower_bound & .data[[paste0("e_", sector)]] <= upper_bound
   )
 
-# Crear el boxplot sin considerar los outliers para la escala
+# Calcular el ancho de la caja para ajustar la línea de la mediana
+box_width <- 0.8  # Ancho de las cajas (ajustable según preferencias)
+
+# Crear el boxplot con ajuste automático del ancho de la mediana
 plot <- ggplot(df_filtered_no_outliers, aes(x = factor(horizon), y = .data[[paste0("e_", sector)]])) +
   geom_boxplot(
-    color = "#222831",                                # Color de los bordes y bigotes
-    fill = alpha("#F5F5F5", 0.45),                                          # Sin relleno en las cajas
-    linewidth = 2,                                      # Grosor de los bordes y bigotes
-    outlier.shape = 4,                                  # No mostrar los outliers
-    outlier.color = "#0079FF",                          # Sin color para los outliers
-    outlier.size = 2,                                   # Inactivo porque outlier.shape es NA
-    outlier.stroke = 2                                  # Inactivo porque outlier.shape es NA
+    width = box_width,                                  # Ancho de las cajas
+    color = "#222831",                                  # Color de los bordes y bigotes
+    fill = alpha("#F5F5F5", 0.65),                      # Relleno con transparencia
+    linewidth = 1.2,                                    # Grosor de los bordes y bigotes
+    outlier.shape = NA,                                  # Forma de los outliers
+    outlier.color = NA,                          # Color para los outliers
+    outlier.size = 1.2,                                 # Tamaño de los outliers
+    outlier.stroke = 1.2                                # Grosor del borde de los outliers
   ) +
   geom_segment(
-    data = median_data,                                 # Datos con medianas calculadas
+    data = media_data,
     aes(
-      x = as.numeric(horizon) - 0.34,                    # Ajuste horizontal para centrado
-      xend = as.numeric(horizon) + 0.34,                 # Extensión horizontal
-      y = median_value, yend = median_value             # Coordenadas de la mediana
+      x = as.numeric(horizon) - box_width / 2,          # Ajuste dinámico basado en el ancho
+      xend = as.numeric(horizon) + box_width / 2,       # Ajuste dinámico basado en el ancho
+      y = media_value, 
+      yend = media_value,
+      color = "Media"                                   # Mapeo estático para incluir en la leyenda
     ),
-    color = "#0079FF", linewidth = 3                      # Color y grosor de la línea de la mediana
+    linewidth = 1.8
   ) +
-  #labs(
-    #title = "Minimalist Boxplot of GDP Revisions",      # Título
-    #x = "Horizon",                                      # Etiqueta eje X
-    #y = "Revision Values"                               # Etiqueta eje Y
-  #) +
-  theme_minimal(base_size = 14) +                       # Tema minimalista
+  scale_color_manual(
+    values = c("Media" = "#0079FF")                     # Define el color de la línea de la mediana
+  ) +
+  labs(
+    x = NULL, y = NULL, title = NULL, color = NULL
+  ) +
+  theme_minimal(base_size = 14) +
   theme(
     panel.grid.major = element_line(color = "#F5F5F5", linewidth = 1.2),
     panel.grid.minor.x = element_line(color = "#F5F5F5", linewidth = 1.2),
@@ -200,7 +207,7 @@ plot <- ggplot(df_filtered_no_outliers, aes(x = factor(horizon), y = .data[[past
     legend.background = element_rect(fill = "white", color = "black", linewidth = 0.8),
     axis.line = element_line(color = "black", linewidth = 0.8),
     panel.border = element_rect(color = "black", linewidth = 0.8, fill = NA),
-    plot.margin = margin(10, 10, 10, 10)  # Márgenes: top, right, bottom, left
+    plot.margin = margin(10, 10, 10, 10)                # Márgenes: top, right, bottom, left
   ) +
   scale_y_continuous(labels = number_format(accuracy = 0.1)) +
   coord_cartesian(clip = "off")
@@ -208,5 +215,6 @@ plot <- ggplot(df_filtered_no_outliers, aes(x = factor(horizon), y = .data[[past
 print(plot)
 
 # Save the plot as a PNG file
-ggsave(file.path(figures_dir, paste0("e_boxplot_", sector, "_m_1", ".png")), 
-       plot, width = 10, height = 6, dpi = 300)
+#ggsave(file.path(figures_dir, paste0("e_boxplot_", sector, "_m_2", ".png")), 
+#       plot, width = 10, height = 6, dpi = 300)
+  
