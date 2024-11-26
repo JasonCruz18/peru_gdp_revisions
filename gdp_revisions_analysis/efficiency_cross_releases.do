@@ -124,7 +124,25 @@ Efficiency Cross-Releases
 		* global
 		
 		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
-	
+		
+		* Filter observations starting from 1993m1
+		keep if target_date >= ym(1993, 1)
+		
+		
+		* Ordenar los datos por fecha y horizonte
+		sort target_date horizon
+
+		* Crear una variable con la predicción en h=1 (utilizando y_gdp)
+		
+		foreach sector of global sectors {
+			* Crear la variable y_1_sector para cada sector, sólo si horizon == 1
+			by target_date: gen y_1_`sector' = release_`sector' if horizon == 1
+		}
+		
+		foreach sector of global sectors {
+		* Propagar la predicción inicial a todas las filas del mismo target_date
+			by target_date: replace y_1_`sector' = y_1_`sector'[_n-1] if missing(y_1_`sector')
+		}
 	
 	save merged_temp_panel_data_cleaned, replace
 	
@@ -236,6 +254,123 @@ Efficiency Cross-Releases
 				b(%9.3f) se(%9.3f) stats(chi_`sector' p_`sector' n_`sector' h_`sector' N_`sector', label("Chi2" "p" "n" "h" "N") fmt(%9.3f %9.3f %9.0f %9.0f %9.0f)) ///
 				order(_cons) ///
 				varlabels(_cons "Intercepto" L.release_`sector' "y(-1)" L2.release_`sector' "y(-2)") ///
+				noobs ///
+				star(* 0.1 ** 0.05 *** 0.01) ///
+				tex ///
+				longtable
+		}
+	
+	
+	restore // Return to on-call status
+	
+
+	
+	/*----------------------
+	Regression (revision-first-release)
+	-----------------------*/
+
+	* r_t(h) vs y_t(h=1)	
+	*.........................................................................
+	
+	
+	use merged_temp_panel_data_cleaned, clear
+	preserve // Save the current status
+	
+	
+		/* Limpiar cualquier estimación previa */
+		estimates clear	
+		
+		/* Programa para procesar cada sector */
+		program define process_release_sector_r
+			args sector model_type
+			local dep_var r_`sector'
+			local indep_vars y_1_`sector'
+			
+			/* Ejecutar el modelo según el tipo (fe, re, xtscc) */
+			if "`model_type'" == "fe" {
+				xtreg `dep_var' `indep_vars', fe vce(cluster target_date)
+			}
+			else if "`model_type'" == "re" {
+				xtreg `dep_var' `indep_vars', re vce(cluster target_date)
+			}
+			else if "`model_type'" == "xtscc_fe" {
+				xtscc `dep_var' `indep_vars', fe
+			}
+			else if "`model_type'" == "xtscc_re" {
+				xtscc `dep_var' `indep_vars', re
+			}
+			
+			/* Obtener las dimensiones del panel con xtsum */
+			xtsum `dep_var'
+			scalar obs_between = r(n)     // Número de grupos (between)
+			scalar obs_within = r(Tbar)   // Número de periodos promedio por grupo (within)
+			scalar obs_total = r(N)       // Número total de observaciones (overall)
+			
+			/* Agregar los valores de observaciones a los resultados */
+			estadd scalar n_`sector' obs_between
+			estadd scalar h_`sector' obs_within
+			estadd scalar N_`sector' obs_total
+			
+			/* Guardar los resultados del modelo */
+			estimates store `model_type'_`sector'
+		end
+
+		/* Loop para correr las regresiones para cada sector */
+		foreach sector of global sectors {
+			
+			/* Correr regresión de efectos fijos */
+			process_release_sector_r `sector' fe
+			
+			/* Test sobre las restricciones */
+			test (_cons = 0) (y_1_`sector' = 0)
+			
+			/* Guardar los valores de F y p */
+			scalar chi_value = 2*r(F) // Don't report chi2
+			scalar p_value = r(p)
+			estadd scalar chi_`sector' chi_value
+			estadd scalar p_`sector' p_value
+			
+			/* Correr regresión de efectos fijos con Driscoll-Kraay */
+			process_release_sector_r `sector' xtscc_fe
+
+			/* Test sobre las restricciones */
+			test (_cons = 0) (y_1_`sector' = 0)
+			
+			/* Guardar los valores de F y p */
+			scalar chi_value = 2*r(F) // Don't report chi2
+			scalar p_value = r(p)
+			estadd scalar chi_`sector' chi_value
+			estadd scalar p_`sector' p_value
+
+			/* Correr regresión de efectos aleatorios */
+			process_release_sector_r `sector' re
+			
+			/* Test sobre las restricciones */
+			test (_cons = 0) (y_1_`sector' = 0)
+			
+			/* Guardar los valores de F y p */
+			scalar chi_value = r(chi2)
+			scalar p_value = r(p)
+			estadd scalar chi_`sector' chi_value
+			estadd scalar p_`sector' p_value
+
+			/* Correr regresión de efectos aleatorios con Driscoll-Kraay */
+			process_release_sector_r `sector' xtscc_re
+			
+			/* Test sobre las restricciones */
+			test (_cons = 0) (y_1_`sector' = 0)
+			
+			/* Guardar los valores de F y p */
+			scalar chi_value = 2*r(F) // Alternatively e(chi2) 
+			scalar p_value = r(p)
+			estadd scalar chi_`sector' chi_value
+			estadd scalar p_`sector' p_value
+			
+			/* Reportar los resultados usando esttab */
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "predictibility_first_release.tex", append ///
+				b(%9.3f) se(%9.3f) stats(chi_`sector' p_`sector' n_`sector' h_`sector' N_`sector', label("Chi2" "p-value" "n" "h" "N") fmt(%9.3f %9.3f %9.0f %9.0f %9.0f)) ///
+				order(_cons) ///
+				varlabels(_cons "Intercepto" y_1_`sector' "y(1): predicción inicial") ///
 				noobs ///
 				star(* 0.1 ** 0.05 *** 0.01) ///
 				tex ///
