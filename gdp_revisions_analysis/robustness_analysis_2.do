@@ -229,7 +229,7 @@ Robustness Analysis
 	
 		
 		/* Programa para procesar cada sector */
-		program define base_year_dummy_process_sector_r
+		program define process_sector_abs
 			args sector model_type
 			local dep_var log_abs_e_`sector'
 			local indep_vars c.time_trend##i.dummy_`sector'
@@ -268,16 +268,16 @@ Robustness Analysis
 		foreach sector of global sectors {
 			
 			/* Correr regresión de efectos fijos */
-			base_year_dummy_process_sector_r `sector' fe
+			process_sector_abs `sector' fe
 						
 			/* Correr regresión de efectos fijos con Driscoll-Kraay */
-			base_year_dummy_process_sector_r `sector' xtscc_fe
+			process_sector_abs `sector' xtscc_fe
 
 			/* Correr regresión de efectos aleatorios */
-			base_year_dummy_process_sector_r `sector' re
+			process_sector_abs `sector' re
 			
 			/* Correr regresión de efectos aleatorios con Driscoll-Kraay */
-			base_year_dummy_process_sector_r `sector' xtscc_re
+			process_sector_abs `sector' xtscc_re
 			
 			/* Reportar los resultados usando esttab */
 			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "robustness_analysis_2_abs.tex", append ///
@@ -298,7 +298,7 @@ Robustness Analysis
 		-----------------------*/
 		
 		/* Programa para procesar cada sector */
-		program define base_year_dummy_process_sector_sq
+		program define process_sector_sq
 			args sector model_type
 			local dep_var log_sq_e_`sector'
 			local indep_vars c.time_trend##i.dummy_`sector'
@@ -337,16 +337,16 @@ Robustness Analysis
 		foreach sector of global sectors {
 			
 			/* Correr regresión de efectos fijos */
-			base_year_dummy_process_sector_sq `sector' fe
+			process_sector_sq `sector' fe
 						
 			/* Correr regresión de efectos fijos con Driscoll-Kraay */
-			base_year_dummy_process_sector_sq `sector' xtscc_fe
+			process_sector_sq `sector' xtscc_fe
 
 			/* Correr regresión de efectos aleatorios */
-			base_year_dummy_process_sector_sq `sector' re
+			process_sector_sq `sector' re
 			
 			/* Correr regresión de efectos aleatorios con Driscoll-Kraay */
-			base_year_dummy_process_sector_sq `sector' xtscc_re
+			process_sector_sq `sector' xtscc_re
 			
 			/* Reportar los resultados usando esttab */
 			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "robustness_analysis_2_sq.tex", append ///
