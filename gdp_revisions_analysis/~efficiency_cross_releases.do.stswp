@@ -78,13 +78,13 @@ Efficiency Cross-Releases
 	save merged_temp_panel_data, replace
 
 	
-	odbc load, exec("select * from sectorial_gdp_quarterly_cum_revisions_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+	odbc load, exec("select * from sectorial_gdp_monthly_cum_revisions_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
 	save temp_data_e, replace
 	
 	
-	odbc load, exec("select * from sectorial_gdp_quarterly_int_revisions_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+	odbc load, exec("select * from sectorial_gdp_monthly_int_revisions_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
 	save temp_data_r, replace
