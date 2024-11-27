@@ -1,220 +1,220 @@
-/********************
-Efficiency Cross-Releases
-***
-
-		Author
-		---------------------
-		Jason Cruz
-		*********************/
-
-		*** Program: efficiency_cross_releases.do
-		** 	First Created: 10/11/24
-		** 	Last Updated:  10/11/24
-			
-	***
-	** Just click on the "Run (do)" button, the code will do the rest for you.
+	/********************
+	Efficiency Cross-Releases
 	***
 
-		
-		
-	/*----------------------
-	Initial script configuration
-	-----------------------*/
+			Author
+			---------------------
+			Jason Cruz
+			*********************/
 
-	cls 					// Clears the screen.
-	clear all 				// Frees all memory.
-	version 				// Displays the software version.
-		
-	set more off 			// Turns off pagination for output.
-	cap set maxvar 12000	// Sets the maximum number of variables to 12000.
-	program drop _all 		// Deletes all user-defined programs.
-			
-	capture log close 		// Closes the log file if open.
+			*** Program: efficiency_cross_releases.do
+			** 	First Created: 10/11/24
+			** 	Last Updated:  10/11/24
 				
-	pause on 				// Enables pauses in programs.
-	set varabbrev off 		// Turns off variable abbreviation.
+		***
+		** Just click on the "Run (do)" button, the code will do the rest for you.
+		***
+
 			
-	//log using efficiency_tests.txt, text replace // Opens a log file and replaces it if it exists.
+			
+		/*----------------------
+		Initial script configuration
+		-----------------------*/
 
-	
+		cls 					// Clears the screen.
+		clear all 				// Frees all memory.
+		version 				// Displays the software version.
+			
+		set more off 			// Turns off pagination for output.
+		cap set maxvar 12000	// Sets the maximum number of variables to 12000.
+		program drop _all 		// Deletes all user-defined programs.
+				
+		capture log close 		// Closes the log file if open.
+					
+		pause on 				// Enables pauses in programs.
+		set varabbrev off 		// Turns off variable abbreviation.
+				
+		//log using efficiency_tests.txt, text replace // Opens a log file and replaces it if it exists.
 
-	/*----------------------
-	Defining workspace path
-	------------------------*/
-	
-	di `"Please, enter your path for storing the outputs of this dofile in the COMMAND WINDOW and press ENTER."'  _request(path)
-	
-	cd "$path"
+		
+
+		/*----------------------
+		Defining workspace path
+		------------------------*/
+		
+		di `"Please, enter your path for storing the outputs of this dofile in the COMMAND WINDOW and press ENTER."'  _request(path)
+		
+		cd "$path"
+			
+			
+			
+		/*----------------------
+		Setting folders to save outputs
+		------------------------*/
+			
+		shell mkdir "output" 			// Creates folder to save outputs.
+		//shell mkdir "output/graphs" 	// Creates folder to save graphs.
+		shell mkdir "output/tables" 	// Creates folder to save tables.
+		//shell mkdir "output/data" 		// Creates folder to save data.
+			
+		
+		* Set as global vars
+		
+		//global graphs_folder "output/graphs"	// Use to export graphs.
+		global tables_folder "output/tables"	// Use to export tables.
+		//global data_folder "output/data"		// Use to export .dta.
+		
+			
+			
+		/*----------------------
+		Import ODBC dataset and
+		save temp
+		-----------------------*/
+			
+			
+		odbc load, exec("select * from sectorial_gdp_monthly_releases_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+			
+		
+		save merged_temp_panel_data, replace
+
+		
+		odbc load, exec("select * from sectorial_gdp_monthly_cum_revisions_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+			
+		
+		save temp_data_e, replace
+		
+		
+		odbc load, exec("select * from sectorial_gdp_monthly_int_revisions_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+			
+		
+		save temp_data_r, replace
 		
 		
 		
-	/*----------------------
-	Setting folders to save outputs
-	------------------------*/
-		
-	shell mkdir "output" 			// Creates folder to save outputs.
-	//shell mkdir "output/graphs" 	// Creates folder to save graphs.
-	shell mkdir "output/tables" 	// Creates folder to save tables.
-	//shell mkdir "output/data" 		// Creates folder to save data.
-		
-	
-	* Set as global vars
-	
-	//global graphs_folder "output/graphs"	// Use to export graphs.
-	global tables_folder "output/tables"	// Use to export tables.
-	//global data_folder "output/data"		// Use to export .dta.
-	
-		
-		
-	/*----------------------
-	Import ODBC dataset and
-	save temp
-	-----------------------*/
-		
-		
-	odbc load, exec("select * from sectorial_gdp_monthly_releases_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
-		
-	
-	save merged_temp_panel_data, replace
-
-	
-	odbc load, exec("select * from sectorial_gdp_monthly_cum_revisions_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
-		
-	
-	save temp_data_e, replace
-	
-	
-	odbc load, exec("select * from sectorial_gdp_monthly_int_revisions_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
-		
-	
-	save temp_data_r, replace
-	
-	
-	
-	/*----------------------
-	On-the-fly data
-	cleaning (1/3)
-	-----------------------*/
-
-	
-	use merged_temp_panel_data, clear
-
-	
-		* Destring
-		
-		destring horizon, replace force
-		
-		* Order and sort
-		
-		sort vintages_date horizon // Key step to set both the ID and time vars for panel data.
+		/*----------------------
+		On-the-fly data
+		cleaning (1/3)
+		-----------------------*/
 
 		
-		* At a glance (inspect data)
-
-		d // Check entire dataset vars to understand its structure.
-		sum // Summarize stats for all vars in the dataset (mean, standard deviation, etc.).
-		count // Count the total number of observations, expected to be 6,696.
+		use merged_temp_panel_data, clear
 
 		
-		* Fixing date format
+			* Destring
+			
+			destring horizon, replace force
+			
+			* Order and sort
+			
+			sort vintages_date horizon // Key step to set both the ID and time vars for panel data.
+
+			
+			* At a glance (inspect data)
+
+			d // Check entire dataset vars to understand its structure.
+			sum // Summarize stats for all vars in the dataset (mean, standard deviation, etc.).
+			count // Count the total number of observations, expected to be 6,696.
+
+			
+			* Fixing date format
+			
+			gen numeric_date = dofc(vintages_date) // To a Stata date in days.
+			format numeric_date %td // To standard Stata date (e.g., day-month-year).
+
+			gen target_date = mofd(numeric_date) // To a monthly date format.
+			format target_date %tm // To standard Stata month (e.g., Jan 2023).
+
+			drop vintages_date numeric_date // Drop the original vars since they are no longer needed.
+
+			order target_date horizon // Reorder vars so that 'target_date' and 'horizon' appear first in the dataset.
+
+			
+			/* Definir la estructura de datos de panel */
+			xtset target_date horizon
+
+			
+			* global
+			
+			global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
+			
+			* Filter observations starting from 1993m1
+			keep if target_date >= ym(1993, 1)
+			
+			
+			* Ordenar los datos por fecha y horizonte
+			sort target_date horizon
+
+			* Crear una variable con la predicción en h=1 (utilizando y_gdp)
+			
+			foreach sector of global sectors {
+				* Crear la variable y_1_sector para cada sector, sólo si horizon == 1
+				by target_date: gen y_1_`sector' = release_`sector' if horizon == 1
+			}
+			
+			foreach sector of global sectors {
+			* Propagar la predicción inicial a todas las filas del mismo target_date
+				by target_date: replace y_1_`sector' = y_1_`sector'[_n-1] if missing(y_1_`sector')
+			}
 		
-		gen numeric_date = dofc(vintages_date) // To a Stata date in days.
-		format numeric_date %td // To standard Stata date (e.g., day-month-year).
-
-		gen target_date = mofd(numeric_date) // To a monthly date format.
-		format target_date %tm // To standard Stata month (e.g., Jan 2023).
-
-		drop vintages_date numeric_date // Drop the original vars since they are no longer needed.
-
-		order target_date horizon // Reorder vars so that 'target_date' and 'horizon' appear first in the dataset.
-
-		
-		/* Definir la estructura de datos de panel */
-		xtset target_date horizon
-
-		
-		* global
-		
-		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
-		
-		* Filter observations starting from 1993m1
-		keep if target_date >= ym(1993, 1)
+		save merged_temp_panel_data_cleaned, replace
 		
 		
-		* Ordenar los datos por fecha y horizonte
-		sort target_date horizon
-
-		* Crear una variable con la predicción en h=1 (utilizando y_gdp)
 		
-		foreach sector of global sectors {
-			* Crear la variable y_1_sector para cada sector, sólo si horizon == 1
-			by target_date: gen y_1_`sector' = release_`sector' if horizon == 1
-		}
+		/*----------------------
+		On-the-fly data
+		cleaning (2/3)
+		-----------------------*/
+
 		
-		foreach sector of global sectors {
-		* Propagar la predicción inicial a todas las filas del mismo target_date
-			by target_date: replace y_1_`sector' = y_1_`sector'[_n-1] if missing(y_1_`sector')
-		}
-	
-	save merged_temp_panel_data_cleaned, replace
-	
-	
-	
-	/*----------------------
-	On-the-fly data
-	cleaning (2/3)
-	-----------------------*/
+		use temp_data_e, clear
+		
+			* Paso 1: Dividir por 1000 para convertir de milisegundos a segundos
+			gen vintages_seconds = vintages_date / 1000
 
-	
-	use temp_data_e, clear
-	
-		* Paso 1: Dividir por 1000 para convertir de milisegundos a segundos
-		gen vintages_seconds = vintages_date / 1000
+			* Paso 2: Convertir los segundos a una fecha de Stata usando el formato %tc
+			gen vintages_stata_date = vintages_seconds / 86400  // 86400 segundos en un día
 
-		* Paso 2: Convertir los segundos a una fecha de Stata usando el formato %tc
-		gen vintages_stata_date = vintages_seconds / 86400  // 86400 segundos en un día
+			* Dar formato a la nueva variable
+			format vintages_stata_date %td
 
-		* Dar formato a la nueva variable
-		format vintages_stata_date %td
+			* Convertir la fecha de Stata a formato mensual
+			gen vintages_monthly = mofd(vintages_stata_date)
 
-		* Convertir la fecha de Stata a formato mensual
-		gen vintages_monthly = mofd(vintages_stata_date)
+			* Dar formato mensual
+			format vintages_monthly %tm
 
-		* Dar formato mensual
-		format vintages_monthly %tm
+		
+		save temp_data_e_cleaned, replace
+		
+		
+		
+		/*----------------------
+		On-the-fly data
+		cleaning (3/3)
+		-----------------------*/
 
-	
-	save temp_data_e_cleaned, replace
-	
-	
-	
-	/*----------------------
-	On-the-fly data
-	cleaning (3/3)
-	-----------------------*/
+		
+		use temp_data_r, clear
+		
+			* Paso 1: Dividir por 1000 para convertir de milisegundos a segundos
+			gen vintages_seconds = vintages_date / 1000
 
-	
-	use temp_data_r, clear
-	
-		* Paso 1: Dividir por 1000 para convertir de milisegundos a segundos
-		gen vintages_seconds = vintages_date / 1000
+			* Paso 2: Convertir los segundos a una fecha de Stata usando el formato %tc
+			gen vintages_stata_date = vintages_seconds / 86400  // 86400 segundos en un día
 
-		* Paso 2: Convertir los segundos a una fecha de Stata usando el formato %tc
-		gen vintages_stata_date = vintages_seconds / 86400  // 86400 segundos en un día
+			* Dar formato a la nueva variable
+			format vintages_stata_date %td
 
-		* Dar formato a la nueva variable
-		format vintages_stata_date %td
+			* Convertir la fecha de Stata a formato mensual
+			gen vintages_monthly = mofd(vintages_stata_date)
 
-		* Convertir la fecha de Stata a formato mensual
-		gen vintages_monthly = mofd(vintages_stata_date)
+			* Dar formato mensual
+			format vintages_monthly %tm
 
-		* Dar formato mensual
-		format vintages_monthly %tm
-
-	
-	save temp_data_r_cleaned, replace
-	
-	
+		
+		save temp_data_r_cleaned, replace
+		
+		
 		
 	/*----------------------
 	Regression (revisions-releases)
@@ -366,7 +366,7 @@ Efficiency Cross-Releases
 		end
 
 		/* Número de releases */
-		local num_releases 3
+		local num_releases 10
 
 		/* Loop para correr las regresiones para cada sector y releases */
 		foreach sector of global sectors {
@@ -391,6 +391,8 @@ Efficiency Cross-Releases
 				esttab newey_`sector' using "predictibility_first_release_e.tex", append ///
 					b(%9.3f) se(%9.3f) stats(N_`sector', ///
 					label("n") fmt(%9.3f %9.3f %9.0f)) ///
+					keep(_cons `indep_var') ///
+					order(_cons `indep_var') ///
 					varlabels(_cons "Intercepto" `indep_var' "Primera Predicción") ///
 					noobs star(* 0.1 ** 0.05 *** 0.01) tex longtable
 			}
@@ -459,6 +461,8 @@ Efficiency Cross-Releases
 				esttab newey_`sector' using "predictibility_first_release_r.tex", append ///
 					b(%9.3f) se(%9.3f) stats(N_`sector', ///
 					label("n") fmt(%9.3f %9.3f %9.0f)) ///
+					keep(_cons `indep_var') ///
+					order(_cons `indep_var') ///
 					varlabels(_cons "Intercepto" `indep_var' "Primera Predicción") ///
 					noobs star(* 0.1 ** 0.05 *** 0.01) tex longtable
 			}
