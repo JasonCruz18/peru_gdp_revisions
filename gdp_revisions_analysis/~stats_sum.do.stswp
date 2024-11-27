@@ -72,13 +72,13 @@ Summary of Statistics
 	-----------------------*/
 		
 		
-	odbc load, exec("select * from sectorial_gdp_monthly_cum_revisions") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+	odbc load, exec("select * from sectorial_gdp_annual_cum_revisions") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
 	save cum_ts_data, replace
 	
 	
-	odbc load, exec("select * from sectorial_gdp_monthly_int_revisions") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+	odbc load, exec("select * from sectorial_gdp_annual_int_revisions") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
 	save int_ts_data, replace
@@ -217,8 +217,8 @@ Summary of Statistics
 
 		* Cambia al marco de resultados y lista los datos
 		frame change results_e
-		list n coef p1 p99 sd, noobs clean
-		//list variable n coef p1 p99 sd, noobs clean
+		//list n coef p1 p99 sd, noobs clean
+		list variable n coef p1 p99 sd, noobs clean
 				
 		
 	
@@ -353,8 +353,8 @@ Summary of Statistics
 
 		* Cambia al marco de resultados y lista los datos
 		frame change results_r
-		list n coef p1 p99 sd, noobs clean
-		//list variable n coef p1 p99 sd, noobs clean
+		//list n coef p1 p99 sd, noobs clean
+		list variable n coef p1 p99 sd, noobs clean
 			
 					
 			
