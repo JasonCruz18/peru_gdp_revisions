@@ -379,18 +379,18 @@ Efficiency Cross-Releases
 				process_e `dep_var' `indep_var' newey `sector'
 
 				/* Test sobre las restricciones */
-				test (_cons = 0) (`indep_var' = 0)
+				//test (_cons = 0) (`indep_var' = 0)
 
 				/* Guardar los valores F y p */
-				scalar f_value = r(F)
-				scalar p_value = r(p)
-				estadd scalar F_`sector'_release`i'_newey = f_value
-				estadd scalar p_`sector'_release`i'_newey = p_value
+				//scalar f_value = r(F)
+				//scalar p_value = r(p)
+				//estadd scalar F_`sector'_release`i'_newey = f_value
+				//estadd scalar p_`sector'_release`i'_newey = p_value
 
 				/* Exportar resultados a LaTeX */
 				esttab newey_`sector' using "predictibility_first_release_e.tex", append ///
-					b(%9.3f) se(%9.3f) stats(F_`sector'_release`i'_newey p_`sector'_release`i'_newey N_`sector', ///
-					label("F-Stat" "p-value" "N") fmt(%9.3f %9.3f %9.0f)) ///
+					b(%9.3f) se(%9.3f) stats(N_`sector', ///
+					label("n") fmt(%9.3f %9.3f %9.0f)) ///
 					varlabels(_cons "Intercepto" `indep_var' "Primera Predicción") ///
 					noobs star(* 0.1 ** 0.05 *** 0.01) tex longtable
 			}
@@ -434,7 +434,7 @@ Efficiency Cross-Releases
 		end
 
 		/* Número de releases */
-		local num_releases 3
+		local num_releases 10
 
 		/* Loop para correr las regresiones para cada sector y releases */
 		foreach sector of global sectors {
@@ -447,18 +447,18 @@ Efficiency Cross-Releases
 				process_r `dep_var' `indep_var' newey `sector'
 
 				/* Test sobre las restricciones */
-				test (_cons = 0) (`indep_var' = 0)
+				//test (_cons = 0) (`indep_var' = 0)
 
 				/* Guardar los valores F y p */
-				scalar f_value = r(F)
-				scalar p_value = r(p)
-				estadd scalar F_`sector'_release`i'_newey = f_value
-				estadd scalar p_`sector'_release`i'_newey = p_value
+				//scalar f_value = r(F)
+				//scalar p_value = r(p)
+				//estadd scalar F_`sector'_release`i'_newey = f_value
+				//estadd scalar p_`sector'_release`i'_newey = p_value
 
 				/* Exportar resultados a LaTeX */
 				esttab newey_`sector' using "predictibility_first_release_r.tex", append ///
-					b(%9.3f) se(%9.3f) stats(F_`sector'_release`i'_newey p_`sector'_release`i'_newey N_`sector', ///
-					label("F-Stat" "p-value" "N") fmt(%9.3f %9.3f %9.0f)) ///
+					b(%9.3f) se(%9.3f) stats(N_`sector', ///
+					label("n") fmt(%9.3f %9.3f %9.0f)) ///
 					varlabels(_cons "Intercepto" `indep_var' "Primera Predicción") ///
 					noobs star(* 0.1 ** 0.05 *** 0.01) tex longtable
 			}
