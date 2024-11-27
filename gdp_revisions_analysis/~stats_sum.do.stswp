@@ -167,7 +167,7 @@ Summary of Statistics
 		* e: summary stats (mean with significance)
 		*.....................................................................
 		
-		frame create results_e str32 variable int n str32 coef str8 sd str8 p1 str8 p25 str8 p50 str8 p75 str8 p99
+		frame create results_e str32 variable int n str32 coef str8 sd str8 p1 str8 p99
 
 		foreach sector in $sectors {
 			
@@ -188,9 +188,6 @@ Summary of Statistics
 						local n = r(N)
 						local sd = string(r(sd), "%9.3f")
 						local p1 = string(r(p1), "%9.3f")
-						//local p25 = string(r(p25), "%9.3f")
-						//local p50 = string(r(p50), "%9.3f")
-						//local p75 = string(r(p75), "%9.3f")
 						local p99 = string(r(p99), "%9.3f")
 						
 						local coef = M["b", "_cons"]
@@ -218,6 +215,7 @@ Summary of Statistics
 			}
 		}
 
+		* Cambia al marco de resultados y lista los datos
 		frame change results_e
 		list variable n coef p1 p99 sd, noobs clean
 				
