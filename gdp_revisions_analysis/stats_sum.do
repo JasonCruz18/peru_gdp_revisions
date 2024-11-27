@@ -188,9 +188,9 @@ Summary of Statistics
 						local n = r(N)
 						local sd = string(r(sd), "%9.3f")
 						local p1 = string(r(p1), "%9.3f")
-						local p25 = string(r(p25), "%9.3f")
-						local p50 = string(r(p50), "%9.3f")
-						local p75 = string(r(p75), "%9.3f")
+						//local p25 = string(r(p25), "%9.3f")
+						//local p50 = string(r(p50), "%9.3f")
+						//local p75 = string(r(p75), "%9.3f")
 						local p99 = string(r(p99), "%9.3f")
 						
 						local coef = M["b", "_cons"]
@@ -209,7 +209,7 @@ Summary of Statistics
 							local coef = string(`coef', "%9.3f")
 						}
 						
-						frame post results_e ("e_`i'_`sector'") (`n') ("`coef'") ("`sd'") ("`p1'") ("`p25'") ("`p50'") ("`p75'") ("`p99'")
+						frame post results_e ("e_`i'_`sector'") (`n') ("`coef'") ("`sd'") ("`p1'") ("`p99'")
 					}
 				}
 				else {
@@ -219,7 +219,7 @@ Summary of Statistics
 		}
 
 		frame change results_e
-		list variable n coef p1 p25 p50 p75 p99 sd, noobs clean
+		list variable n coef p1 p99 sd, noobs clean
 				
 		
 	
