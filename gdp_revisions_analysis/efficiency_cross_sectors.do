@@ -324,12 +324,11 @@ Efficiency Cross-Sectors
 
 		/* Generate combined table with results */
 		esttab `all_models' using "cross-all-sectors.tex", replace ///
-			title("Cross-Sector Regressions") ///
 			b(%9.3f) se(%9.3f) stats(chi2_stat p_val n_model h_model N_model, ///
 				label("Chi2" "p-value" "n" "h" "N") ///
 				fmt(%9.3f %9.3f %9.0f %9.0f %9.0f)) ///
 			order(_cons) ///
-			varlabels(_cons "Intercept") ///
+			varlabels(_cons "Intercept" L.r_gdp "gdp: r(-1)" L.r_agriculture "Agriculture: r(-1)" L.r_fishing "Fishing: r(-1)"L.r_manufacturing "Manufacturing: r(-1)" L.r_mining "Mining: r(-1)" L.r_construction "Construction: r(-1)" L.r_commerce "Commerce: r(-1)" L.r_services "Services: r(-1)" L.r_electricity "Electricity: r(-1)") ///
 			noobs ///
 			star(* 0.1 ** 0.05 *** 0.01) ///
 			tex ///
