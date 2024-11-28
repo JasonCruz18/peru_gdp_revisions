@@ -328,7 +328,7 @@ Efficiency Cross-Sectors
 				label("Chi2" "p-value" "n" "h" "N") ///
 				fmt(%9.3f %9.3f %9.0f %9.0f %9.0f)) ///
 			order(_cons) ///
-			varlabels(_cons "Intercept" L.r_gdp "PBI: r(-1)" L.r_agriculture "Agriculture: r(-1)" L.r_fishing "Fishing: r(-1)"L.r_manufacturing "Manufacturing: r(-1)" L.r_mining "Mining: r(-1)" L.r_construction "Construction: r(-1)" L.r_commerce "Commerce: r(-1)" L.r_services "Services: r(-1)" L.r_electricity "Electricity: r(-1)") ///
+			varlabels(_cons "Intercept" L.r_gdp "PBI: r(-1)" L.r_agriculture "Agropecuario: r(-1)" L.r_fishing "Pesca: r(-1)"L.r_manufacturing "Manufactura: r(-1)" L.r_mining "Minería e Hidrocarburos: r(-1)" L.r_construction "Construcción: r(-1)" L.r_commerce "Comercio: r(-1)" L.r_services "Otros Servicios: r(-1)" L.r_electricity "Electricidad y Agua: r(-1)") ///
 			noobs ///
 			star(* 0.1 ** 0.05 *** 0.01) ///
 			tex ///
