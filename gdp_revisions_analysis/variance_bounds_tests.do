@@ -217,6 +217,97 @@ Variance Bounds Tests
 
 	
 	
+/*----------------------
+Regression (nowcast error
+abs value) [1/2] - SLIDES
+-----------------------*/
+		
+		
+/* Limpiar cualquier estimación previa */
+estimates clear	
+
+/* Programa para procesar cada sector */
+program define process_sector_abs
+	args sector model_type
+	
+	local dep_var log_abs_e_`sector'
+	local indep_vars horizon
+	
+	/* Ejecutar el modelo según el tipo (fe, re, xtscc) */
+	if "`model_type'" == "fe" {
+		xtreg `dep_var' `indep_vars', fe vce(cluster target_date)
+	}
+	else if "`model_type'" == "re" {
+		xtreg `dep_var' `indep_vars', re vce(cluster target_date)
+	}
+	else if "`model_type'" == "xtscc_fe" {
+		xtscc `dep_var' `indep_vars', fe
+	}
+	else if "`model_type'" == "xtscc_re" {
+		xtscc `dep_var' `indep_vars', re
+	}
+	
+	/* Guardar los valores de F y p */
+	*scalar F_value = r(F)
+	*scalar p_value = r(p)
+	*estadd scalar F_`sector' F_value
+	*estadd scalar p_`sector' p_value
+	
+	/* Obtener las dimensiones del panel con xtsum */
+	xtsum `dep_var'
+	scalar obs_between = r(n)     // Número de grupos (between)
+	scalar obs_within = r(Tbar)   // Número de periodos promedio por grupo (within)
+	scalar obs_total = r(N)       // Número total de observaciones (overall)
+	
+	/* Agregar los valores de observaciones a los resultados */
+	estadd scalar n_`sector' obs_between
+	estadd scalar h_`sector' obs_within
+	estadd scalar N_`sector' obs_total
+	
+	/* Guardar los resultados del modelo */
+	estimates store `model_type'_`sector'
+end
+
+
+/* Loop para correr las regresiones para cada sector */
+foreach sector of global sectors {
+    /* Asignar el nombre en español basado en el sector */
+    if "`sector'" == "gdp" local sector_name "PBI"
+    else if "`sector'" == "agriculture" local sector_name "Agropecuario"
+    else if "`sector'" == "fishing" local sector_name "Pesca"
+    else if "`sector'" == "mining" local sector_name "Minería e Hidrocarburos"
+    else if "`sector'" == "manufacturing" local sector_name "Manufactura"
+    else if "`sector'" == "electricity" local sector_name "Electricidad y Agua"
+    else if "`sector'" == "construction" local sector_name "Construcción"
+    else if "`sector'" == "commerce" local sector_name "Comercio"
+    else if "`sector'" == "services" local sector_name "Otros Servicios"
+    else local sector_name "`sector'"  // Por defecto, usar el nombre original si no se encuentra mapeo
+
+    /* Correr regresión de efectos fijos */
+    process_sector_abs `sector' fe
+    
+    /* Correr regresión de efectos fijos con Driscoll-Kraay */
+    process_sector_abs `sector' xtscc_fe
+    
+    /* Correr regresión de efectos aleatorios */
+    process_sector_abs `sector' re
+
+    /* Correr regresión de efectos aleatorios con Driscoll-Kraay */
+    process_sector_abs `sector' xtscc_re
+    
+    /* Reportar los resultados usando esttab */
+    esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "`sector'_variance_abs.tex", ///
+    b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
+    order(_cons) ///
+    varlabels(_cons "Intercepto" horizon "h") ///
+    noobs ///
+    star(* 0.1 ** 0.05 *** 0.01) ///
+    booktabs style(tex) nodepvars nomtitle ///
+    posthead("\hline\multicolumn{5}{c}{\textit{`sector_name'}} \\ \hline")
+}
+	
+	
+	
 	/*----------------------
 	Regression (nowcast error
 	sq value) [2/2]
