@@ -323,7 +323,7 @@ Efficiency Cross-Sectors
 		}
 
 		/* Generate combined table with results */
-		esttab `all_models' using "cross-all-sectors.tex", replace ///
+		esttab `all_models' using "cross-sectors.tex", replace ///
 			b(%9.3f) se(%9.3f) stats(chi2_stat p_val n_model h_model N_model, ///
 				label("Chi2" "p-value" "n" "h" "N") ///
 				fmt(%9.3f %9.3f %9.0f %9.0f %9.0f)) ///
