@@ -285,7 +285,7 @@ Variance Bounds Tests
 		
 		/* Reportar los resultados usando esttab */
 		esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "variance_bounds_test_sq.tex", append ///
-			b(%9.3f) se(%9.3f) stats(t_`sector' h_`sector' N_`sector', label("t" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
+			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("t" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 			order(_cons) longtable ///
 			varlabels(_cons "Intercepto" horizon "h") ///
 			noobs ///
