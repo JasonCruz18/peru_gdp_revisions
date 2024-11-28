@@ -182,7 +182,7 @@ Variance Bounds Tests
 		scalar obs_total = r(N)       // Número total de observaciones (overall)
 		
 		/* Agregar los valores de observaciones a los resultados */
-		estadd scalar t_`sector' obs_between
+		estadd scalar n_`sector' obs_between
 		estadd scalar h_`sector' obs_within
 		estadd scalar N_`sector' obs_total
 		
@@ -207,8 +207,9 @@ Variance Bounds Tests
 		
 		/* Reportar los resultados usando esttab */
 		esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "variance_bounds_test_abs.tex", append ///
-			b(%9.3f) se(%9.3f) stats(t_`sector' h_`sector' N_`sector', label("t" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
+			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("t" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 			order(_cons) longtable ///
+			title(`sector') ///
 			varlabels(_cons "Intercepto" horizon "h") ///
 			noobs ///
 			star(* 0.1 ** 0.05 *** 0.01) ///
@@ -260,7 +261,7 @@ Variance Bounds Tests
 		scalar obs_total = r(N)       // Número total de observaciones (overall)
 		
 		/* Agregar los valores de observaciones a los resultados */
-		estadd scalar t_`sector' obs_between
+		estadd scalar n_`sector' obs_between
 		estadd scalar h_`sector' obs_within
 		estadd scalar N_`sector' obs_total
 		
@@ -285,7 +286,7 @@ Variance Bounds Tests
 		
 		/* Reportar los resultados usando esttab */
 		esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "variance_bounds_test_sq.tex", append ///
-			b(%9.3f) se(%9.3f) stats(t_`sector' h_`sector' N_`sector', label("t" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
+			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("t" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 			order(_cons) longtable ///
 			varlabels(_cons "Intercepto" horizon "h") ///
 			noobs ///
