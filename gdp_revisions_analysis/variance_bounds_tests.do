@@ -206,13 +206,13 @@ Variance Bounds Tests
 		process_sector_abs `sector' xtscc_re
 		
 		/* Reportar los resultados usando esttab */
-		esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "variance_bounds_test_abs.rtf", append ///
+		esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "variance_bounds_test_abs.tex", append ///
 			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
-			order(_cons) ///
-			title(`sector') ///
+			order(_cons) longtable ///
 			varlabels(_cons "Intercepto" horizon "h") ///
 			noobs ///
-			star(* 0.1 ** 0.05 *** 0.01)
+			star(* 0.1 ** 0.05 *** 0.01) ///
+			tex
 	}
 
 	
