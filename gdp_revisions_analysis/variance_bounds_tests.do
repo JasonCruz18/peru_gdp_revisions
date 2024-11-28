@@ -115,10 +115,10 @@ Variance Bounds Tests
 		* Generate time-trend var
 		
 		** Get max value from horizon
-		egen max_horizon = max(horizon)
+		//egen max_horizon = max(horizon)
 		
 		** Gen new var as the difference between max_horizon and horizon
-		gen time_trend = max_horizon - horizon // This is a kind of trend var (H-j)
+		//gen time_trend = max_horizon - horizon // This is a kind of trend var (H-h)
 		
 		
 		/* Definir la estructura de datos de panel */
@@ -153,7 +153,7 @@ Variance Bounds Tests
 		args sector model_type
 		
 		local dep_var log_abs_e_`sector'
-		local indep_vars time_trend
+		local indep_vars horizon
 		
 		/* Ejecutar el modelo según el tipo (fe, re, xtscc) */
 		if "`model_type'" == "fe" {
@@ -182,7 +182,7 @@ Variance Bounds Tests
 		scalar obs_total = r(N)       // Número total de observaciones (overall)
 		
 		/* Agregar los valores de observaciones a los resultados */
-		estadd scalar n_`sector' obs_between
+		estadd scalar t_`sector' obs_between
 		estadd scalar h_`sector' obs_within
 		estadd scalar N_`sector' obs_total
 		
@@ -207,9 +207,9 @@ Variance Bounds Tests
 		
 		/* Reportar los resultados usando esttab */
 		esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "variance_bounds_test_abs.tex", append ///
-			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "h" "N") fmt(%9.0f %9.0f %9.0f)) ///
+			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("t" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 			order(_cons) longtable ///
-			varlabels(_cons "Intercepto" time_trend "(H-h)") ///
+			varlabels(_cons "Intercepto" horizon "h") ///
 			noobs ///
 			star(* 0.1 ** 0.05 *** 0.01) ///
 			tex
@@ -231,7 +231,7 @@ Variance Bounds Tests
 		args sector model_type
 		
 		local dep_var log_sq_e_`sector'
-		local indep_vars time_trend
+		local indep_vars horizon
 		
 		/* Ejecutar el modelo según el tipo (fe, re, xtscc) */
 		if "`model_type'" == "fe" {
@@ -260,7 +260,7 @@ Variance Bounds Tests
 		scalar obs_total = r(N)       // Número total de observaciones (overall)
 		
 		/* Agregar los valores de observaciones a los resultados */
-		estadd scalar n_`sector' obs_between
+		estadd scalar t_`sector' obs_between
 		estadd scalar h_`sector' obs_within
 		estadd scalar N_`sector' obs_total
 		
@@ -285,9 +285,9 @@ Variance Bounds Tests
 		
 		/* Reportar los resultados usando esttab */
 		esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "variance_bounds_test_sq.tex", append ///
-			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "h" "N") fmt(%9.0f %9.0f %9.0f)) ///
+			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("t" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 			order(_cons) longtable ///
-			varlabels(_cons "Intercepto" time_trend "(H-h)") ///
+			varlabels(_cons "Intercepto" horizon "h") ///
 			noobs ///
 			star(* 0.1 ** 0.05 *** 0.01) ///
 			tex
