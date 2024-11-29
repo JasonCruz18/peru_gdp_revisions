@@ -134,11 +134,11 @@ Variance Bounds Tests
 		* Generate dependent variables for regressions
 		
 		foreach sector of global sectors {
-			gen log_abs_e_`sector' = abs(e_`sector')
+			gen log_abs_e_`sector' = abs(e_`sector') // ln(abs(e_`sector'))
 		}
 		
 		foreach sector of global sectors {
-			gen log_sq_e_`sector' = (e_`sector')^2
+			gen log_sq_e_`sector' = (e_`sector')^2 // ln((e_`sector')^2)
 		}
 
 		
