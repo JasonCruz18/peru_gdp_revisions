@@ -53,7 +53,7 @@ Variance Bounds Tests
 	------------------------*/
 		
 	shell mkdir "output" 			// Creates folder to save outputs.
-	//shell mkdir "output/graphs" 	// Creates folder to save graphs.
+	//shell mkdir "output/charts" 	// Creates folder to save charts.
 	shell mkdir "output/tables" 	// Creates folder to save tables.
 	//shell mkdir "output/data" 	// Creates folder to save data.
 		
@@ -134,11 +134,11 @@ Variance Bounds Tests
 		* Generate dependent variables for regressions
 		
 		foreach sector of global sectors {
-			gen log_abs_e_`sector' = ln(abs(e_`sector'))
+			gen log_abs_e_`sector' = abs(e_`sector')
 		}
 		
 		foreach sector of global sectors {
-			gen log_sq_e_`sector' = ln((e_`sector')^2)
+			gen log_sq_e_`sector' = (e_`sector')^2
 		}
 
 		
