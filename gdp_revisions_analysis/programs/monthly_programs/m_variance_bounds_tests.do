@@ -482,7 +482,7 @@ Variance Bounds Tests
 	
 	
 	/*----------------------
-	Regression for the abs value
+	Regression for the sq
 	of the nowcast error (2/2)
 	________________________
 	Presentation version
