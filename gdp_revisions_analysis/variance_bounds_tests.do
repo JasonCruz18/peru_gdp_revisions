@@ -254,7 +254,8 @@ Variance Bounds Tests
 				noobs ///
 				star(* 0.1 ** 0.05 *** 0.01) ///
 				booktabs style(tex) nodepvars nomtitle ///
-				posthead("\hline\multicolumn{5}{c}{\textit{`sector_name'}} \\ \hline")
+				posthead("\hline\multicolumn{5}{c}{\textit{`sector_name'}} \\ \hline") ///
+				nonotes
 		}
 	
 	
@@ -362,7 +363,8 @@ Variance Bounds Tests
 			noobs ///
 			star(* 0.1 ** 0.05 *** 0.01) ///
 			booktabs style(tex) nodepvars nomtitle ///
-			posthead("\hline\multicolumn{5}{c}{\textit{`sector_name'}} \\ \hline")
+			posthead("\hline\multicolumn{5}{c}{\textit{`sector_name'}} \\ \hline") ///
+			nonotes
 		}
 			
 			
