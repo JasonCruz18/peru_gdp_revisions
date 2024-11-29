@@ -324,7 +324,7 @@ Robustness Analysis
 			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "m_sq_robustness_2.tex", append ///
 				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 				order(_cons) longtable ///
-				keep(_cons horizon 1.dummy_`sector' 1.dummy_`sector'.horizon) ///
+				keep(_cons horizon 1.dummy_`sector' 1.dummy_`sector'#c.horizon) ///
 				varlabels(_cons "Intercepto" horizon "h" 1.dummy_`sector' "dummy" 1.dummy_`sector'.horizon "dummy\#h") ///
 				noobs ///
 				star(* 0.1 ** 0.05 *** 0.01) ///
