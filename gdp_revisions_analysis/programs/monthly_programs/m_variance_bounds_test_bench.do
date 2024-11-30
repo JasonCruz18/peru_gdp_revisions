@@ -1,5 +1,5 @@
 /********************
-Variance Bounds Tests
+Variance Bounds Test (Benchmark)
 ***
 
 		Author
@@ -7,7 +7,7 @@ Variance Bounds Tests
 		Jason Cruz
 		*********************/
 
-		*** Program: variance_bounds_tests.do
+		*** Program: m_variance_bounds_test_bench.do
 		** 	First Created: 09/15/24
 		** 	Last Updated:  10/11/24
 			
@@ -72,7 +72,7 @@ Variance Bounds Tests
 	-----------------------*/
 		
 		
-	odbc load, exec("select * from sectorial_gdp_quarterly_cum_revisions_panel_bench") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+	odbc load, exec("select * from sectorial_gdp_monthly_cum_revisions_panel_bench") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
 	save temp_cum_panel, replace
@@ -246,7 +246,7 @@ Variance Bounds Tests
 			
 			* Report results using esttab
 			
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "q_abs_error_bench.tex", append ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "m_abs_error_bench.tex", append ///
 				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 				order(_cons) longtable ///
 				varlabels(_cons "Intercepto" horizon "h") ///
@@ -355,7 +355,7 @@ Variance Bounds Tests
 			
 			* Report results using esttab
 			
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "q_abs_error_`sector'_bench.tex", ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "m_abs_error_`sector'_bench.tex", ///
 			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 			order(_cons) ///
 			varlabels(_cons "Intercepto" horizon "h") ///
@@ -468,7 +468,7 @@ Variance Bounds Tests
 			
 			* Report results using esttab
 			
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "q_sq_error_bench.tex", append ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "m_sq_error_bench.tex", append ///
 				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 				order(_cons) longtable ///
 				varlabels(_cons "Intercepto" horizon "h") ///
@@ -577,7 +577,7 @@ Variance Bounds Tests
 			
 			* Report results using esttab
 			
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "q_sq_error_`sector'_bench.tex", ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "m_sq_error_`sector'_bench.tex", ///
 			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 			order(_cons) ///
 			varlabels(_cons "Intercepto" horizon "h") ///

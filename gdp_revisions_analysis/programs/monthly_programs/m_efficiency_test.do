@@ -7,7 +7,7 @@ Efficiency Tests
 		Jason Cruz
 		*********************/
 
-		*** Program: efficiency_tests.do
+		*** Program: m_efficiency_test.do
 		** 	First Created: 09/15/24
 		** 	Last Updated:  10/11/24
 			

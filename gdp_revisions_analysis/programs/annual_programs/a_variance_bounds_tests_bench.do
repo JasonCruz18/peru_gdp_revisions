@@ -1,5 +1,5 @@
 /********************
-Variance Bounds Tests
+Variance Bounds Test (Benchmark)
 ***
 
 		Author
@@ -7,7 +7,7 @@ Variance Bounds Tests
 		Jason Cruz
 		*********************/
 
-		*** Program: variance_bounds_tests.do
+		*** Program: a_variance_bounds_test.do
 		** 	First Created: 09/15/24
 		** 	Last Updated:  10/11/24
 			
