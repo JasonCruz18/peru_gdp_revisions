@@ -72,7 +72,7 @@ Efficiency Cross-Sectors
 	-----------------------*/
 		
 		
-	odbc load, exec("select * from sectorial_gdp_monthly_int_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+	odbc load, exec("select * from sectorial_gdp_quarterly_int_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
 	save int_temp_panel, replace
@@ -227,7 +227,7 @@ Efficiency Cross-Sectors
 
 		* Generate combined table with results
 		
-		esttab `all_models' using "m_cross-sectors.tex", replace ///
+		esttab `all_models' using "q_cross-sectors.tex", replace ///
 			b(%9.3f) se(%9.3f) stats(chi2_stat p_val n_model h_model N_model, ///
 			label("Chi2" "p-value" "n" "$\bar{h}$" "N") ///
 				fmt(%9.3f %9.3f %9.0f %9.0f %9.0f)) ///
