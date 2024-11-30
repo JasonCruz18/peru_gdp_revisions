@@ -538,6 +538,57 @@ def replace_floats_with_base_year(df_1, df_2):
     
     return merged_df
 
+# Function to Create a Dictionary Mapping Columns to Base Year Indices (r)
+#________________________________________________________________
+def r_create_dic_base_year(df):
+    """
+    Create a dictionary where each key is a column name and each value is a set of indices.
+    The indices correspond to the observations where the second unique value is observed,
+    including subsequent values with the same 'year_month' as the first index of the second unique value.
+    
+    Parameters:
+    - df: DataFrame containing columns for which the second unique value will be identified.
+    
+    Returns:
+    - A dictionary mapping column names to sets of indices.
+    """
+    
+    # Create the 'year_month' column
+    df['year_month'] = df['date'].dt.to_period('M')
+    
+    # Exclude 'year', 'id_ns', 'date' from the columns to process
+    exclude_columns = ['year', 'id_ns', 'date', 'year_month']
+    columns_to_check = [col for col in df.columns if col not in exclude_columns]
+    
+    # Initialize the dictionary
+    dic_base_year = {}
+    
+    # Iterate over the columns to check
+    for col in columns_to_check:
+        # Get the unique values in the column, excluding NaN
+        unique_values = df[col].dropna().unique()
+        
+        # If there are at least two unique values
+        if len(unique_values) >= 2:
+            # Sort the unique values to find the second unique value
+            unique_values.sort()
+            second_unique_value = unique_values[1]
+            
+            # Find the first index of the second unique value
+            initial_index = df.index[df[col] == second_unique_value][0]
+            
+            # Get the corresponding year_month value
+            base_year_month = df.loc[initial_index, 'year_month']
+            
+            # Find all indices with the same 'year_month'
+            matching_indices = df.index[(df[col] == second_unique_value) & (df['year_month'] == base_year_month)].tolist()
+            
+            # Add to the dictionary if indices are found
+            if matching_indices:
+                dic_base_year[col] = set(matching_indices)
+    
+    return dic_base_year
+
 # Function to Create a Dictionary Mapping Columns to Base Year Indices
 #________________________________________________________________
 def create_dic_base_year(df):
@@ -637,7 +688,7 @@ def replace_base_year_with_dummies(dic_base_year, df):
     for col in df.columns:
         for i in range(len(df)):
             value = df.loc[i, col]
-            if isinstance(value, str) and value.startswith('t+'):
+            if isinstance(value, str) and vuale.startswith('t+'):
                 df.loc[i, col] = 0
 
     return df
