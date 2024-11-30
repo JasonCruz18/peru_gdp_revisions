@@ -7,7 +7,7 @@ Summary of Statistics
 		Jason Cruz
 		*********************/
 
-		*** Program: stats_sum.do
+		*** Program: unbiassdness.do
 		** 	First Created: 10/28/24
 		** 	Last Updated:  11/##/24
 			
@@ -86,86 +86,14 @@ Summary of Statistics
 	
 	
 	/*----------------------
-	Summary of statistics
-	(nowcast errors)
+	e: summary of stats
+	(mean with significance)
 	-----------------------*/
 
 	
 	use cum_ts_data, clear
 	preserve // Save the current status
 	
-		* // ssc install estout
-		
-
-		// Define los sectores como una macro global
-		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
-
-		// Inicializa una tabla vacía
-		eststo clear
-
-		// Bucle para calcular los estadísticos y almacenarlos
-		foreach sector in $sectors {
-			// Calcula los estadísticos para cada sector
-			estpost tabstat e_*_`sector', statistics(mean p1 p25 p50 p75 p99 sd) columns(statistics)
-			
-			// Almacena los resultados
-			eststo `sector'
-			
-			// Exporta los resultados a LaTeX, asegurando que estén bajo las mismas columnas
-		esttab `sector' using "stats_sum_e.tex", append label cells("mean(fmt(%9.3f) star) p1(fmt(3)) p25(fmt(3)) p50(fmt(3)) p75(fmt(3)) p99(fmt(3)) sd(fmt(3))") ///
-			longtable ///
-			tex ///
-			title("Estadísticos Descriptivos") ///
-			varwidth(15) ///
-			not noobs
-		}
-
-
-		* Unbiassdness (e)
-		*.....................................................................
-		
-		// Inicializa una tabla vacía
-		eststo clear
-		
-		* Definir el archivo de salida
-		local output_file "unbiassdness_e.txt"
-
-		* Borrar el archivo de salida si ya existe
-		capture erase `output_file'
-
-		foreach sector in $sectors {
-			* Crear lista de variables para el sector
-			local varlist
-			
-			* Recorre las variables del tipo e_#_`sector` y realiza las regresiones
-			forval i = 1/20 {
-				capture confirm variable e_`i'_`sector'
-				if !_rc {
-					* Realizar regresión y guardar el coeficiente de la constante
-					regress e_`i'_`sector'
-					
-					* Guardar el coeficiente de la constante (_cons) en una lista
-					local cons_coef `cons_coef' _b[_cons]
-					
-					* Guardar los resultados en el archivo con append
-					esttab using `output_file', append ///
-						title("unbiassdness (e)") ///
-						varwidth(15) ///
-						not noobs
-				}
-				else {
-					* Cuando la variable no exista, salimos del bucle
-					break
-				}
-			}
-		}
-
-
-	restore // Return to on-call status
-	
-	
-		* e: summary stats (mean with significance)
-		*.....................................................................
 		
 		frame create results_e str32 variable int n str32 coef str8 sd str8 p1 str8 p99
 
@@ -219,89 +147,22 @@ Summary of Statistics
 		frame change results_e
 		//list n coef p1 p99 sd, noobs clean
 		list variable n coef p1 p99 sd, noobs clean
-				
+	
+	
+	restore // Return to on-call status
+	
 		
 	
 	/*----------------------
-	Summary of statistics
-	(revisions)
+	r: summary stats
+	(mean with significance)
+	
 	-----------------------*/
 	
 		
 	use int_ts_data, clear
 	preserve // Save the current status
 	
-	
-		// Define los sectores como una macro global
-		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services		
-
-		// Inicializa una tabla vacía
-		eststo clear
-
-		// Bucle para calcular los estadísticos y almacenarlos
-		foreach sector in $sectors {
-			// Calcula los estadísticos para cada sector
-			estpost tabstat r_*_`sector', statistics(mean p1 p25 p50 p75 p99 sd) columns(statistics)
-			
-			// Almacena los resultados
-			eststo `sector'
-			
-			// Exporta los resultados a LaTeX, asegurando que estén bajo las mismas columnas
-		esttab `sector' using "stats_sum_r.tex", append label cells("Mean(fmt(3)) p1(fmt(3)) p25(fmt(3)) p50(fmt(3)) p75(fmt(3)) p99(fmt(3)) SD(fmt(3))") ///
-			varlabels(r_*_* "h") ///
-			longtable ///
-			title("Estadísticos Descriptivos") ///
-			varwidth(15) ///
-			tex ///
-			not noobs
-		}
-		
-
-		* Unbiassdness (r)
-		*.....................................................................
-		
-		// Inicializa una tabla vacía
-		eststo clear
-		
-		* Definir el archivo de salida
-		local output_file "unbiassdness_r.txt"
-
-		* Borrar el archivo de salida si ya existe
-		capture erase `output_file'
-
-		foreach sector in $sectors {
-			* Crear lista de variables para el sector
-			local varlist
-			
-			* Recorre las variables del tipo r_#_`sector` y realiza las regresiones
-			forval i = 1/20 {
-				capture confirm variable r_`i'_`sector'
-				if !_rc {
-					* Realizar regresión y guardar el coeficiente de la constante
-					regress r_`i'_`sector'
-					
-					* Guardar el coeficiente de la constante (_cons) en una lista
-					local cons_coef `cons_coef' _b[_cons]
-					
-					* Guardar los resultados en el archivo con append
-					esttab using `output_file', append ///
-						title("unbiassdness (r)") ///
-						varwidth(15) ///
-						not noobs
-				}
-				else {
-					* Cuando la variable no exista, salimos del bucle
-					break
-				}
-			}
-		}
-
-		
-	restore // Return to on-call status
-	
-	
-		* r: summary stats (mean with significance)
-		*.....................................................................
 	
 		frame create results_r str32 variable int n str32 coef str8 sd str8 p1 str8 p99
 
@@ -357,7 +218,10 @@ Summary of Statistics
 		list variable n coef p1 p99 sd, noobs clean
 			
 					
-			
+	restore // Return to on-call status
+	
+	
+	
 	/*----------------------
 	Drop aux data and tables
 	-----------------------*/	
