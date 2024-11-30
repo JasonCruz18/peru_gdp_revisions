@@ -261,6 +261,12 @@ Summary of Statistics (Unbiassdness)
 
 		list variable n coef p1 p99 sd, noobs clean
 	
+		
+		* Export to excel file
+		
+		export excel using "m_stats_sum_e.xlsx", ///
+    firstrow(variables) replace
+					
 	
 	
 	/*----------------------
