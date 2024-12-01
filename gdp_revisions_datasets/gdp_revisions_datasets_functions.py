@@ -553,10 +553,13 @@ def r_create_dic_base_year(df):
     - A dictionary mapping column names to sets of indices.
     """
     
-    # Create the 'year_month' column
-    df['year_month'] = df['date'].dt.to_period('M')
+    # Create 'year_month' without directly assigning to df
+    year_month_series = df['date'].dt.to_period('M')
     
-    # Exclude 'year', 'id_ns', 'date' from the columns to process
+    # Use pd.concat to add the new column to avoid fragmentation
+    df = pd.concat([df, year_month_series.rename('year_month')], axis=1)
+    
+    # Exclude 'year', 'id_ns', 'date', 'year_month' from columns to process
     exclude_columns = ['year', 'id_ns', 'date', 'year_month']
     columns_to_check = [col for col in df.columns if col not in exclude_columns]
     
@@ -589,9 +592,50 @@ def r_create_dic_base_year(df):
     
     return dic_base_year
 
-# Function to Create a Dictionary Mapping Columns to Base Year Indices
+# Function to Create a Dictionary Mapping Columns to Base Year Indices (e and z)
 #________________________________________________________________
-def create_dic_base_year(df):
+def e_create_dic_base_year(df):
+    """
+    Create a dictionary where each key is a column name and each value is a set of indices where the first unique 
+    value (if available) in that column is observed. Columns with fewer than two unique values are excluded.
+    
+    Parameters:
+    - df: DataFrame containing columns for which the second unique value will be identified.
+    
+    Returns:
+    - A dictionary mapping column names to sets of indices where the first unique value is observed.
+    """
+    
+    # Exclude 'year', 'id_ns', 'date' from the columns to process
+    exclude_columns = ['year', 'id_ns', 'date']
+    columns_to_check = [col for col in df.columns if col not in exclude_columns]
+    
+    # Initialize the dictionary
+    dic_base_year = {}
+    
+    # Iterate over the columns to check
+    for col in columns_to_check:
+        # Get the unique values in the column, excluding NaN
+        unique_values = df[col].dropna().unique()
+        
+        # If there are at least two unique values
+        if len(unique_values) >= 2:
+            # Sort the unique values to find the second unique value
+            unique_values.sort()
+            first_unique_value = unique_values[0]
+            
+            # Find the indices of the observations that contain the second unique value
+            indices = df.index[df[col] == first_unique_value].tolist()
+            
+            # Add to the dictionary if indices are found
+            if indices:
+                dic_base_year[col] = set(indices)
+    
+    return dic_base_year
+
+# Function to Create a Dictionary Mapping Columns to Base Year Indices (e and z)
+#________________________________________________________________
+def z_create_dic_base_year(df):
     """
     Create a dictionary where each key is a column name and each value is a set of indices where the second unique 
     value (if available) in that column is observed. Columns with fewer than two unique values are excluded.
@@ -656,42 +700,66 @@ def remove_base_year_affected_obs(dic_base_year, df):
 
 # Function to Replace Observations with Base Year Dummies
 #________________________________________________________________
-def replace_base_year_with_dummies(dic_base_year, df):
-    """
-    Replace observations from the DataFrame that are affected by the base year indices specified in the dictionary.
-    Values at the specified indices in each column are replaced with 1 if they meet the criteria,
-    and with 0 if they don't meet the criteria and are not already NaN.
+# def replace_base_year_with_dummies(dic_base_year, df):
+#     """
+#     Replace observations from the DataFrame that are affected by the base year indices specified in the dictionary.
+#     Values at the specified indices in each column are replaced with 1 if they meet the criteria,
+#     and with 0 if they don't meet the criteria and are not already NaN.
     
-    Parameters:
-    - dic_base_year: Dictionary where each key is a column name and each value is a set of indices to be updated.
-    - df: DataFrame from which the specified observations will be updated.
+#     Parameters:
+#     - dic_base_year: Dictionary where each key is a column name and each value is a set of indices to be updated.
+#     - df: DataFrame from which the specified observations will be updated.
     
-    Returns:
-    - A DataFrame with specified observations replaced by 1 or 0.
-    """
+#     Returns:
+#     - A DataFrame with specified observations replaced by 1 or 0.
+#     """
     
-    # Iterate over the dictionary
+#     # Iterate over the dictionary
+#     for col, indices in dic_base_year.items():
+#         # Check if the column exists in the dataframe
+#         if col in df.columns:
+#             # Iterate over each index in the DataFrame
+#             for i in range(len(df)):
+#                 value = df.loc[i, col]
+#                 # If the index is in the dic_base_year indices, replace the value with 1
+#                 if i in indices:
+#                     df.loc[i, col] = 1
+#                 # If the value is of type string and starts with 't+' (e.g., t+1, t+2) and is not in the indices, replace with 0
+#                 elif isinstance(value, str) and value.startswith('t+'):
+#                     df.loc[i, col] = 0
+
+#     # Final pass to replace all 't+\d' values not handled previously
+#     for col in df.columns:
+#         for i in range(len(df)):
+#             value = df.loc[i, col]
+#             if isinstance(value, str) and vuale.startswith('t+'):
+#                 df.loc[i, col] = 0
+
+#     return df
+
+# Function to Replace Observations with Base Year Dummies
+#________________________________________________________________
+def by_dummies(dic_base_year, df):
+    # Create a copy of the original DataFrame so as not to modify it directly.
+    dummy_df = df.copy()
+
     for col, indices in dic_base_year.items():
-        # Check if the column exists in the dataframe
-        if col in df.columns:
-            # Iterate over each index in the DataFrame
-            for i in range(len(df)):
-                value = df.loc[i, col]
-                # If the index is in the dic_base_year indices, replace the value with 1
-                if i in indices:
-                    df.loc[i, col] = 1
-                # If the value is of type string and starts with 't+' (e.g., t+1, t+2) and is not in the indices, replace with 0
-                elif isinstance(value, str) and value.startswith('t+'):
-                    df.loc[i, col] = 0
+        if col in dummy_df.columns:
+            # Replace values with 0 if not NaN
+            dummy_df[col] = dummy_df[col].apply(lambda x: 0 if not pd.isna(x) else np.nan)
+            # For the rows specified by the indexes, replace with 1 if they are not NaN
+            dummy_df.loc[list(indices), col] = dummy_df.loc[list(indices), col].apply(lambda x: 1 if not pd.isna(x) else np.nan)
 
-    # Final pass to replace all 't+\d' values not handled previously
-    for col in df.columns:
-        for i in range(len(df)):
-            value = df.loc[i, col]
-            if isinstance(value, str) and vuale.startswith('t+'):
-                df.loc[i, col] = 0
+    # Additional logic: handling columns not present in the dictionary
+    exclude_cols = {'year', 'date', 'id_ns'}
+    other_columns = [col for col in dummy_df.columns if col not in dic_base_year and col not in exclude_cols]
 
-    return df
+    for col in other_columns:
+        if col in dummy_df.columns:
+            # Replace non-NaN values with 0
+            dummy_df[col] = dummy_df[col].apply(lambda x: 0 if not pd.isna(x) else np.nan)
+
+    return dummy_df
 
 
 # Function to replace 't+\d' with dummies
