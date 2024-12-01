@@ -350,6 +350,36 @@ def transpose_inter_revisions(intermediate_revisions):
     
     return transposed_revisions
 
+#  Keep dataframe for last dates by month (monthly vintages) [optional]
+#________________________________________________________________
+# def create_vintages(df):
+#     # Check that the 'date' column exists and is of type datetime64[ns]
+#     if 'date' not in df.columns:
+#         raise ValueError("The DataFrame does not contain the 'date' column.")
+#     if not pd.api.types.is_datetime64_any_dtype(df['date']):
+#         raise TypeError("The 'date' column is not of type datetime64[ns].")
+
+#     # Keep the DataFrame only for the last dates of each month
+#     df = df.sort_values(by='date')
+#     df['year_month'] = df['date'].dt.to_period('M')
+#     last_dates = df.groupby('year_month')['date'].transform('max') == df['date']
+#     filtered_df = df[last_dates].drop(columns='year_month')
+
+#     # Create the 'vintages' column
+#     filtered_df['aux'] = 'ns_' + filtered_df['year'].astype(str) + 'm' + filtered_df['date'].dt.strftime('%m')
+
+#     # Drop the 'year', 'id_ns', and 'date' columns
+#     filtered_df = filtered_df.drop(columns=['year', 'id_ns', 'date'])
+
+#     # Transpose filtered_df
+#     filtered_df = filtered_df.set_index('aux').T # We will use 'vintages' as columns and keep the original columns as rows
+
+#     # Reset index to have a default integer index
+#     filtered_df.reset_index(inplace=True)
+#     filtered_df.rename(columns={'index': 'vintages_date'}, inplace=True)
+
+#     return filtered_df
+
 #  Keep dataframe for last dates by month (monthly vintages)
 #________________________________________________________________
 def create_vintages(df):
@@ -359,20 +389,27 @@ def create_vintages(df):
     if not pd.api.types.is_datetime64_any_dtype(df['date']):
         raise TypeError("The 'date' column is not of type datetime64[ns].")
 
+    # Create a copy of the dataframe to avoid modifying the original DataFrame
+    df = df.copy()
+
     # Keep the DataFrame only for the last dates of each month
     df = df.sort_values(by='date')
     df['year_month'] = df['date'].dt.to_period('M')
     last_dates = df.groupby('year_month')['date'].transform('max') == df['date']
     filtered_df = df[last_dates].drop(columns='year_month')
 
-    # Create the 'vintages' column
-    filtered_df['aux'] = 'ns_' + filtered_df['year'].astype(str) + 'm' + filtered_df['date'].dt.strftime('%m')
+    # Create the 'aux' column
+    aux_column = 'ns_' + filtered_df['year'].astype(str) + 'm' + filtered_df['date'].dt.strftime('%m')
 
-    # Drop the 'year', 'id_ns', and 'date' columns
+    # Concatenate the 'aux' column at once to avoid fragmentation
+    filtered_df = pd.concat([filtered_df, aux_column], axis=1)
+    filtered_df.rename(columns={0: 'aux'}, inplace=True)
+
+    # Drop unnecessary columns
     filtered_df = filtered_df.drop(columns=['year', 'id_ns', 'date'])
 
     # Transpose filtered_df
-    filtered_df = filtered_df.set_index('aux').T # We will use 'vintages' as columns and keep the original columns as rows
+    filtered_df = filtered_df.set_index('aux').T  # Use 'vintages' as columns and keep original columns as rows
 
     # Reset index to have a default integer index
     filtered_df.reset_index(inplace=True)
