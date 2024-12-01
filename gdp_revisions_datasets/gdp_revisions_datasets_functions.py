@@ -18,12 +18,51 @@
 import tkinter as tk
 
 
-# Function to show option window
+# Function to show variables (r, e and z) window
 #________________________________________________________________
 
-def show_option_window():
+def show_variable_window():
     # Define the list of options
-    options = [
+    variables = [
+        "r", # revisions 
+        "e", # nowcast error (h+1 to infinity)
+        "z"  # cumulative revisions (until h)
+    ]
+
+    # Function to save the selected option and close the window
+    def save_variable():
+        global variable
+        variable = selected_variable.get()
+        root.destroy()  # Close the window after selecting an option
+
+    # Create the popup window
+    root = tk.Tk()
+    root.title("Select variable")
+
+    # Variable to store the selected option
+    selected_variable = tk.StringVar(root)
+    selected_variable.set(variables[0])  # Default option
+
+    # Create the option menu
+    menu = tk.OptionMenu(root, selected_variable, *variables)
+    menu.pack(pady=10)
+
+    # Button to confirm the selection
+    confirm_button = tk.Button(root, text="Confirm", command=save_variable)
+    confirm_button.pack()
+
+    # Show the window
+    root.update_idletasks()
+    root.wait_window()
+
+    return selected_variable.get()
+
+# Function to show sector window
+#________________________________________________________________
+
+def show_sector_window():
+    # Define the list of options
+    sectors = [
         "gdp", 
         "agriculture",  # agriculture and livestock
         "fishing",
@@ -36,32 +75,32 @@ def show_option_window():
     ]
 
     # Function to save the selected option and close the window
-    def save_option():
+    def save_sector():
         global sector
-        sector = selected_option.get()
+        sector = selected_sector.get()
         root.destroy()  # Close the window after selecting an option
 
     # Create the popup window
     root = tk.Tk()
-    root.title("Select Option")
+    root.title("Select economic sector")
 
     # Variable to store the selected option
-    selected_option = tk.StringVar(root)
-    selected_option.set(options[0])  # Default option
+    selected_sector = tk.StringVar(root)
+    selected_sector.set(sectors[0])  # Default option
 
     # Create the option menu
-    menu = tk.OptionMenu(root, selected_option, *options)
+    menu = tk.OptionMenu(root, selected_sector, *sectors)
     menu.pack(pady=10)
 
     # Button to confirm the selection
-    confirm_button = tk.Button(root, text="Confirm", command=save_option)
+    confirm_button = tk.Button(root, text="Confirm", command=save_sector)
     confirm_button.pack()
 
     # Show the window
     root.update_idletasks()
     root.wait_window()
 
-    return selected_option.get()
+    return selected_sector.get()
 
 # Function to show frequency window
 #________________________________________________________________
@@ -81,7 +120,7 @@ def show_frequency_window():
 
     # Create the popup window
     root = tk.Tk()
-    root.title("Select Frequency")
+    root.title("Select frequency")
 
     # Variable to store the selected option
     selected_frequency = tk.StringVar(root)
