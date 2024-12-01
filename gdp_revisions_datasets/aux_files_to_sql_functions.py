@@ -624,3 +624,52 @@ def dummies_int_convert_to_panel(df):
             df_panel = pd.merge(df_panel, sector_melted, on=['vintages_date', 'horizon'], how='outer')
 
     return df_panel
+
+
+# Function to merge sectors dataframes 
+#________________________________________________________________
+def releases_datasets_merge(frequency, *dataframes):
+    """
+    Merges multiple dataframes on the 'vintages_date' column.
+
+    Parameters:
+    frequency (str): The frequency to be used in the resulting dataframe name.
+    *dataframes (pd.DataFrame): DataFrames to be merged.
+
+    Returns:
+    pd.DataFrame: The merged dataframe with the name 'sectorial_gdp_{frequency}_releases'.
+    """
+    # Initialize the merged dataframe with the first dataframe
+    merged_df = dataframes[0]
+
+    # Merge each dataframe on 'vintages_date'
+    for df in dataframes[1:]:
+        merged_df = pd.merge(merged_df, df, on='vintages_date', how='outer')
+
+    # Define the name of the resulting dataframe
+    result_name = f'sectorial_gdp_{frequency}_releases'
+    
+    # Assign the name to the dataframe (this is for reference, actual DataFrame doesn't have a 'name' attribute)
+    merged_df.name = result_name
+
+    return merged_df
+
+# Function to sort merged sectors dataframes by vintages_date 
+#________________________________________________________________
+def sort_by_date(df):
+    """
+    Sorts the DataFrame by the 'vintages_date' column in ascending order.
+
+    Parameters:
+    df (pd.DataFrame): Input DataFrame with a datetime64[ns] column named 'vintages_date'.
+
+    Returns:
+    pd.DataFrame: Sorted DataFrame.
+    """
+    if 'vintages_date' not in df.columns:
+        raise ValueError("The DataFrame does not contain a 'vintages_date' column.")
+    
+    if not pd.api.types.is_datetime64_ns_dtype(df['vintages_date']):
+        raise TypeError("'vintages_date' column is not of type datetime64[ns].")
+
+    return df.sort_values(by='vintages_date').reset_index(drop=True)
