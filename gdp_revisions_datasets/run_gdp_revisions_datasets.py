@@ -3,9 +3,10 @@ from nbconvert.preprocessors import ExecutePreprocessor
 from itertools import product
 
 # Define las opciones para las combinaciones
-variables = ["r"]
-sectors = ["gdp"]
-frequencies = ["monthly"]
+variables = ["r", "e", "z"]
+sectors = ["gdp", "agriculture", "fishing", "mining", "manufacturing", 
+           "electricity", "construction", "commerce", "services"]
+frequencies = ["monthly", "quarterly", "annual"]
 
 # Ruta al archivo Jupyter Notebook
 notebook_path = "gdp_revisions_datasets.ipynb"  # Cambia por la ruta correcta si es necesario
