@@ -1332,9 +1332,9 @@ def concatenate_annual_df(dataframes_dict, sector_economico, economic_sector):
             dataframes_to_concatenate.append(dataframes_dict[df_name])
 
     # Print the names of dataframes that meet the criterion of ending in '_2'
-    print("DataFrames ending with '_2' that will be concatenated:")
-    for df_name in dataframes_ending_with_2:
-        print(df_name)
+    #print("DataFrames ending with '_2' that will be concatenated:")
+    #for df_name in dataframes_ending_with_2:
+    #    print(df_name)
 
     # Concatenate all dataframes in the 'dataframes_to_concatenate' list
     if dataframes_to_concatenate:
@@ -1382,9 +1382,9 @@ def concatenate_quarterly_df(dataframes_dict, sector_economico, economic_sector)
             dataframes_to_concatenate.append(dataframes_dict[df_name])
 
     # Print the names of dataframes that meet the criterion of ending in '_2'
-    print("DataFrames ending with '_2' that will be concatenated:")
-    for df_name in dataframes_ending_with_2:
-        print(df_name)
+    #print("DataFrames ending with '_2' that will be concatenated:")
+    #for df_name in dataframes_ending_with_2:
+    #    print(df_name)
 
     # Concatenate all dataframes in the 'dataframes_to_concatenate' list
     if dataframes_to_concatenate:
@@ -1432,9 +1432,9 @@ def concatenate_monthly_df(dataframes_dict, sector_economico, economic_sector):
             dataframes_to_concatenate.append(dataframes_dict[df_name])
 
     # Print the names of dataframes that meet the criterion of ending with '_1'
-    print("DataFrames ending with '_1' that will be concatenated:")
-    for df_name in dataframes_ending_with_1:
-        print(df_name)
+    #print("DataFrames ending with '_1' that will be concatenated:")
+    #for df_name in dataframes_ending_with_1:
+    #    print(df_name)
 
     # Concatenate all dataframes in the 'dataframes_to_concatenate' list
     if dataframes_to_concatenate:
