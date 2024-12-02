@@ -17,316 +17,58 @@ from sqlalchemy import create_engine
 import re
 
 
-
-################################################################################################
-# Section 7. Create cumulative revisions
-################################################################################################
-
-# Function to calculate cumulative revisions (1/2).
+# Function to merge sectors dataframes 
 #________________________________________________________________
-def calculate_cumulative_revisions(df):
-    # Step 1: Identify all release numbers from the column names
-    release_numbers = []
-    
-    for col in df.columns:
-        # Search for columns that follow the pattern '_release_' and extract the number
-        match = re.search(r'_release_(\d+)', col)
-        if match:
-            release_numbers.append(int(match.group(1)))
-    
-    # Step 2: Determine the maximum release number
-    max_release = max(release_numbers) if release_numbers else 0
-    
-    # Step 3: Extract the base variable names by removing the suffixes '_release_' and '_most_recent'
-    variable_names = [col.replace(f'_release_{i}', '').replace('_most_recent', '') 
-                      for i in range(1, max_release + 1)
-                      for col in df.columns if f'_release_{i}' in col or '_most_recent' in col]
-    
-    # Step 4: Remove any duplicate variable names
-    variable_names = list(set(variable_names))
-    
-    # Step 5: Prepare to create new columns for cumulative revisions
-    new_columns = []
-    
-    # Step 6: Create revision variables for each identified variable, comparing releases
-    for variable in variable_names:
-        # Iterate through the release versions, excluding the last one
-        for i in range(1, max_release + 1):
-            release_col = f"{variable}_release_{i}"  # Example: var_release_1
-            most_recent_col = f"{variable}_most_recent"  # Example: var_most_recent
-            if release_col in df.columns and most_recent_col in df.columns:
-                new_column_name = f"e_{i}_{variable}"  # Naming the new revision column
-                # Subtract release value from the most recent value
-                new_columns.append((new_column_name, df[most_recent_col] - df[release_col]))
-    
-    # Step 7: Add all newly created revision columns to the DataFrame
-    if new_columns:
-        df_new_columns = pd.DataFrame(dict(new_columns))
-        df = pd.concat([df, df_new_columns], axis=1)
+def releases_datasets_merge(frequency, *dataframes):
+    """
+    Merges multiple dataframes on the 'vintages_date' column.
 
-    # Step 8: Return the modified DataFrame along with the maximum release number
-    return df, max_release
+    Parameters:
+    frequency (str): The frequency to be used in the resulting dataframe name.
+    *dataframes (pd.DataFrame): DataFrames to be merged.
+
+    Returns:
+    pd.DataFrame: The merged dataframe with the name 'sectorial_gdp_{frequency}_releases'.
+    """
+    # Initialize the merged dataframe with the first dataframe
+    merged_df = dataframes[0]
+
+    # Merge each dataframe on 'vintages_date'
+    for df in dataframes[1:]:
+        merged_df = pd.merge(merged_df, df, on='vintages_date', how='outer')
+
+    # Define the name of the resulting dataframe
+    result_name = f'sectorial_gdp_{frequency}_releases'
+    
+    # Assign the name to the dataframe (this is for reference, actual DataFrame doesn't have a 'name' attribute)
+    merged_df.name = result_name
+
+    return merged_df
 
 
-# Function to calculate cumulative revisions (2/2).
+
+
+
+
+# Function to sort merged sectors dataframes by vintages_date 
 #________________________________________________________________
-# def calculate_specific_cumulative_revisions(df, frequency):
-#     # Obtén los nombres de las variables con los sufijos especificados
-#     suffixes = ['_release_1', '_release_6', '_release_12', '_release_24', '_most_recent']
-#     variable_names = [col.replace(suffix, '') for col in df.columns for suffix in suffixes if col.endswith(suffix)]
-#     variable_names = list(set(variable_names))  # Eliminar duplicados
+def sort_by_date(df):
+    """
+    Sorts the DataFrame by the 'vintages_date' column in ascending order.
 
-#     # Crear nuevas variables de revisión según la frecuencia
-#     for variable in variable_names:
-#         try:
-#             if frequency == 'monthly':
-#                 # Verificar si las columnas existen para monthly
-#                 if all(f'{variable}{suffix}' in df.columns for suffix in ['_most_recent', '_release_12', '_release_6', '_release_1']):
-#                     df[f'r_12_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_12']
-#                     df[f'r_6_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_6']
-#                     df[f'r_1_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_1']
-#                 else:
-#                     print(f"Skipping {variable}: not all expected columns for 'monthly' are present.")
-#             elif frequency in ['annual', 'quarterly']:
-#                 # Verificar si las columnas existen para annual o quarterly
-#                 if all(f'{variable}{suffix}' in df.columns for suffix in ['_most_recent', '_release_24', '_release_12', '_release_1']):
-#                     df[f'r_24_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_24']
-#                     df[f'r_12_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_12']
-#                     df[f'r_1_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_1']
-#                 else:
-#                     print(f"Skipping {variable}: not all expected columns for 'annual' or 'quarterly' are present.")
-#             else:
-#                 print(f"Frequency {frequency} is not supported.")
-#         except KeyError as e:
-#             print(f"Error processing {variable}: {e}")
-    
-#     return df
+    Parameters:
+    df (pd.DataFrame): Input DataFrame with a datetime64[ns] column named 'vintages_date'.
 
-
-# Function to extract year or year_month based on the specified frequency
-#________________________________________________________________
-def destring_date_column(df, frequency):
-    # Step 1: Check if 'vintages_date' column exists in the DataFrame
+    Returns:
+    pd.DataFrame: Sorted DataFrame.
+    """
     if 'vintages_date' not in df.columns:
-        raise KeyError("'vintages_date' column not found in the dataframe.")
+        raise ValueError("The DataFrame does not contain a 'vintages_date' column.")
     
-    # Step 2: Convert 'vintages_date' column to datetime, handling errors by converting invalid dates to NaT
-    df['vintages_date'] = pd.to_datetime(df['vintages_date'], errors='coerce')
-    
-    # Step 3: Determine which column to create based on the provided frequency argument
-    if frequency == 'monthly' or frequency == 'quarterly':
-        # Step 3a: If monthly or quarterly, extract the year and month as 'year_month'
-        year_month_column = pd.DataFrame({'year_month': df['vintages_date'].dt.to_period('M').astype(str)})
-        # Concatenate the new column to the original DataFrame
-        df = pd.concat([df, year_month_column], axis=1)
-    
-    elif frequency == 'annual':
-        # Step 3b: If annual, extract only the year as 'year'
-        year_column = pd.DataFrame({'year': df['vintages_date'].dt.year})
-        # Concatenate the new column to the original DataFrame
-        df = pd.concat([df, year_column], axis=1)
-    
-    else:
-        # Step 4: Raise an error if the frequency argument is invalid
-        raise ValueError("Invalid frequency. Please choose 'annual', 'quarterly', or 'monthly'.")
-    
-    # Step 5: Return the modified DataFrame with the new column
-    return df
+    if not pd.api.types.is_datetime64_ns_dtype(df['vintages_date']):
+        raise TypeError("'vintages_date' column is not of type datetime64[ns].")
 
-
-# Function to retain only 'vintages_date' and columns that start with 'r_' for revisions
-#________________________________________________________________
-def keep_revisions(df, frequency):
-    # Step 1: Determine which columns to keep based on the frequency
-    if frequency in ['quarterly', 'monthly']:
-        # Step 1a: If frequency is quarterly or monthly, keep 'year_month' and all columns starting with 'r_'
-        #cols_to_keep = ['vintages_date'] + ['year_month'] + [col for col in df.columns if col.startswith('r_')]
-        cols_to_keep = ['vintages_date'] + [col for col in df.columns if col.startswith('r_')]
-    
-    elif frequency == 'annual':
-        # Step 1b: If frequency is annual, keep 'year' and all columns starting with 'r_'
-        #cols_to_keep = ['year'] + [col for col in df.columns if col.startswith('r_')]
-        cols_to_keep = ['vintages_date'] + [col for col in df.columns if col.startswith('r_')]
-    
-    else:
-        # Step 2: Raise an error if the frequency argument is invalid
-        raise ValueError("Invalid frequency value. Please use 'quarterly', 'monthly', or 'annual'.")
-    
-    # Step 3: Return the DataFrame with only the selected columns
-    return df[cols_to_keep]
-
-
-# Function to retain only 'vintages_date' and columns that start with 'r_' for revisions
-#________________________________________________________________
-def keep_nowcast_errors(df, frequency):
-    # Step 1: Determine which columns to keep based on the frequency
-    if frequency in ['quarterly', 'monthly']:
-        # Step 1a: If frequency is quarterly or monthly, keep 'year_month' and all columns starting with 'e_'
-        #cols_to_keep = ['vintages_date'] + ['year_month'] + [col for col in df.columns if col.startswith('e_')]
-        cols_to_keep = ['vintages_date'] + [col for col in df.columns if col.startswith('e_')]
-    
-    elif frequency == 'annual':
-        # Step 1b: If frequency is annual, keep 'year' and all columns starting with 'e_'
-        #cols_to_keep = ['year'] + [col for col in df.columns if col.startswith('e_')]
-        cols_to_keep = ['vintages_date'] + [col for col in df.columns if col.startswith('e_')]
-    
-    else:
-        # Step 2: Raise an error if the frequency argument is invalid
-        raise ValueError("Invalid frequency value. Please use 'quarterly', 'monthly', or 'annual'.")
-    
-    # Step 3: Return the DataFrame with only the selected columns
-    return df[cols_to_keep]
-
-
-# Function to transpose data by sector based on the given frequency
-#________________________________________________________________
-def transpose_df(df, frequency):
-    # Step 1: Determine whether to use 'year_month' or 'year' based on the frequency
-    if frequency in ['monthly', 'quarterly']:
-        time_col = 'year_month'
-    elif frequency == 'annual':
-        time_col = 'year'
-    else:
-        raise ValueError("frequency must be 'monthly', 'quarterly', or 'annual'")
-    
-    # Step 2: Extract sector categories (e.g., 'gdp', 'services', etc.)
-    sectors = sorted(set(col.split('_')[-1] for col in df.columns if col.startswith('r_')))
-    
-    # Step 3: Create a dictionary to store the transposed data
-    data_transpuesta = {}
-    
-    # Step 4: For each sector, gather all columns related to that sector
-    for sector in sectors:
-        # Step 4a: Filter the columns corresponding to the current sector
-        cols_sector = [col for col in df.columns if f'_{sector}' in col]
-        
-        # Step 4b: Transpose the rows into columns, using 'year_month' or 'year' for the column names
-        for i, row in df.iterrows():
-            time_value = row[time_col]  # Get the value of 'year_month' or 'year'
-            
-            # Convert 'time_value' to an integer if the frequency is annual
-            if frequency == 'annual':
-                time_value = int(time_value)
-            
-            sector_data = row[cols_sector]  # Get the data for the current sector
-            
-            # Step 4c: Create dynamic column names using the format "{sector}_{time_value}"
-            for col, value in zip(cols_sector, sector_data):
-                new_col_name = f"{sector}_{time_value}"
-                
-                # If the column does not exist in the dictionary, initialize it with NaN
-                if new_col_name not in data_transpuesta:
-                    data_transpuesta[new_col_name] = [value]
-                else:
-                    data_transpuesta[new_col_name].append(value)
-    
-    # Step 5: Ensure that all lists in the dictionary have the same length
-    max_len = max(len(v) for v in data_transpuesta.values())
-    for key in data_transpuesta:
-        if len(data_transpuesta[key]) < max_len:
-            # Fill with NaN to match the maximum length
-            data_transpuesta[key] += [np.nan] * (max_len - len(data_transpuesta[key]))
-    
-    # Step 6: Convert the dictionary into a DataFrame
-    df_transpuesto = pd.DataFrame(data_transpuesta)
-    
-    # Step 7: Reset the index and return the transposed DataFrame
-    return df_transpuesto.reset_index(drop=True)
-
-
-# Function to add time trend column
-#________________________________________________________________
-# def add_time_trend(df):
-#     # Número de observaciones en el dataframe
-#     n = len(df)
-    
-#     # Columna 'horizon' que va de 1 hasta n
-#     df['horizon'] = range(1, n + 1)
-    
-#     # Columna 'target_date' que contiene el valor máximo (n)
-#     df['target_date'] = n
-    
-#     # Columna 'time_trend' que es la diferencia entre target_date y horizon
-#     df['time_trend'] = df['target_date'] - df['horizon']
-    
-#     # Convertir las columnas al tipo entero
-#     df['horizon'] = df['horizon'].astype(int)
-#     df['target_date'] = df['target_date'].astype(int)
-#     df['time_trend'] = df['time_trend'].astype(int)
-    
-#     return df
-
-
-# Function to remove NaN or zero columns
-#________________________________________________________________
-def remove_nan_or_zero_float_columns(df):
-    # Filtrar solo las columnas de tipo float
-    float_columns = df.select_dtypes(include=['float'])
-    
-    # Identificar las columnas a eliminar (todas NaN, todas 0.0 o ambas)
-    columns_to_drop = []
-    for col in float_columns.columns:
-        all_nan = float_columns[col].isna().all()         # Condición 1: todas NaN
-        all_zero = (float_columns[col] == 0.0).all()      # Condición 2: todas 0.0
-        nan_count = float_columns[col].isna().sum()        # Contar NaN
-        zero_count = (float_columns[col] == 0.0).sum()     # Contar 0.0
-        total_count = len(float_columns[col])               # Total de elementos en la columna
-        
-        # Condición 3: parte NaN y parte 0.0 y total debe ser igual a la longitud de la columna
-        complementary_nan_and_zero = (nan_count + zero_count == total_count) and (nan_count > 0 and zero_count > 0)
-
-        if all_nan or all_zero or complementary_nan_and_zero:
-            columns_to_drop.append(col)
-    
-    # Eliminar las columnas identificadas
-    df_filtered = df.drop(columns=columns_to_drop)
-    
-    return df_filtered
-
-
-# Function to convert to to data panel
-#________________________________________________________________
-def cum_convert_to_panel(df):
-    # Obtener todas las columnas del dataframe
-    columns = df.columns
-    
-    # Conjunto para almacenar los sectores únicos
-    sectors = set()
-
-    # Expresión regular para el patrón 'e_{i}_{sector}'
-    pattern = re.compile(r'e_(\d+)_(.+)')
-
-    # Identificar todos los sectores a partir de las columnas
-    for col in columns:
-        match = pattern.search(col)
-        if match:
-            sectors.add(match.group(2))  # Extraer el sector y añadirlo al conjunto
-
-    # Inicializar el DataFrame resultante en formato panel
-    df_panel = pd.DataFrame()
-
-    # Para cada sector, transformar y fusionar los datos
-    for sector in sectors:
-        # Filtrar las columnas que pertenecen a este sector
-        sector_columns = [col for col in columns if f'_{sector}' in col]
-        
-        # Convertir las columnas del sector al formato largo
-        sector_melted = pd.melt(df, id_vars=['vintages_date'], 
-                                value_vars=sector_columns, 
-                                var_name='horizon', 
-                                value_name=f'e_{sector}')
-        
-        # Extraer el número de revisión y eliminar el nombre del sector del campo 'horizon'
-        sector_melted['horizon'] = sector_melted['horizon'].str.extract(r'e_(\d+)_')[0].astype(int)
-
-        # Si es el primer sector, inicializar df_panel
-        if df_panel.empty:
-            df_panel = sector_melted
-        else:
-            # Fusionar el sector actual con el panel general
-            df_panel = pd.merge(df_panel, sector_melted, on=['vintages_date', 'horizon'], how='outer')
-
-    return df_panel
+    return df.sort_values(by='vintages_date').reset_index(drop=True)
 
 
 # Function to convert releases to to data panel
@@ -375,22 +117,15 @@ def releases_convert_to_panel(df):
     return df_panel
 
 
-# Function to replace "-" by "_" in columns
-#________________________________________________________________
-def replace_hyphen_in_columns(df):
-    # Reemplaza "-" por "_" en los nombres de las columnas
-    df.columns = df.columns.str.replace("-", "_", regex=False)
-    return df
-
 
 ################################################################################################
-# Section 8. Create intermediate revisions
+# r
 ################################################################################################
 
 
 # Function to calculate intermediate revisions (1/2)
 #________________________________________________________________
-def calculate_intermediate_revisions(df):
+def calculate_r(df):
     # Encontrar el número más alto que sigue el patrón '_release_'
     release_numbers = []
     
@@ -403,35 +138,35 @@ def calculate_intermediate_revisions(df):
     # Determinar el número máximo de releases
     max_release = max(release_numbers) if release_numbers else 0
     
-    # Extraer los nombres de las variables con los sufijos especificados
-    variable_names = [col.replace(f'_release_{i}', '').replace('_most_recent', '') 
+    # Extraer los nombres de las sectors con los sufijos especificados
+    sector_names = [col.replace(f'_release_{i}', '').replace('_most_recent', '') 
                       for i in range(1, max_release + 1)
                       for col in df.columns if f'_release_{i}' in col or '_most_recent' in col]
     
-    # Eliminar duplicados de los nombres de variables
-    variable_names = list(set(variable_names))
+    # Eliminar duplicados de los nombres de sectors
+    sector_names = list(set(sector_names))
     
     # Crear una lista para contener las nuevas columnas
     new_columns = []
     
-    # Crear nuevas variables de revisión intermedia para cada variable encontrada
-    for variable in variable_names:
-        for i in range(2, max_release + 1):  # Iterar desde release_2 hasta el release más alto
-            previous_release_col = f"{variable}_release_{i-1}"
-            current_release_col = f"{variable}_release_{i}"
+    # Crear nuevas sectors de revisión intermedia para cada sector encontrada
+    for sector in sector_names:
+        for i in range(2, max_release + 1):  # Iterar desde release_2 hasta el release más alto +1
+            previous_release_col = f"{sector}_release_{i-1}"
+            current_release_col = f"{sector}_release_{i}"
             
             if previous_release_col in df.columns and current_release_col in df.columns:
-                new_column_name = f"r_{i}_{variable}"
+                new_column_name = f"r_{i}_{sector}"
                 # Realizar la resta de la revisión actual menos la revisión anterior
                 new_columns.append((new_column_name, df[current_release_col] - df[previous_release_col]))
         
         # Para la última diferencia, entre most_recent y el release más reciente - 1
-        most_recent_col = f"{variable}_most_recent"
-        last_release_col = f"{variable}_release_{max_release}"
+        most_recent_col = f"{sector}_most_recent"
+        last_release_col = f"{sector}_release_{max_release}"
         
         if last_release_col in df.columns and most_recent_col in df.columns:
-            # Modificar el nombre de la columna según lo solicitado
-            new_column_name = f"r_{max_release +1}_{variable}"
+            # Modificar el nombre de la columna
+            new_column_name = f"r_{max_release +1}_{sector}"
             new_columns.append((new_column_name, df[most_recent_col] - df[last_release_col]))
     
     # Concatenar todas las nuevas columnas al DataFrame
@@ -442,94 +177,9 @@ def calculate_intermediate_revisions(df):
     # Retornar el DataFrame modificado
     return df, max_release
 
-# Function to calculate intermediate revisions (2/2)
-#________________________________________________________________
-# def calculate_specific_intermediate_revisions(df, frequency):
-#     # Obtén los nombres de las variables con los sufijos especificados
-#     suffixes = ['_release_1', '_release_6', '_release_12', '_release_24', '_most_recent']
-#     variable_names = [col.replace(suffix, '') for col in df.columns for suffix in suffixes if col.endswith(suffix)]
-#     variable_names = list(set(variable_names))  # Eliminar duplicados
-
-#     # Crear nuevas variables de revisión según la frecuencia
-#     for variable in variable_names:
-#         try:
-#             if frequency == 'monthly':
-#                 # Verificar si las columnas existen para monthly
-#                 if all(f'{variable}{suffix}' in df.columns for suffix in ['_most_recent', '_release_12', '_release_6', '_release_1']):
-#                     df[f'r_12_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_12']
-#                     df[f'r_6_12_{variable}'] = df[f'{variable}_release_12'] - df[f'{variable}_release_6']
-#                     df[f'r_1_6_{variable}'] = df[f'{variable}_release_6'] - df[f'{variable}_release_1']
-#                 else:
-#                     print(f"Skipping {variable}: not all expected columns for 'monthly' are present.")
-#             elif frequency in ['annual', 'quarterly']:
-#                 # Verificar si las columnas existen para annual o quarterly
-#                 if all(f'{variable}{suffix}' in df.columns for suffix in ['_most_recent', '_release_24', '_release_12', '_release_1']):
-#                     df[f'r_24_H_{variable}'] = df[f'{variable}_most_recent'] - df[f'{variable}_release_24']
-#                     df[f'r_12_24_{variable}'] = df[f'{variable}_release_24'] - df[f'{variable}_release_12']
-#                     df[f'r_1_12_{variable}'] = df[f'{variable}_release_12'] - df[f'{variable}_release_1']
-#                 else:
-#                     print(f"Skipping {variable}: not all expected columns for 'annual' or 'quarterly' are present.")
-#             else:
-#                 print(f"Frequency {frequency} is not supported.")
-#         except KeyError as e:
-#             print(f"Error processing {variable}: {e}")
-    
-#     return df
-
-
-# Function to convert to panel data
-#________________________________________________________________
-def int_convert_to_panel(df):
-    # Obtener todas las columnas del dataframe
-    columns = df.columns
-    
-    # Conjunto para almacenar los sectores únicos
-    sectors = set()
-
-    # Expresión regular para el patrón 'r_{i}_{sector}'
-    pattern = re.compile(r'r_(\d+)_(.+)')
-
-    # Identificar todos los sectores a partir de las columnas
-    for col in columns:
-        match = pattern.search(col)
-        if match:
-            sectors.add(match.group(2))  # Extraer el sector y añadirlo al conjunto
-
-    # Inicializar el DataFrame resultante en formato panel
-    df_panel = pd.DataFrame()
-
-    # Para cada sector, transformar y fusionar los datos
-    for sector in sectors:
-        # Filtrar las columnas que pertenecen a este sector
-        sector_columns = [col for col in columns if f'_{sector}' in col]
-        
-        # Convertir las columnas del sector al formato largo
-        sector_melted = pd.melt(df, id_vars=['vintages_date'], 
-                                value_vars=sector_columns, 
-                                var_name='horizon', 
-                                value_name=f'r_{sector}')
-        
-        # Extraer el número de revisión y eliminar el nombre del sector del campo 'horizon'
-        sector_melted['horizon'] = sector_melted['horizon'].str.extract(r'r_(\d+)_')[0].astype(int)
-
-        # Si es el primer sector, inicializar df_panel
-        if df_panel.empty:
-            df_panel = sector_melted
-        else:
-            # Fusionar el sector actual con el panel general
-            df_panel = pd.merge(df_panel, sector_melted, on=['vintages_date', 'horizon'], how='outer')
-
-    return df_panel
-
-
-################################################################################################
-# Section 12. Create intermediate revisions for dummies
-################################################################################################
-
-
 # Function to calculate intermediate revisions for dummies
 #________________________________________________________________
-def calculate_intermediate_revisions_dummies(df):
+def calculate_r_dummies(df):
     # Encontrar el número más alto que sigue el patrón '_release_'
     release_numbers = []
     
@@ -542,35 +192,35 @@ def calculate_intermediate_revisions_dummies(df):
     # Determinar el número máximo de releases
     max_release = max(release_numbers) if release_numbers else 0
     
-    # Extraer los nombres de las variables con los sufijos especificados
-    variable_names = [col.replace(f'_release_{i}', '').replace('_most_recent', '') 
+    # Extraer los nombres de las sectors con los sufijos especificados
+    sector_names = [col.replace(f'_release_{i}', '').replace('_most_recent', '') 
                       for i in range(1, max_release + 1)
                       for col in df.columns if f'_release_{i}' in col or '_most_recent' in col]
     
-    # Eliminar duplicados de los nombres de variables
-    variable_names = list(set(variable_names))
+    # Eliminar duplicados de los nombres de sectors
+    sector_names = list(set(sector_names))
     
     # Crear una lista para contener las nuevas columnas
     new_columns = []
     
-    # Crear nuevas variables de revisión intermedia para cada variable encontrada
-    for variable in variable_names:
+    # Crear nuevas sectors de revisión intermedia para cada sector encontrada
+    for sector in sector_names:
         for i in range(2, max_release + 1):  # Iterar desde release_2 hasta el release más alto
-            previous_release_col = f"{variable}_release_{i-1}"
-            current_release_col = f"{variable}_release_{i}"
+            previous_release_col = f"{sector}_release_{i-1}"
+            current_release_col = f"{sector}_release_{i}"
             
             if previous_release_col in df.columns and current_release_col in df.columns:
-                new_column_name = f"r_{i}_{variable}"
+                new_column_name = f"r_{i}_{sector}"
                 # Realizar la resta de la revisión actual menos la revisión anterior
                 new_columns.append((new_column_name, df[current_release_col]))
         
         # Para la última diferencia, entre most_recent y el release más reciente - 1
-        most_recent_col = f"{variable}_most_recent"
-        last_release_col = f"{variable}_release_{max_release}"
+        most_recent_col = f"{sector}_most_recent"
+        last_release_col = f"{sector}_release_{max_release}"
         
         if last_release_col in df.columns and most_recent_col in df.columns:
-            # Modificar el nombre de la columna según lo solicitado
-            new_column_name = f"r_{max_release +1}_{variable}"
+            # Modificar el nombre de la columna
+            new_column_name = f"r_{max_release +1}_{sector}"
             new_columns.append((new_column_name, df[most_recent_col]))
     
     # Concatenar todas las nuevas columnas al DataFrame
@@ -581,9 +231,55 @@ def calculate_intermediate_revisions_dummies(df):
     # Retornar el DataFrame modificado
     return df, max_release
 
+
 # Function to convert to panel data
 #________________________________________________________________
-def dummies_int_convert_to_panel(df):
+def r_to_panel(df):
+    # Get all columns from the dataframe
+    columns = df.columns
+    
+    # Set to store unique sectors
+    sectors = set()
+
+    # Regular expression for the pattern 'r_{i}_{sector}'
+    pattern = re.compile(r'r_(\d+)_(.+)')
+
+    # Identify all sectors from the columns
+    for col in columns:
+        match = pattern.search(col)
+        if match:
+            sectors.add(match.group(2))  # Extract the sector and add it to the set
+
+    # Initialize the resulting DataFrame in panel format
+    df_panel = pd.DataFrame()
+
+    # For each sector, transform and merge the data
+    for sector in sectors:
+        # Filter columns that belong to this sector
+        sector_columns = [col for col in columns if f'_{sector}' in col]
+        
+        # Convert the sector's columns to long format
+        sector_melted = pd.melt(df, id_vars=['vintages_date'], 
+                                value_vars=sector_columns, 
+                                var_name='horizon', 
+                                value_name=f'r_{sector}')
+        
+        # Extract the revision number and remove the sector name from the 'horizon' field
+        sector_melted['horizon'] = sector_melted['horizon'].str.extract(r'r_(\d+)_')[0].astype(int)
+
+        # If it's the first sector, initialize df_panel
+        if df_panel.empty:
+            df_panel = sector_melted
+        else:
+            # Merge the current sector with the general panel
+            df_panel = pd.merge(df_panel, sector_melted, on=['vintages_date', 'horizon'], how='outer')
+
+    return df_panel
+
+
+# Function to convert to panel data
+#________________________________________________________________
+def r_dummies_to_panel(df):
     # Obtener todas las columnas del dataframe
     columns = df.columns
     
@@ -626,50 +322,150 @@ def dummies_int_convert_to_panel(df):
     return df_panel
 
 
-# Function to merge sectors dataframes 
+
+################################################################################################
+# e
+################################################################################################
+
+# Function to calculate errors
 #________________________________________________________________
-def releases_datasets_merge(frequency, *dataframes):
-    """
-    Merges multiple dataframes on the 'vintages_date' column.
-
-    Parameters:
-    frequency (str): The frequency to be used in the resulting dataframe name.
-    *dataframes (pd.DataFrame): DataFrames to be merged.
-
-    Returns:
-    pd.DataFrame: The merged dataframe with the name 'sectorial_gdp_{frequency}_releases'.
-    """
-    # Initialize the merged dataframe with the first dataframe
-    merged_df = dataframes[0]
-
-    # Merge each dataframe on 'vintages_date'
-    for df in dataframes[1:]:
-        merged_df = pd.merge(merged_df, df, on='vintages_date', how='outer')
-
-    # Define the name of the resulting dataframe
-    result_name = f'sectorial_gdp_{frequency}_releases'
+def calculate_e(df):
+    # Step 1: Identify all release numbers from the column names
+    release_numbers = []
     
-    # Assign the name to the dataframe (this is for reference, actual DataFrame doesn't have a 'name' attribute)
-    merged_df.name = result_name
+    for col in df.columns:
+        # Search for columns that follow the pattern '_release_' and extract the number
+        match = re.search(r'_release_(\d+)', col)
+        if match:
+            release_numbers.append(int(match.group(1)))
+    
+    # Step 2: Determine the maximum release number
+    max_release = max(release_numbers) if release_numbers else 0
+    
+    # Step 3: Extract the sector names by removing the suffixes '_release_' and '_most_recent'
+    sector_names = [col.replace(f'_release_{i}', '').replace('_most_recent', '') 
+                      for i in range(1, max_release + 1)
+                      for col in df.columns if f'_release_{i}' in col or '_most_recent' in col]
+    
+    # Step 4: Remove any duplicate sector names
+    sector_names = list(set(sector_names))
+    
+    # Step 5: Prepare to create new columns for nowcast errors
+    new_columns = []
+    
+    # Step 6: Create errors from releases for each identified sector 
+    for sector in sector_names:
+        # Iterate through the release versions, excluding the last one
+        for i in range(1, max_release + 1):
+            release_col = f"{sector}_release_{i}"  # Example: sector_release_1
+            most_recent_col = f"{sector}_most_recent"  # Example: sector_most_recent
+            if release_col in df.columns and most_recent_col in df.columns:
+                new_column_name = f"e_{i}_{sector}"  # Naming the new revision column
+                # Subtract release value from the most recent value
+                new_columns.append((new_column_name, df[most_recent_col] - df[release_col]))
+    
+    # Step 7: Add all newly created e columns to the DataFrame
+    if new_columns:
+        df_new_columns = pd.DataFrame(dict(new_columns))
+        df = pd.concat([df, df_new_columns], axis=1)
 
-    return merged_df
+    # Step 8: Return the modified DataFrame along with the maximum release number
+    return df, max_release
 
-# Function to sort merged sectors dataframes by vintages_date 
+
+# Function to calculate errors dummies
 #________________________________________________________________
-def sort_by_date(df):
-    """
-    Sorts the DataFrame by the 'vintages_date' column in ascending order.
-
-    Parameters:
-    df (pd.DataFrame): Input DataFrame with a datetime64[ns] column named 'vintages_date'.
-
-    Returns:
-    pd.DataFrame: Sorted DataFrame.
-    """
-    if 'vintages_date' not in df.columns:
-        raise ValueError("The DataFrame does not contain a 'vintages_date' column.")
+def calculate_e_dummies(df):
+    # Step 1: Identify all release numbers from the column names
+    release_numbers = []
     
-    if not pd.api.types.is_datetime64_ns_dtype(df['vintages_date']):
-        raise TypeError("'vintages_date' column is not of type datetime64[ns].")
+    for col in df.columns:
+        # Search for columns that follow the pattern '_release_' and extract the number
+        match = re.search(r'_release_(\d+)', col)
+        if match:
+            release_numbers.append(int(match.group(1)))
+    
+    # Step 2: Determine the maximum release number
+    max_release = max(release_numbers) if release_numbers else 0
+    
+    # Step 3: Extract the sector names by removing the suffixes '_release_' and '_most_recent'
+    sector_names = [col.replace(f'_release_{i}', '').replace('_most_recent', '') 
+                      for i in range(1, max_release + 1)
+                      for col in df.columns if f'_release_{i}' in col or '_most_recent' in col]
+    
+    # Step 4: Remove any duplicate sector names
+    sector_names = list(set(sector_names))
+    
+    # Step 5: Prepare to create new columns for nowcast errors
+    new_columns = []
+    
+    # Step 6: Create errors (e) from releases for each identified sector 
+    for sector in sector_names:
+        # Iterate through the release versions, excluding the last one
+        for i in range(1, max_release + 1):
+            release_col = f"{sector}_release_{i}"  # Example: sector_release_1
+            most_recent_col = f"{sector}_most_recent"  # Example: sector_most_recent
+            if release_col in df.columns and most_recent_col in df.columns:
+                new_column_name = f"e_{i}_{sector}"  # Naming the new revision column
+                # Subtract release affected by base year
+                new_columns.append((new_column_name, df[release_col])) # in e_t(h) = y_t - y_t(h), y_t(h) is affected by base year 
+                
+    # Step 7: Add all newly created e columns to the DataFrame
+    if new_columns:
+        df_new_columns = pd.DataFrame(dict(new_columns))
+        df = pd.concat([df, df_new_columns], axis=1)
 
-    return df.sort_values(by='vintages_date').reset_index(drop=True)
+    # Step 8: Return the modified DataFrame along with the maximum release number
+    return df, max_release
+
+
+
+# Function to convert to data panel
+#________________________________________________________________
+def e_to_panel(df):
+    # Get all columns from the dataframe
+    columns = df.columns
+    
+    # Set to store unique sectors
+    sectors = set()
+
+    # Regular expression for the pattern 'e_{i}_{sector}'
+    pattern = re.compile(r'e_(\d+)_(.+)')
+
+    # Identify all sectors from the columns
+    for col in columns:
+        match = pattern.search(col)
+        if match:
+            sectors.add(match.group(2))  # Extract the sector and add it to the set
+
+    # Initialize the resulting DataFrame in panel format
+    df_panel = pd.DataFrame()
+
+    # For each sector, transform and merge the data
+    for sector in sectors:
+        # Filter columns that belong to this sector
+        sector_columns = [col for col in columns if f'_{sector}' in col]
+        
+        # Convert the sector's columns to long format
+        sector_melted = pd.melt(df, id_vars=['vintages_date'], 
+                                value_vars=sector_columns, 
+                                var_name='horizon', 
+                                value_name=f'e_{sector}')
+        
+        # Extract the revision number and remove the sector name from the 'horizon' field
+        sector_melted['horizon'] = sector_melted['horizon'].str.extract(r'e_(\d+)_')[0].astype(int)
+
+        # If it's the first sector, initialize df_panel
+        if df_panel.empty:
+            df_panel = sector_melted
+        else:
+            # Merge the current sector with the general panel
+            df_panel = pd.merge(df_panel, sector_melted, on=['vintages_date', 'horizon'], how='outer')
+
+    return df_panel
+
+
+
+################################################################################################
+# z
+################################################################################################
