@@ -18,61 +18,6 @@ import re
 
 
 
-#+++++++++++++++
-# Enter your user credentials to acces to SQL
-#+++++++++++++++
-
-# Get environment variables
-user = os.environ.get('CIUP_SQL_USER')
-password = os.environ.get('CIUP_SQL_PASS')
-host = os.environ.get('CIUP_SQL_HOST')
-port = 5432
-database = 'gdp_revisions_datasets'
-
-# Check if all environment variables are defined
-if not all([host, user, password]):
-    raise ValueError("Some environment variables are missing (CIUP_SQL_HOST, CIUP_SQL_USER, CIUP_SQL_PASS)")
-
-# Create connection string
-connection_string = f"postgresql://{user}:{password}@{host}:{port}/{database}"
-
-# Create SQLAlchemy engine
-engine = create_engine(connection_string)
-
-
-
-################################################################################################
-# Section 6. Concatenate old_gdp_dataset with new_gdp_dataset
-################################################################################################
-
-# Function to concatenate old with new data.
-#________________________________________________________________
-def concatenate_old_new(df1, df2):
-    
-    concatenated_df = pd.concat([df1, df2], ignore_index=True) # Concatenate the dataframes
-    
-    return concatenated_df
-
-# Function to calculate cumulative revisions (1/2).
-#________________________________________________________________
-def process_growth_rates_datasets(sector, frequency):
-    # Crear un DataFrame de pandas desde la tabla antigua
-    query_1 = f"SELECT * FROM old_{sector}_{frequency}_growth_rates;"
-    df_1 = pd.read_sql(query_1, engine)
-
-    # Crear un DataFrame de pandas desde la tabla nueva
-    query_2 = f"SELECT * FROM new_{sector}_{frequency}_growth_rates;"
-    df_2 = pd.read_sql(query_2, engine)
-
-    # Llama a tu función personalizada para concatenar
-    result_df = concatenate_old_new(df_1, df_2)
-
-    # Guarda el DataFrame resultante en una tabla SQL
-    result_df.to_sql(f'{sector}_{frequency}_growth_rates', engine, index=False, if_exists='replace')
-
-    return result_df
-
-
 ################################################################################################
 # Section 7. Create cumulative revisions
 ################################################################################################
