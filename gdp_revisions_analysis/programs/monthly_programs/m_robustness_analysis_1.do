@@ -473,7 +473,9 @@ Robustness Analysis
 			* Report results using esttab
 			
 			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "r_robustness_analysis_m.tex", append ///
-				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "h" "N") fmt(%9.0f %9.0f %9.0f)) ///
+				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
+				keep(_cons 1.r_dummy_`sector') ///
+				varlabels(_cons "Intercepto" 1.r_dummy_`sector' "r-dummy") ///
 				order(_cons) longtable ///
 				noobs ///
 				star(* 0.1 ** 0.05 *** 0.01) ///
@@ -615,6 +617,8 @@ Robustness Analysis
 			
 			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "e_robustness_analysis_m.tex", append ///
 				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
+				keep(_cons 1.e_dummy_`sector') ///
+				varlabels(_cons "Intercepto" 1.e_dummy_`sector' "e-dummy") ///
 				order(_cons) longtable ///
 				noobs ///
 				star(* 0.1 ** 0.05 *** 0.01) ///
@@ -756,6 +760,8 @@ Robustness Analysis
 			
 			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "z_robustness_analysis_m.tex", append ///
 				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
+				keep(_cons 1.z_dummy_`sector') ///
+				varlabels(_cons "Intercepto" 1.z_dummy_`sector' "z-dummy") ///
 				order(_cons) longtable ///
 				noobs ///
 				star(* 0.1 ** 0.05 *** 0.01) ///
