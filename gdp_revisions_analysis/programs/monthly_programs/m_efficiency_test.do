@@ -166,7 +166,10 @@ Efficiency Tests
 	
 		
 	/*----------------------
-	Regression (r)
+	Efficiency regression (r)
+	________________________
+	Paper and presentation
+	version
 	-----------------------*/
 
 	* r_t(h) = c + \beta_1 r_t(h-1) + \beta_2 r_t(h-2)	
@@ -337,8 +340,12 @@ Efficiency Tests
 	
 	
 	/*----------------------
-	Regression for benchmark
+	Efficiency regression
+	for benchmark
 	(r)
+	________________________
+	Paper and presentation
+	version
 	-----------------------*/
 	
 	* r_t(h) = c + \beta_1 r_t(h-1) + \beta_2 r_t(h-2) + \beta_3 r_t(h-1)xDummy + \beta_4 r_t(h-2)xDummy	

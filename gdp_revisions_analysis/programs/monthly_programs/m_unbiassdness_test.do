@@ -256,6 +256,9 @@ Summary of Statistics (Unbiassdness)
 	/*----------------------
 	r: summary of stats
 	(mean with significance)
+	________________________
+	Paper and presentation
+	version
 	-----------------------*/
 
 	
@@ -361,6 +364,9 @@ Summary of Statistics (Unbiassdness)
 	/*----------------------
 	e: summary of stats
 	(mean with significance)
+	________________________
+	Paper and presentation
+	version
 	-----------------------*/
 
 	
@@ -466,6 +472,9 @@ Summary of Statistics (Unbiassdness)
 	/*----------------------
 	z: summary of stats
 	(mean with significance)
+	________________________
+	Paper and presentation
+	version
 	-----------------------*/
 
 	
