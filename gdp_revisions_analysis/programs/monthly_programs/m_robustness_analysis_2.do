@@ -833,12 +833,12 @@ Robustness Analysis
 	-----------------------*/
 	
 	
-	use e_affected_panel_cleaned, clear
+	use z_affected_panel_cleaned, clear
 
 	
 		* Make the merge with the second dataset
 		
-		merge 1:1 target_date horizon using e_base_year_dummies_panel_cleaned
+		merge 1:1 target_date horizon using z_base_year_dummies_panel_cleaned
 
 		
 		* Check the result of the merge
@@ -876,11 +876,11 @@ Robustness Analysis
 		* Generate dependent variables for regressions
 		
 		foreach sector of global sectors {
-			gen log_abs_e_`sector' = abs(z_`sector') // ln(abs(e_`sector'))
+			gen log_abs_e_`sector' = abs(z_`sector') // ln(abs(z_`sector'))
 		}
 		
 		foreach sector of global sectors {
-			gen log_sq_e_`sector' = (z_`sector')^2 // ln((e_`sector')^2)
+			gen log_sq_e_`sector' = (z_`sector')^2 // ln((z_`sector')^2)
 		}
 		
 		
@@ -1103,12 +1103,12 @@ Robustness Analysis
 	-----------------------*/
 	
 	
-	use e_affected_panel_cleaned, clear
+	use z_affected_panel_cleaned, clear
 
 	
 		* Make the merge with the second dataset
 		
-		merge 1:1 target_date horizon using e_base_year_dummies_panel_cleaned
+		merge 1:1 target_date horizon using z_base_year_dummies_panel_cleaned
 
 		
 		* Check the result of the merge
@@ -1146,11 +1146,11 @@ Robustness Analysis
 		* Generate dependent variables for regressions
 		
 		foreach sector of global sectors {
-			gen log_abs_e_`sector' = abs(z_`sector') // ln(abs(e_`sector'))
+			gen log_abs_e_`sector' = abs(z_`sector') // ln(abs(z_`sector'))
 		}
 		
 		foreach sector of global sectors {
-			gen log_sq_e_`sector' = (z_`sector')^2 // ln((e_`sector')^2)
+			gen log_sq_e_`sector' = (z_`sector')^2 // ln((z_`sector')^2)
 		}
 		
 		
