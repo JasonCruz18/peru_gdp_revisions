@@ -53,14 +53,14 @@ Robustness Analysis
 	------------------------*/
 		
 	shell mkdir "output" 			// Creates folder to save outputs.
-	//shell mkdir "output/graphs" 	// Creates folder to save graphs.
+	//shell mkdir "output/charts" 	// Creates folder to save charts.
 	shell mkdir "output/tables" 	// Creates folder to save tables.
 	//shell mkdir "output/data" 		// Creates folder to save data.
 		
 	
 	* Set as global vars
 	
-	//global graphs_folder "output/graphs"	// Use to export graphs.
+	//global graphs_folder "output/charts"	// Use to export charts.
 	global tables_folder "output/tables"	// Use to export tables.
 	//global data_folder "output/data"		// Use to export .dta.
 	
@@ -72,13 +72,13 @@ Robustness Analysis
 	-----------------------*/
 		
 		
-	odbc load, exec("select * from sectorial_gdp_monthly_cum_revisions_panel_bench") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+	odbc load, exec("select * from e_sectorial_gdp_monthly_affected_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
-	save cum_temp_panel_data, replace
+	save e_affected_panel, replace
 	
 	
-	odbc load, exec("select * from sectorial_gdp_monthly_int_revisions_panel_bench") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+	odbc load, exec("select * from r_sectorial_gdp_monthly_int_revisions_panel_bench") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
 	save int_temp_panel_data, replace
