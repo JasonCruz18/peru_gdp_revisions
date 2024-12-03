@@ -72,19 +72,26 @@ Variance Bounds Test
 	-----------------------*/
 		
 		
-	odbc load, exec("select * from sectorial_gdp_monthly_cum_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+	odbc load, exec("select * from e_sectorial_gdp_monthly_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
-	save temp_cum_panel, replace
+	save e_panel, replace
+	
+	
+	odbc load, exec("select * from z_sectorial_gdp_monthly_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+		
+	
+	save z_panel, replace
 
 
 	
 	/*----------------------
 	On-the-fly data cleaning
+	(e)
 	-----------------------*/
 
 	
-	use temp_cum_panel.dta, clear
+	use e_panel.dta, clear
 
 	
 		* Sort by date and horizon
@@ -112,6 +119,11 @@ Variance Bounds Test
 		order target_date horizon // Reorder vars so that 'target_date' and 'horizon' appear first in the dataset.
 		
 		
+		* Sort by target_date and horizon
+		
+		sort target_date horizon
+		
+		
 		* Generate time-trend var
 		
 		** Get max value from horizon
@@ -119,16 +131,6 @@ Variance Bounds Test
 		
 		** Gen new var as the difference between max_horizon and horizon
 		//gen time_trend = max_horizon - horizon // This is a kind of trend var (H-h)
-		
-		
-		* Define the panel data structure
-		
-		xtset target_date horizon
-
-		
-		* Set global sectors
-		
-		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
 		
 		
 		* Generate dependent variables for regressions
@@ -142,19 +144,92 @@ Variance Bounds Test
 		}
 
 		
-	save temp_cum_panel_cleaned.dta, replace
+	save e_panel_cleaned.dta, replace
 	
 	
 		
 	/*----------------------
+	On-the-fly data cleaning
+	(z)
+	-----------------------*/
+
+	
+	use z_panel.dta, clear
+
+	
+		* Sort by date and horizon
+		
+		sort vintages_date horizon // Key step to set both the ID and time vars for panel data.
+
+		
+		* At a glance (inspect data)
+
+		d // Check entire dataset vars to understand its structure.
+		sum // Summarize stats for all vars in the dataset (mean, standard deviation, etc.).
+		count // Count the total number of observations, expected to be 6,696.
+
+		
+		* Fixing date format
+		
+		gen numeric_date = dofc(vintages_date) // To a Stata date in days.
+		format numeric_date %td // To standard Stata date (e.g., day-month-year).
+
+		gen target_date = mofd(numeric_date) // To a monthly date format.
+		format target_date %tm // To standard Stata month (e.g., Jan 2023).
+
+		drop vintages_date numeric_date // Drop the original vars since they are no longer needed.
+
+		order target_date horizon // Reorder vars so that 'target_date' and 'horizon' appear first in the dataset.
+		
+		
+		* Sort by target_date and horizon
+		
+		sort target_date horizon
+		
+		
+		* Generate time-trend var
+		
+		** Get max value from horizon
+		//egen max_horizon = max(horizon)
+		
+		** Gen new var as the difference between max_horizon and horizon
+		//gen time_trend = max_horizon - horizon // This is a kind of trend var (H-h)
+		
+		
+		* Generate dependent variables for regressions
+		
+		foreach sector of global sectors {
+			gen log_abs_z_`sector' = abs(z_`sector') // ln(abs(e_`sector'))
+		}
+		
+		foreach sector of global sectors {
+			gen log_sq_z_`sector' = (z_`sector')^2 // ln((e_`sector')^2)
+		}
+
+		
+	save z_panel_cleaned.dta, replace
+	
+	
+	
+	/*----------------------
 	Regression for the abs value
-	of the nowcast error (1/2)
+	of the e (1/2)
 	________________________
 	Paper version
 	-----------------------*/
 	
 	
-	use temp_cum_panel_cleaned.dta, clear
+	use e_panel_cleaned.dta, clear
+		
+		
+		* Define the panel data structure
+		
+		xtset target_date horizon
+
+		
+		* Set global sectors
+		
+		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
 		
 		
 		* Clean up any previous estimates
@@ -164,7 +239,7 @@ Variance Bounds Test
 		
 		* Create a regression program to process each sector
 		
-		program define reg_abs_1
+		program define e_reg_abs_1
 			args sector model_type
 			
 			local dep_var log_abs_e_`sector' // Dependent var
@@ -230,23 +305,23 @@ Variance Bounds Test
 			
 			* FE (cluster by events)
 			
-			reg_abs_1 `sector' fe
+			e_reg_abs_1 `sector' fe
 			
 			* FE (Driscoll-Kraay)
 			
-			reg_abs_1 `sector' xtscc_fe
+			e_reg_abs_1 `sector' xtscc_fe
 			
 			* RE (cluster by events)
 			
-			reg_abs_1 `sector' re
+			e_reg_abs_1 `sector' re
 
 			* RE (Driscoll-Kraay)
 			
-			reg_abs_1 `sector' xtscc_re
+			e_reg_abs_1 `sector' xtscc_re
 			
 			* Report results using esttab
 			
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "m_abs_error.tex", append ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "e_abs_m.tex", append ///
 				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 				order(_cons) longtable ///
 				varlabels(_cons "Intercepto" horizon "h") ///
@@ -261,7 +336,7 @@ Variance Bounds Test
 	
 	/*----------------------
 	Regression for the abs value
-	of the nowcast error (1/2)
+	of the e (1/2)
 	________________________
 	Presentation version
 	----------------------*/
@@ -273,7 +348,7 @@ Variance Bounds Test
 
 		* Create a regression program to process each sector
 		
-		program define reg_abs_2
+		program define e_reg_abs_2
 			args sector model_type
 			
 			local dep_var log_abs_e_`sector' // Dependent var
@@ -339,23 +414,23 @@ Variance Bounds Test
 
 			* FE (cluster by events)
 			
-			reg_abs_2 `sector' fe
+			e_reg_abs_2 `sector' fe
 			
 			* FE (Driscoll-Kraay)
 			
-			reg_abs_2 `sector' xtscc_fe
+			e_reg_abs_2 `sector' xtscc_fe
 			
 			* RE (cluster by events)
 			
-			reg_abs_2 `sector' re
+			e_reg_abs_2 `sector' re
 
 			* RE (Driscoll-Kraay)
 			
-			reg_abs_2 `sector' xtscc_re
+			e_reg_abs_2 `sector' xtscc_re
 			
 			* Report results using esttab
 			
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "m_abs_error_`sector'.tex", ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "e_abs_`sector'_m.tex", ///
 			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 			order(_cons) ///
 			varlabels(_cons "Intercepto" horizon "h") ///
@@ -370,13 +445,23 @@ Variance Bounds Test
 	
 	/*----------------------
 	Regression for the sq
-	of the nowcast error (2/2)
+	of the e (2/2)
 	________________________
 	Paper version
 	-----------------------*/
 	
 	
-	use temp_cum_panel_cleaned.dta, clear
+	use e_panel_cleaned.dta, clear
+		
+		
+		* Define the panel data structure
+		
+		xtset target_date horizon
+
+		
+		* Set global sectors
+		
+		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
 		
 		
 		* Clean up any previous estimates
@@ -386,7 +471,7 @@ Variance Bounds Test
 		
 		* Create a regression program to process each sector
 		
-		program define reg_sq_1
+		program define e_reg_sq_1
 			args sector model_type
 			
 			local dep_var log_sq_e_`sector' // Dependent var
@@ -452,23 +537,23 @@ Variance Bounds Test
 			
 			* FE (cluster by events)
 			
-			reg_sq_1 `sector' fe
+			e_reg_sq_1 `sector' fe
 			
 			* FE (Driscoll-Kraay)
 			
-			reg_sq_1 `sector' xtscc_fe
+			e_reg_sq_1 `sector' xtscc_fe
 			
 			* RE (cluster by events)
 			
-			reg_sq_1 `sector' re
+			e_reg_sq_1 `sector' re
 
 			* RE (Driscoll-Kraay)
 			
-			reg_sq_1 `sector' xtscc_re
+			e_reg_sq_1 `sector' xtscc_re
 			
 			* Report results using esttab
 			
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "m_sq_error.tex", append ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "e_sq_m.tex", append ///
 				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 				order(_cons) longtable ///
 				varlabels(_cons "Intercepto" horizon "h") ///
@@ -483,7 +568,7 @@ Variance Bounds Test
 	
 	/*----------------------
 	Regression for the sq
-	of the nowcast error (2/2)
+	of the e (2/2)
 	________________________
 	Presentation version
 	----------------------*/
@@ -495,7 +580,7 @@ Variance Bounds Test
 
 		* Create a regression program to process each sector
 		
-		program define reg_sq_2
+		program define e_reg_sq_2
 			args sector model_type
 			
 			local dep_var log_sq_e_`sector' // Dependent var
@@ -561,23 +646,23 @@ Variance Bounds Test
 
 			* FE (cluster by events)
 			
-			reg_sq_2 `sector' fe
+			e_reg_sq_2 `sector' fe
 			
 			* FE (Driscoll-Kraay)
 			
-			reg_sq_2 `sector' xtscc_fe
+			e_reg_sq_2 `sector' xtscc_fe
 			
 			* RE (cluster by events)
 			
-			reg_sq_2 `sector' re
+			e_reg_sq_2 `sector' re
 
 			* RE (Driscoll-Kraay)
 			
-			reg_sq_2 `sector' xtscc_re
+			e_reg_sq_2 `sector' xtscc_re
 			
 			* Report results using esttab
 			
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "m_sq_error_`sector'.tex", ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "e_sq_`sector'_m.tex", ///
 			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 			order(_cons) ///
 			varlabels(_cons "Intercepto" horizon "h") ///
@@ -591,26 +676,494 @@ Variance Bounds Test
 		
 	
 	/*----------------------
+	Regression for the abs value
+	of the z (1/2)
+	________________________
+	Paper version
+	-----------------------*/
+	
+	
+	use z_panel_cleaned.dta, clear
+		
+		
+		* Define the panel data structure
+		
+		xtset target_date horizon
+
+		
+		* Set global sectors
+		
+		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
+		
+		
+		* Clean up any previous estimates
+		
+		estimates clear	
+		
+		
+		* Create a regression program to process each sector
+		
+		program define z_reg_abs_1
+			args sector model_type
+			
+			local dep_var log_abs_z_`sector' // Dependent var
+			local indep_vars horizon // Independent var
+			
+			* Execute model according to type (fe, re, xtscc_fe, xtscc_re)
+			
+			if "`model_type'" == "fe" { // Fixed-effects regression (within): standard errors adjusted by 28 clusters
+				xtreg `dep_var' `indep_vars', fe vce(cluster target_date)
+			}
+			else if "`model_type'" == "re" { // Fixed-effects regression: Driscoll-Kraay standard errors
+				xtreg `dep_var' `indep_vars', re vce(cluster target_date)
+			}
+			else if "`model_type'" == "xtscc_fe" { // Random-effects regression (GLS): standard errors adjusted for 28 clusters
+				xtscc `dep_var' `indep_vars', fe
+			}
+			else if "`model_type'" == "xtscc_re" { // Random-effects regression (GLS): Driscoll-Kraay standard errors
+				xtscc `dep_var' `indep_vars', re
+			}
+			
+			* Save the F-stat and p-value values
+			
+			//scalar F_value = r(F)
+			//scalar p_value = r(p)
+			//estadd scalar F_`sector' F_value
+			//estadd scalar p_`sector' p_value
+			
+			* Obtain panel dimensions with xtsum
+			
+			xtsum `dep_var'
+			scalar obs_between = r(n)     // Number of groups (between)
+			scalar obs_within = r(Tbar)   // Average number of periods per group (within)
+			scalar obs_total = r(N)       // Number of obs
+			
+			* Add the values of observations to the results
+			
+			estadd scalar n_`sector' obs_between
+			estadd scalar h_`sector' obs_within
+			estadd scalar N_`sector' obs_total
+			
+			* Save model results
+			
+			estimates store `model_type'_`sector'
+		end
+
+		
+		* Loop to run regressions for each sector
+		
+		foreach sector of global sectors {
+			
+			* Assign full sector name
+			
+			if "`sector'" == "gdp" local sector_name "PBI"
+			else if "`sector'" == "agriculture" local sector_name "Agropecuario"
+			else if "`sector'" == "fishing" local sector_name "Pesca"
+			else if "`sector'" == "mining" local sector_name "Minería e Hidrocarburos"
+			else if "`sector'" == "manufacturing" local sector_name "Manufactura"
+			else if "`sector'" == "electricity" local sector_name "Electricidad y Agua"
+			else if "`sector'" == "construction" local sector_name "Construcción"
+			else if "`sector'" == "commerce" local sector_name "Comercio"
+			else if "`sector'" == "services" local sector_name "Otros Servicios"
+			else local sector_name "`sector'"  // By default, use the original name if no mapping is found.
+			
+			* FE (cluster by events)
+			
+			z_reg_abs_1 `sector' fe
+			
+			* FE (Driscoll-Kraay)
+			
+			z_reg_abs_1 `sector' xtscc_fe
+			
+			* RE (cluster by events)
+			
+			z_reg_abs_1 `sector' re
+
+			* RE (Driscoll-Kraay)
+			
+			z_reg_abs_1 `sector' xtscc_re
+			
+			* Report results using esttab
+			
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "z_abs_m.tex", append ///
+				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
+				order(_cons) longtable ///
+				varlabels(_cons "Intercepto" horizon "h") ///
+				noobs ///
+				star(* 0.1 ** 0.05 *** 0.01) ///
+				booktabs style(tex) nodepvars nomtitle ///
+				posthead("\hline\multicolumn{5}{c}{\textit{`sector_name'}} \\ \hline") ///
+				nonotes
+		}
+	
+	
+	
+	/*----------------------
+	Regression for the abs value
+	of the z (1/2)
+	________________________
+	Presentation version
+	----------------------*/
+		
+		
+		* Clean up any previous estimates
+		
+		estimates clear	
+
+		* Create a regression program to process each sector
+		
+		program define z_reg_abs_2
+			args sector model_type
+			
+			local dep_var log_abs_z_`sector' // Dependent var
+			local indep_vars horizon // Independent var
+			
+			* Execute model according to type (fe, re, xtscc_fe xtscc_re)
+			
+			if "`model_type'" == "fe" { // Fixed-effects regression (within): standard errors adjusted by 28 clusters
+				xtreg `dep_var' `indep_vars', fe vce(cluster target_date)
+			}
+			else if "`model_type'" == "re" { // Fixed-effects regression: Driscoll-Kraay standard errors
+				xtreg `dep_var' `indep_vars', re vce(cluster target_date)
+			}
+			else if "`model_type'" == "xtscc_fe" { // Random-effects regression (GLS): standard errors adjusted for 28 clusters
+				xtscc `dep_var' `indep_vars', fe
+			}
+			else if "`model_type'" == "xtscc_re" { // Random-effects regression (GLS): Driscoll-Kraay standard errors
+				xtscc `dep_var' `indep_vars', re
+			}
+			
+			* Save the F-stat and p-value values
+			
+			//scalar F_value = r(F)
+			//scalar p_value = r(p)
+			//estadd scalar F_`sector' F_value
+			//estadd scalar p_`sector' p_value
+			
+			* Obtain panel dimensions with xtsum
+			
+			xtsum `dep_var'
+			scalar obs_between = r(n)     // Number of groups (between)
+			scalar obs_within = r(Tbar)   // Average number of periods per group (within)
+			scalar obs_total = r(N)       // Number of obs
+			
+			* Add the values of observations to the results
+			
+			estadd scalar n_`sector' obs_between
+			estadd scalar h_`sector' obs_within
+			estadd scalar N_`sector' obs_total
+			
+			* Save model results
+			
+			estimates store `model_type'_`sector'
+		end
+
+
+		* Loop to run regressions for each sector
+		
+		foreach sector of global sectors {
+	
+			* Assign full sector name
+			
+			if "`sector'" == "gdp" local sector_name "PBI"
+			else if "`sector'" == "agriculture" local sector_name "Agropecuario"
+			else if "`sector'" == "fishing" local sector_name "Pesca"
+			else if "`sector'" == "mining" local sector_name "Minería e Hidrocarburos"
+			else if "`sector'" == "manufacturing" local sector_name "Manufactura"
+			else if "`sector'" == "electricity" local sector_name "Electricidad y Agua"
+			else if "`sector'" == "construction" local sector_name "Construcción"
+			else if "`sector'" == "commerce" local sector_name "Comercio"
+			else if "`sector'" == "services" local sector_name "Otros Servicios"
+			else local sector_name "`sector'"  // By default, use the original name if no mapping is found.
+
+			* FE (cluster by events)
+			
+			z_reg_abs_2 `sector' fe
+			
+			* FE (Driscoll-Kraay)
+			
+			z_reg_abs_2 `sector' xtscc_fe
+			
+			* RE (cluster by events)
+			
+			z_reg_abs_2 `sector' re
+
+			* RE (Driscoll-Kraay)
+			
+			z_reg_abs_2 `sector' xtscc_re
+			
+			* Report results using esttab
+			
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "z_abs_`sector'_m.tex", ///
+			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
+			order(_cons) ///
+			varlabels(_cons "Intercepto" horizon "h") ///
+			noobs ///
+			star(* 0.1 ** 0.05 *** 0.01) ///
+			booktabs style(tex) nodepvars nomtitle ///
+			posthead("\hline\multicolumn{5}{c}{\textit{`sector_name'}} \\ \hline") ///
+			nonotes
+		}
+			
+	
+	
+	/*----------------------
+	Regression for the sq
+	of the z (2/2)
+	________________________
+	Paper version
+	-----------------------*/
+	
+	
+	use z_panel_cleaned.dta, clear
+		
+		
+		* Define the panel data structure
+		
+		xtset target_date horizon
+
+		
+		* Set global sectors
+		
+		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
+		
+		
+		* Clean up any previous estimates
+		
+		estimates clear	
+		
+		
+		* Create a regression program to process each sector
+		
+		program define z_reg_sq_1
+			args sector model_type
+			
+			local dep_var log_sq_z_`sector' // Dependent var
+			local indep_vars horizon // Independent var
+			
+			* Execute model according to type (fe, re, xtscc_fe xtscc_re)
+			
+			if "`model_type'" == "fe" { // Fixed-effects regression (within): standard errors adjusted by 28 clusters
+				xtreg `dep_var' `indep_vars', fe vce(cluster target_date)
+			}
+			else if "`model_type'" == "re" { // Fixed-effects regression: Driscoll-Kraay standard errors
+				xtreg `dep_var' `indep_vars', re vce(cluster target_date)
+			}
+			else if "`model_type'" == "xtscc_fe" { // Random-effects regression (GLS): standard errors adjusted for 28 clusters
+				xtscc `dep_var' `indep_vars', fe
+			}
+			else if "`model_type'" == "xtscc_re" { // Random-effects regression (GLS): Driscoll-Kraay standard errors
+				xtscc `dep_var' `indep_vars', re
+			}
+			
+			* Save the F-stat and p-value values
+			
+			//scalar F_value = r(F)
+			//scalar p_value = r(p)
+			//estadd scalar F_`sector' F_value
+			//estadd scalar p_`sector' p_value
+			
+			* Obtain panel dimensions with xtsum
+			
+			xtsum `dep_var'
+			scalar obs_between = r(n)     // Number of groups (between)
+			scalar obs_within = r(Tbar)   // Average number of periods per group (within)
+			scalar obs_total = r(N)       // Number of obs
+			
+			* Add the values of observations to the results
+			
+			estadd scalar n_`sector' obs_between
+			estadd scalar h_`sector' obs_within
+			estadd scalar N_`sector' obs_total
+			
+			* Save model results
+			
+			estimates store `model_type'_`sector'
+		end
+
+		
+		* Loop to run regressions for each sector
+		
+		foreach sector of global sectors {
+			
+			* Assign full sector name
+			
+			if "`sector'" == "gdp" local sector_name "PBI"
+			else if "`sector'" == "agriculture" local sector_name "Agropecuario"
+			else if "`sector'" == "fishing" local sector_name "Pesca"
+			else if "`sector'" == "mining" local sector_name "Minería e Hidrocarburos"
+			else if "`sector'" == "manufacturing" local sector_name "Manufactura"
+			else if "`sector'" == "electricity" local sector_name "Electricidad y Agua"
+			else if "`sector'" == "construction" local sector_name "Construcción"
+			else if "`sector'" == "commerce" local sector_name "Comercio"
+			else if "`sector'" == "services" local sector_name "Otros Servicios"
+			else local sector_name "`sector'"  // By default, use the original name if no mapping is found.
+			
+			* FE (cluster by events)
+			
+			z_reg_sq_1 `sector' fe
+			
+			* FE (Driscoll-Kraay)
+			
+			z_reg_sq_1 `sector' xtscc_fe
+			
+			* RE (cluster by events)
+			
+			z_reg_sq_1 `sector' re
+
+			* RE (Driscoll-Kraay)
+			
+			z_reg_sq_1 `sector' xtscc_re
+			
+			* Report results using esttab
+			
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "z_sq_m.tex", append ///
+				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
+				order(_cons) longtable ///
+				varlabels(_cons "Intercepto" horizon "h") ///
+				noobs ///
+				star(* 0.1 ** 0.05 *** 0.01) ///
+				booktabs style(tex) nodepvars nomtitle ///
+				posthead("\hline\multicolumn{5}{c}{\textit{`sector_name'}} \\ \hline") ///
+				nonotes
+		}
+	
+	
+	
+	/*----------------------
+	Regression for the sq
+	of the z (2/2)
+	________________________
+	Presentation version
+	----------------------*/
+		
+		
+		* Clean up any previous estimates
+		
+		estimates clear	
+
+		* Create a regression program to process each sector
+		
+		program define z_reg_sq_2
+			args sector model_type
+			
+			local dep_var log_sq_z_`sector' // Dependent var
+			local indep_vars horizon // Independent var
+			
+			* Execute model according to type (fe, re, xtscc_fe xtscc_re)
+			
+			if "`model_type'" == "fe" { // Fixed-effects regression (within): standard errors adjusted by 28 clusters
+				xtreg `dep_var' `indep_vars', fe vce(cluster target_date)
+			}
+			else if "`model_type'" == "re" { // Fixed-effects regression: Driscoll-Kraay standard errors
+				xtreg `dep_var' `indep_vars', re vce(cluster target_date)
+			}
+			else if "`model_type'" == "xtscc_fe" { // Random-effects regression (GLS): standard errors adjusted for 28 clusters
+				xtscc `dep_var' `indep_vars', fe
+			}
+			else if "`model_type'" == "xtscc_re" { // Random-effects regression (GLS): Driscoll-Kraay standard errors
+				xtscc `dep_var' `indep_vars', re
+			}
+			
+			* Save the F-stat and p-value values
+			
+			//scalar F_value = r(F)
+			//scalar p_value = r(p)
+			//estadd scalar F_`sector' F_value
+			//estadd scalar p_`sector' p_value
+			
+			* Obtain panel dimensions with xtsum
+			
+			xtsum `dep_var'
+			scalar obs_between = r(n)     // Number of groups (between)
+			scalar obs_within = r(Tbar)   // Average number of periods per group (within)
+			scalar obs_total = r(N)       // Number of obs
+			
+			* Add the values of observations to the results
+			
+			estadd scalar n_`sector' obs_between
+			estadd scalar h_`sector' obs_within
+			estadd scalar N_`sector' obs_total
+			
+			* Save model results
+			
+			estimates store `model_type'_`sector'
+		end
+
+
+		* Loop to run regressions for each sector
+		
+		foreach sector of global sectors {
+	
+			* Assign full sector name
+			
+			if "`sector'" == "gdp" local sector_name "PBI"
+			else if "`sector'" == "agriculture" local sector_name "Agropecuario"
+			else if "`sector'" == "fishing" local sector_name "Pesca"
+			else if "`sector'" == "mining" local sector_name "Minería e Hidrocarburos"
+			else if "`sector'" == "manufacturing" local sector_name "Manufactura"
+			else if "`sector'" == "electricity" local sector_name "Electricidad y Agua"
+			else if "`sector'" == "construction" local sector_name "Construcción"
+			else if "`sector'" == "commerce" local sector_name "Comercio"
+			else if "`sector'" == "services" local sector_name "Otros Servicios"
+			else local sector_name "`sector'"  // By default, use the original name if no mapping is found.
+
+			* FE (cluster by events)
+			
+			z_reg_sq_2 `sector' fe
+			
+			* FE (Driscoll-Kraay)
+			
+			z_reg_sq_2 `sector' xtscc_fe
+			
+			* RE (cluster by events)
+			
+			z_reg_sq_2 `sector' re
+
+			* RE (Driscoll-Kraay)
+			
+			z_reg_sq_2 `sector' xtscc_re
+			
+			* Report results using esttab
+			
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "z_sq_`sector'_m.tex", ///
+			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
+			order(_cons) ///
+			varlabels(_cons "Intercepto" horizon "h") ///
+			noobs ///
+			star(* 0.1 ** 0.05 *** 0.01) ///
+			booktabs style(tex) nodepvars nomtitle ///
+			posthead("\hline\multicolumn{5}{c}{\textit{`sector_name'}} \\ \hline") ///
+			nonotes
+		}
+		
+		
+		
+	/*----------------------
 	Drop aux data and tables
 	-----------------------*/	
 
+	
 	* List all .dta, .txt and .tex files in the current directory and store in a local macro
 	
 	local dta_files : dir . files "*.dta"
 	//local txt_files : dir . files "*.txt"
 	//local tex_files : dir . files "*.tex"
 
+	
 	* Iterate over each .dta file and delete it
 	
 	foreach file of local dta_files {
 		erase "`file'"
 	}	
 	
+	
 	* Iterate over each .txt file and delete it
 	
 	//foreach file of local txt_files {
 	//	erase "`file'"
 	//}	
+	
 	
 	* Iterate over each .tex file and delete it
 	
