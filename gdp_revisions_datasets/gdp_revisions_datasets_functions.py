@@ -1582,4 +1582,4 @@ def z_dummies_to_panel(df):
             # Merge the current sector with the general panel
             df_panel = pd.merge(df_panel, sector_melted, on=['vintages_date', 'horizon'], how='outer')
 
-    return df_panel
+    return df_panel 
