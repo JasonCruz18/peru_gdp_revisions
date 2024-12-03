@@ -170,7 +170,7 @@ Variance Bounds Test
 			local dep_var log_abs_e_`sector' // Dependent var
 			local indep_vars horizon // Independent var
 			
-			* Execute model according to type (fe, re, xtscc_fe xtscc_re)
+			* Execute model according to type (fe, re, xtscc_fe, xtscc_re)
 			
 			if "`model_type'" == "fe" { // Fixed-effects regression (within): standard errors adjusted by 28 clusters
 				xtreg `dep_var' `indep_vars', fe vce(cluster target_date)

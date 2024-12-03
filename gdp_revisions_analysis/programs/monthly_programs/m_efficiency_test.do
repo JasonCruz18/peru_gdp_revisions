@@ -70,37 +70,31 @@ Efficiency Tests
 	Import ODBC dataset and
 	save temp
 	-----------------------*/
-		
-		
-	odbc load, exec("select * from sectorial_gdp_monthly_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
-		
-	
-	save merged_temp_panel_data, replace
 	
 	
-	odbc load, exec("select * from sectorial_gdp_monthly_int_revisions_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+	odbc load, exec("select * from r_sectorial_gdp_monthly_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
-	save int_temp_panel_data, replace
+	save r_panel, replace
 	
 	
-	odbc load, exec("select * from sectorial_gdp_monthly_int_revisions_panel_dummies") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+	odbc load, exec("select * from r_sectorial_gdp_monthly_seasonal_dummies") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
-	save temp_dummies_data, replace
+	save r_seasonal_dummies_panel, replace
 
 	
-	
+
 	/*----------------------
-	On-the-fly data
-	cleaning (1/3)
+	On-the-fly data cleaning
+	(r)
 	-----------------------*/
 
 	
-	use merged_temp_panel_data, clear
+	use r_panel, clear
 
 	
-		* Order and sort
+		* Sort by vintages_date and horizon
 		
 		sort vintages_date horizon // Key step to set both the ID and time vars for panel data.
 
@@ -122,79 +116,29 @@ Efficiency Tests
 
 		drop vintages_date numeric_date // Drop the original vars since they are no longer needed.
 
+		
 		order target_date horizon // Reorder vars so that 'target_date' and 'horizon' appear first in the dataset.
 
-		
-		/* Definir la estructura de datos de panel */
-		xtset target_date horizon
 
+		* Sort by target_date and horizon
 		
-		* global
-		
-		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
+		sort target_date horizon
 	
 	
-	save merged_temp_panel_data_cleaned, replace
-	
-	
-
-	/*----------------------
-	On-the-fly data
-	cleaning (2/3)
-	-----------------------*/
-
-	
-	use int_temp_panel_data, clear
-
-	
-		* Order and sort
-		
-		sort vintages_date horizon // Key step to set both the ID and time vars for panel data.
-
-		
-		* At a glance (inspect data)
-
-		d // Check entire dataset vars to understand its structure.
-		sum // Summarize stats for all vars in the dataset (mean, standard deviation, etc.).
-		count // Count the total number of observations, expected to be 6,696.
-
-		
-		* Fixing date format
-		
-		gen numeric_date = dofc(vintages_date) // To a Stata date in days.
-		format numeric_date %td // To standard Stata date (e.g., day-month-year).
-
-		gen target_date = mofd(numeric_date) // To a monthly date format.
-		format target_date %tm // To standard Stata month (e.g., Jan 2023).
-
-		drop vintages_date numeric_date // Drop the original vars since they are no longer needed.
-
-		order target_date horizon // Reorder vars so that 'target_date' and 'horizon' appear first in the dataset.
-
-		
-		/* Definir la estructura de datos de panel */
-		xtset target_date horizon
-
-		
-		* global
-		
-		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
-	
-	
-	save int_temp_panel_data_cleaned, replace
+	save r_panel_cleaned, replace
 	
 	
 	
 	/*----------------------
-	On-the-fly data
-	cleaning (3/3)
+	On-the-fly data cleaning
+	(r-seasonal-dummies)
 	-----------------------*/
 
 	
-	use temp_dummies_data, clear
+	use r_seasonal_dummies_panel, clear
 
 	
-		* Order and sort
+		* Sort by vintages_date and horizon
 		
 		sort vintages_date horizon // Key step to set both the ID and time vars for panel data.
 
@@ -210,247 +154,181 @@ Efficiency Tests
 		drop vintages_date numeric_date // Drop the original vars since they are no longer needed.
 
 		order target_date horizon // Reorder vars so that 'target_date' and 'horizon' appear first in the dataset.
-
-	
-	save temp_dummies_data_cleaned, replace
-	
-	
-	
-	/*----------------------
-	 Regression
-	 (nowcast error)
-	 ----------------------*/
-	
-	
-	use merged_temp_panel_data_cleaned, clear
-	preserve // Save the current status
-	
-	
-		/* Limpiar cualquier estimación previa */
-		estimates clear	
 		
-		/* Programa para procesar cada sector */
-		program define process_sector_e
-			args sector model_type
-			local dep_var e_`sector'
-			local indep_vars L1.r_`sector' L2.r_`sector'
-			
-			/* Ejecutar el modelo según el tipo (fe, re, xtscc) */
-			if "`model_type'" == "fe" {
-				xtreg `dep_var' `indep_vars', fe vce(cluster target_date)
-			}
-			else if "`model_type'" == "re" {
-				xtreg `dep_var' `indep_vars', re vce(cluster target_date)
-			}
-			else if "`model_type'" == "xtscc_fe" {
-				xtscc `dep_var' `indep_vars', fe
-			}
-			else if "`model_type'" == "xtscc_re" {
-				xtscc `dep_var' `indep_vars', re
-			}
-			
-			/* Guardar los valores de F y p */
-			*scalar F_value = r(F)
-			*scalar p_value = r(p)
-			*estadd scalar F_`sector' F_value
-			*estadd scalar p_`sector' p_value
-			
-			/* Obtener las dimensiones del panel con xtsum */
-			xtsum `dep_var'
-			scalar obs_between = r(n)     // Número de grupos (between)
-			scalar obs_within = r(Tbar)   // Número de periodos promedio por grupo (within)
-			scalar obs_total = r(N)       // Número total de observaciones (overall)
-			
-			/* Agregar los valores de observaciones a los resultados */
-			estadd scalar n_`sector' obs_between
-			estadd scalar h_`sector' obs_within
-			estadd scalar N_`sector' obs_total
-			
-			/* Guardar los resultados del modelo */
-			estimates store `model_type'_`sector'
-		end
+		
+		* Sort by target_date and horizon
+		
+		sort target_date horizon
 
-		/* Loop para correr las regresiones para cada sector */
-		foreach sector of global sectors {
-			
-			/* Correr regresión de efectos fijos */
-			process_sector_e `sector' fe
-			
-			/* Test sobre las restricciones */
-			test (L1.r_`sector' = 0) (L2.r_`sector' = 0)
-			
-			/* Guardar los valores de F y p */
-			scalar chi_value = 2*r(F) // Don't report chi2
-			scalar p_value = r(p)
-			estadd scalar chi_`sector' chi_value
-			estadd scalar p_`sector' p_value
-			
-			/* Correr regresión de efectos fijos con Driscoll-Kraay */
-			process_sector_e `sector' xtscc_fe
-
-			/* Test sobre las restricciones */
-			test (L1.r_`sector' = 0) (L2.r_`sector' = 0)
-			
-			/* Guardar los valores de F y p */
-			scalar chi_value = 2*r(F) // Don't report chi2
-			scalar p_value = r(p)
-			estadd scalar chi_`sector' chi_value
-			estadd scalar p_`sector' p_value
-
-			/* Correr regresión de efectos aleatorios */
-			process_sector_e `sector' re
-			
-			/* Test sobre las restricciones */
-			test (L1.r_`sector' = 0) (L2.r_`sector' = 0)
-			
-			/* Guardar los valores de F y p */
-			scalar chi_value = r(chi2)
-			scalar p_value = r(p)
-			estadd scalar chi_`sector' chi_value
-			estadd scalar p_`sector' p_value
-
-			/* Correr regresión de efectos aleatorios con Driscoll-Kraay */
-			process_sector_e `sector' xtscc_re
-			
-			/* Test sobre las restricciones */
-			test (L1.r_`sector' = 0) (L2.r_`sector' = 0)
-			
-			/* Guardar los valores de F y p */
-			scalar chi_value = 2*r(F) // Alternatively e(chi2) 
-			scalar p_value = r(p)
-			estadd scalar chi_`sector' chi_value
-			estadd scalar p_`sector' p_value
-			
-			/* Reportar los resultados usando esttab */
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "forecast_errors_efficiency_test.tex", append ///
-				b(%9.3f) se(%9.3f) stats(chi_`sector' p_`sector' n_`sector' h_`sector' N_`sector', label("Chi2" "p" "n" "h" "N") fmt(%9.3f %9.3f %9.0f %9.0f %9.0f)) ///
-				order(_cons) longtable ///
-				varlabels(_cons "Intercepto" L.r_`sector' "r(-1)" L2.r_`sector' "r(-2)") ///
-				noobs ///
-				star(* 0.1 ** 0.05 *** 0.01) ///
-				tex
-		}
 	
-	
-	restore // Return to on-call status
+	save r_seasonal_dummies_panel_cleaned, replace
 
 	
 		
 	/*----------------------
-	Regression (revisions)
+	Regression (r)
 	-----------------------*/
 
-	* r_t(h) vs r_t(h-1) r_t(h-2)	
+	* r_t(h) = c + \beta_1 r_t(h-1) + \beta_2 r_t(h-2)	
 	*.........................................................................
 	
 	
-	use int_temp_panel_data_cleaned, clear
+	use r_panel_cleaned, clear
 	preserve // Save the current status
 	
 	
-		/* Limpiar cualquier estimación previa */
+		* Define the panel data structure
+		
+		xtset target_date horizon
+
+		
+		* Create macro for sectors
+		
+		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
+	
+	
+		* Clear any previous estimates
+		
 		estimates clear	
 		
-		/* Programa para procesar cada sector */
-		program define process_sector_r
+		
+		* Program to run each regression for each sector
+		
+		program define r_efficiency_sector
 			args sector model_type
-			local dep_var r_`sector'
-			local indep_vars L1.r_`sector' L2.r_`sector'
 			
-			/* Ejecutar el modelo según el tipo (fe, re, xtscc) */
-			if "`model_type'" == "fe" {
+			local dep_var r_`sector' // Dependent var
+			local indep_vars L1.r_`sector' L2.r_`sector' // Independent var
+			
+			* Run the model according to type (fe, re, xtscc_fe, xtscc_re)
+			
+			if "`model_type'" == "fe" { // Fixed-effects regression (within): standard errors adjusted by 28 clusters
 				xtreg `dep_var' `indep_vars', fe vce(cluster target_date)
 			}
-			else if "`model_type'" == "re" {
+			else if "`model_type'" == "re" { // Fixed-effects regression: Driscoll-Kraay standard errors
 				xtreg `dep_var' `indep_vars', re vce(cluster target_date)
 			}
-			else if "`model_type'" == "xtscc_fe" {
+			else if "`model_type'" == "xtscc_fe" { // Random-effects regression (GLS): standard errors adjusted for 28 clusters
 				xtscc `dep_var' `indep_vars', fe
 			}
-			else if "`model_type'" == "xtscc_re" {
+			else if "`model_type'" == "xtscc_re" { // Random-effects regression (GLS): Driscoll-Kraay standard errors
 				xtscc `dep_var' `indep_vars', re
 			}
 			
-			/* Guardar los valores de F y p */
+			* Store the values of F and p 
+			
 			*scalar F_value = r(F)
 			*scalar p_value = r(p)
 			*estadd scalar F_`sector' F_value
 			*estadd scalar p_`sector' p_value
 			
-			/* Obtener las dimensiones del panel con xtsum */
-			xtsum `dep_var'
-			scalar obs_between = r(n)     // Número de grupos (between)
-			scalar obs_within = r(Tbar)   // Número de periodos promedio por grupo (within)
-			scalar obs_total = r(N)       // Número total de observaciones (overall)
+			* Obtain panel dimensions with xtsum
 			
-			/* Agregar los valores de observaciones a los resultados */
+			xtsum `dep_var'
+			scalar obs_between = r(n)     // Number of groups (between)
+			scalar obs_within = r(Tbar)   // Average number of periods per group (within)
+			scalar obs_total = r(N)       // Number of obs
+			
+			* Add the values of observations to the results
+			
 			estadd scalar n_`sector' obs_between
 			estadd scalar h_`sector' obs_within
 			estadd scalar N_`sector' obs_total
 			
-			/* Guardar los resultados del modelo */
+			* Save model results
+			
 			estimates store `model_type'_`sector'
 		end
 
-		/* Loop para correr las regresiones para cada sector */
+		
+		* Loop to run regressions for each sector
+		
 		foreach sector of global sectors {
 			
-			/* Correr regresión de efectos fijos */
-			process_sector_r `sector' fe
+			* Assign full sector name
 			
-			/* Test sobre las restricciones */
+			if "`sector'" == "gdp" local sector_name "PBI"
+			else if "`sector'" == "agriculture" local sector_name "Agropecuario"
+			else if "`sector'" == "fishing" local sector_name "Pesca"
+			else if "`sector'" == "mining" local sector_name "Minería e Hidrocarburos"
+			else if "`sector'" == "manufacturing" local sector_name "Manufactura"
+			else if "`sector'" == "electricity" local sector_name "Electricidad y Agua"
+			else if "`sector'" == "construction" local sector_name "Construcción"
+			else if "`sector'" == "commerce" local sector_name "Comercio"
+			else if "`sector'" == "services" local sector_name "Otros Servicios"
+			else local sector_name "`sector'"  // By default, use the original name if no mapping is found.
+			
+			* FE (cluster by events)
+			
+			r_efficiency_sector `sector' fe
+			
+			* Test on restrictions
+			
 			test (L1.r_`sector' = 0) (L2.r_`sector' = 0)
 			
-			/* Guardar los valores de F y p */
+			* Store the values of F and p 
+			
 			scalar chi_value = 2*r(F) // Don't report chi2
 			scalar p_value = r(p)
 			estadd scalar chi_`sector' chi_value
 			estadd scalar p_`sector' p_value
 			
-			/* Correr regresión de efectos fijos con Driscoll-Kraay */
-			process_sector_r `sector' xtscc_fe
+			* FE (Driscoll-Kraay)
+			
+			r_efficiency_sector `sector' xtscc_fe
 
-			/* Test sobre las restricciones */
+			* Test on restrictions
+			
 			test (L1.r_`sector' = 0) (L2.r_`sector' = 0)
 			
-			/* Guardar los valores de F y p */
+			* Store the values of F and p 
+			
 			scalar chi_value = 2*r(F) // Don't report chi2
 			scalar p_value = r(p)
 			estadd scalar chi_`sector' chi_value
 			estadd scalar p_`sector' p_value
 
-			/* Correr regresión de efectos aleatorios */
-			process_sector_r `sector' re
+			* RE (cluster by events)
 			
-			/* Test sobre las restricciones */
+			r_efficiency_sector `sector' re
+			
+			* Test on restrictions
+			
 			test (L1.r_`sector' = 0) (L2.r_`sector' = 0)
 			
-			/* Guardar los valores de F y p */
+			* Store the values of F and p 
+			
 			scalar chi_value = r(chi2)
 			scalar p_value = r(p)
 			estadd scalar chi_`sector' chi_value
 			estadd scalar p_`sector' p_value
 
-			/* Correr regresión de efectos aleatorios con Driscoll-Kraay */
-			process_sector_r `sector' xtscc_re
+			* RE (Driscoll-Kraay)
 			
-			/* Test sobre las restricciones */
+			r_efficiency_sector `sector' xtscc_re
+			
+			* Test on restrictions
+			
 			test (L1.r_`sector' = 0) (L2.r_`sector' = 0)
 			
-			/* Guardar los valores de F y p */
+			* Store the values of F and p 
+			
 			scalar chi_value = 2*r(F) // Alternatively e(chi2) 
 			scalar p_value = r(p)
 			estadd scalar chi_`sector' chi_value
 			estadd scalar p_`sector' p_value
 			
-			/* Reportar los resultados usando esttab */
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "revisions_efficiency_test.tex", append ///
-				b(%9.3f) se(%9.3f) stats(chi_`sector' p_`sector' n_`sector' h_`sector' N_`sector', label("Chi2" "p" "n" "h" "N") fmt(%9.3f %9.3f %9.0f %9.0f %9.0f)) ///
+			* Report results using esttab
+			
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "r_efficiency_test_m.tex", append ///
+				b(%9.3f) se(%9.3f) stats(chi_`sector' p_`sector' n_`sector' h_`sector' N_`sector', label("Chi2" "p-value" "n" "$\bar{h}$" "N") fmt(%9.3f %9.3f %9.0f %9.0f %9.0f)) ///
 				order(_cons) longtable ///
 				varlabels(_cons "Intercepto" L.r_`sector' "r(-1)" L2.r_`sector' "r(-2)") ///
 				noobs ///
 				star(* 0.1 ** 0.05 *** 0.01) ///
-				tex
+				booktabs style(tex) nodepvars nomtitle ///
+				posthead("\hline\multicolumn{5}{c}{\textit{`sector_name'}} \\ \hline") ///
+				nonotes
 		}
 	
 	
@@ -459,136 +337,183 @@ Efficiency Tests
 	
 	
 	/*----------------------
-	Regression (benchmark revisions)
+	Regression for benchmark
+	(r)
 	-----------------------*/
 	
-	* r_t(h) vs r_t(h-1) r_t(h-2) r_t(h-1)xDummy r_t(h-2)xDummy	
+	* r_t(h) = c + \beta_1 r_t(h-1) + \beta_2 r_t(h-2) + \beta_3 r_t(h-1)xDummy + \beta_4 r_t(h-2)xDummy	
 	*.........................................................................
 	
 	
-	* Cargar el primer dataset
-	use int_temp_panel_data_cleaned, clear
+	use r_panel_cleaned, clear
 
 	
-		* Hacer el merge con el segundo dataset
-		merge 1:1 target_date horizon using temp_dummies_data_cleaned
+		* Merge with the second dataset
+		
+		merge 1:1 target_date horizon using r_seasonal_dummies_panel_cleaned
 
-		* Revisar el resultado del merge
+		
+		* Check the merge result
+		
 		tab _merge
+		
 
-		* Eliminar observaciones que no aparezcan en ambos datasets (opcional)
+		* Remove remarks that do not appear in both datasets (optional)
+		
 		keep if _merge == 3
+		
 
-		* Eliminar la variable _merge (opcional)
+		* Delete the _merge variable (optional)
+		
 		drop _merge
 			
-		/* Definir la estructura de datos de panel */
+			
+		* Define the panel data structure
+		
 		xtset target_date horizon
 
-		* global
+		
+		* Create macro for sectors
 		
 		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
 		
 	
-		/* Limpiar cualquier estimación previa */
+		* Clean up any previous estimates
+		
 		estimates clear	
 		
-		/* Programa para procesar cada sector */
+		
+		* Create a regression program to process each sector
+		
 		program define dummy_process_sector_r
 			args sector model_type
-			local dep_var r_`sector'
-			local indep_vars L1.r_`sector' L2.r_`sector' c.L1.r_`sector'#L1.dummy_`sector' c.L2.r_`sector'#L2.dummy_`sector'
 			
-			/* Ejecutar el modelo según el tipo (fe, re, xtscc) */
-			if "`model_type'" == "fe" {
+			local dep_var r_`sector' // Dependent var
+			local indep_vars L1.r_`sector' L2.r_`sector' c.L1.r_`sector'#L1.dummy_`sector' c.L2.r_`sector'#L2.dummy_`sector' // Independent var
+			
+			* Run model according to type (fe, re, xtscc_fe, xtscc_re)
+			
+			if "`model_type'" == "fe" { // Fixed-effects regression (within): standard errors adjusted by 28 clusters
 				xtreg `dep_var' `indep_vars', fe vce(cluster target_date)
 			}
-			else if "`model_type'" == "re" {
+			else if "`model_type'" == "re" { // Fixed-effects regression: Driscoll-Kraay standard errors
 				xtreg `dep_var' `indep_vars', re vce(cluster target_date)
 			}
-			else if "`model_type'" == "xtscc_fe" {
+			else if "`model_type'" == "xtscc_fe" { // Random-effects regression (GLS): standard errors adjusted for 28 clusters
 				xtscc `dep_var' `indep_vars', fe
 			}
-			else if "`model_type'" == "xtscc_re" {
+			else if "`model_type'" == "xtscc_re" { // Random-effects regression (GLS): Driscoll-Kraay standard errors
 				xtscc `dep_var' `indep_vars', re
 			}
 			
-			/* Obtener las dimensiones del panel con xtsum */
-			xtsum `dep_var'
-			scalar obs_between = r(n)     // Número de grupos (between)
-			scalar obs_within = r(Tbar)   // Número de periodos promedio por grupo (within)
-			scalar obs_total = r(N)       // Número total de observaciones (overall)
+			* Obtain panel dimensions with xtsum
 			
-			/* Agregar los valores de observaciones a los resultados */
+			xtsum `dep_var'
+			scalar obs_between = r(n)     // Number of groups (between)
+			scalar obs_within = r(Tbar)   // Average number of periods per group (within)
+			scalar obs_total = r(N)       // Number of obs
+			
+			* Add the values of observations to the results
+			
 			estadd scalar n_`sector' obs_between
 			estadd scalar h_`sector' obs_within
 			estadd scalar N_`sector' obs_total
 			
-			/* Guardar los resultados del modelo */
+			* Save model results
+			
 			estimates store `model_type'_`sector'
 		end
 
-		/* Loop para correr las regresiones para cada sector */
+		
+		* Loop to run regressions for each sector
+		
 		foreach sector of global sectors {
 			
-			/* Correr regresión de efectos fijos */
+			* Assign full sector name
+			
+			if "`sector'" == "gdp" local sector_name "PBI"
+			else if "`sector'" == "agriculture" local sector_name "Agropecuario"
+			else if "`sector'" == "fishing" local sector_name "Pesca"
+			else if "`sector'" == "mining" local sector_name "Minería e Hidrocarburos"
+			else if "`sector'" == "manufacturing" local sector_name "Manufactura"
+			else if "`sector'" == "electricity" local sector_name "Electricidad y Agua"
+			else if "`sector'" == "construction" local sector_name "Construcción"
+			else if "`sector'" == "commerce" local sector_name "Comercio"
+			else if "`sector'" == "services" local sector_name "Otros Servicios"
+			else local sector_name "`sector'"  // By default, use the original name if no mapping is found.
+			
+			* FE (cluster by events)
+			
 			dummy_process_sector_r `sector' fe
 			
-			/* Test sobre las restricciones */
+			* Test on restrictions
+			
 			test (L1.r_`sector' = 0) (L2.r_`sector' = 0)
 			
-			/* Guardar los valores de F y p */
+			* Store the values of F and p 
+			
 			scalar chi_value = 2*r(F) // Don't report chi2
 			scalar p_value = r(p)
 			estadd scalar chi_`sector' chi_value
 			estadd scalar p_`sector' p_value
 			
-			/* Correr regresión de efectos fijos con Driscoll-Kraay */
+			* FE (Driscoll-Kraay)
+			
 			dummy_process_sector_r `sector' xtscc_fe
 
-			/* Test sobre las restricciones */
+			* Test on restrictions
+			
 			test (L1.r_`sector' = 0) (L2.r_`sector' = 0)
 			
-			/* Guardar los valores de F y p */
+			* Store the values of F and p 
+			
 			scalar chi_value = 2*r(F) // Don't report chi2
 			scalar p_value = r(p)
 			estadd scalar chi_`sector' chi_value
 			estadd scalar p_`sector' p_value
 
-			/* Correr regresión de efectos aleatorios */
+			* RE (cluster by events)
+			
 			dummy_process_sector_r `sector' re
 			
-			/* Test sobre las restricciones */
+			* Test on restrictions
+			
 			test (L1.r_`sector' = 0) (L2.r_`sector' = 0)
 			
-			/* Guardar los valores de F y p */
+			* Store the values of F and p 
+			
 			scalar chi_value = r(chi2)
 			scalar p_value = r(p)
 			estadd scalar chi_`sector' chi_value
 			estadd scalar p_`sector' p_value
 
-			/* Correr regresión de efectos aleatorios con Driscoll-Kraay */
+			* RE (Driscoll-Kraay)
+			
 			dummy_process_sector_r `sector' xtscc_re
 			
-			/* Test sobre las restricciones */
+			* Test on restrictions
+			
 			test (L1.r_`sector' = 0) (L2.r_`sector' = 0)
 			
-			/* Guardar los valores de F y p */
+			* Store the values of F and p 
+			
 			scalar chi_value = 2*r(F) // Alternatively e(chi2) 
 			scalar p_value = r(p)
 			estadd scalar chi_`sector' chi_value
 			estadd scalar p_`sector' p_value
 			
-			/* Reportar los resultados usando esttab */
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "benchmark_revisions_efficiency_test.tex", append ///
-				b(%9.3f) se(%9.3f) stats(chi_`sector' p_`sector' n_`sector' h_`sector' N_`sector', label("Chi2" "p" "n" "h" "N") fmt(%9.3f %9.3f %9.0f %9.0f %9.0f)) ///
+			* Report results using esttab
+			
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "r_efficiency_benchmark_test.tex", append ///
+				b(%9.3f) se(%9.3f) stats(chi_`sector' p_`sector' n_`sector' h_`sector' N_`sector', label("Chi2" "p-value" "n" "$\bar{h}$" "N") fmt(%9.3f %9.3f %9.0f %9.0f %9.0f)) ///
 				order(_cons) ///
 				keep(_cons L.r_`sector' L2.r_`sector' 1L.dummy_`sector'#cL.r_`sector' 1L2.dummy_`sector'#cL2.r_`sector') ///
 				varlabels(_cons "Intercepto" L.r_`sector' "r(-1)" L2.r_`sector' "r(-2)" 1L.dummy_`sector'#cL.r_`sector' "r(-1)\#dummy(-1)" 1L2.dummy_`sector'#cL2.r_`sector' "r(-2)\#dummy(-2)") ///
 				noobs ///
 				star(* 0.1 ** 0.05 *** 0.01) ///
-				tex ///
-				longtable
+				booktabs style(tex) nodepvars nomtitle ///
+				posthead("\hline\multicolumn{5}{c}{\textit{`sector_name'}} \\ \hline") ///
+				nonotes
 		}
 	
 	
@@ -597,24 +522,32 @@ Efficiency Tests
 	Drop aux data and tables
 	-----------------------*/	
 
-		// List all .dta, .txt and .tex files in the current directory and store in a local macro
-		local dta_files : dir . files "*.dta"
-		local txt_files : dir . files "*.txt"
-		local tex_files : dir . files "*.tex"
+	
+	* List all .dta, .txt and .tex files in the current directory and store in a local macro
+	
+	local dta_files : dir . files "*.dta"
+	//local txt_files : dir . files "*.txt"
+	//local tex_files : dir . files "*.tex"
 
-		// Iterate over each .dta file and delete it
-		foreach file of local dta_files {
-			erase "`file'"
-		}	
-		
-		// Iterate over each .txt file and delete it
-		foreach file of local txt_files {
-			erase "`file'"
-		}	
-		
-		// Iterate over each .tex file and delete it
-		foreach file of local tex_files {
-			erase "`file'"
-		}	
+	
+	* Iterate over each .dta file and delete it
+	
+	foreach file of local dta_files {
+		erase "`file'"
+	}	
+	
+	
+	* Iterate over each .txt file and delete it
+	
+	//foreach file of local txt_files {
+	//	erase "`file'"
+	//}	
+	
+	
+	* Iterate over each .tex file and delete it
+	
+	//foreach file of local tex_files {
+	//	erase "`file'"
+	//}	
 	
 	
