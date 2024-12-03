@@ -53,14 +53,14 @@ Efficiency Tests
 	------------------------*/
 		
 	shell mkdir "output" 			// Creates folder to save outputs.
-	//shell mkdir "output/graphs" 	// Creates folder to save graphs.
+	//shell mkdir "output/charts" 	// Creates folder to save charts.
 	shell mkdir "output/tables" 	// Creates folder to save tables.
 	//shell mkdir "output/data" 		// Creates folder to save data.
 		
 	
 	* Set as global vars
 	
-	//global graphs_folder "output/graphs"	// Use to export graphs.
+	//global graphs_folder "output/charts"	// Use to export charts.
 	global tables_folder "output/tables"	// Use to export tables.
 	//global data_folder "output/data"		// Use to export .dta.
 	
