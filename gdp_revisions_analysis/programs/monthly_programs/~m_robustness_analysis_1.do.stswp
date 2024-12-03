@@ -791,7 +791,6 @@ Robustness Analysis
 	//	erase "`file'"
 	//}	
 	
-	
 	* Iterate over each .tex file and delete it
 	
 	//foreach file of local tex_files {
