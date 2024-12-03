@@ -78,7 +78,7 @@ Efficiency Tests
 	save r_panel, replace
 	
 	
-	odbc load, exec("select * from r_sectorial_gdp_monthly_seasonal_dummies") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+	odbc load, exec("select * from r_sectorial_gdp_monthly_seasonal_dummies_panel") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
 	save r_seasonal_dummies_panel, replace
@@ -385,11 +385,11 @@ Efficiency Tests
 		
 		* Create a regression program to process each sector
 		
-		program define dummy_process_sector_r
+		program define bench_r_efficiency_sector
 			args sector model_type
 			
 			local dep_var r_`sector' // Dependent var
-			local indep_vars L1.r_`sector' L2.r_`sector' c.L1.r_`sector'#L1.dummy_`sector' c.L2.r_`sector'#L2.dummy_`sector' // Independent var
+			local indep_vars L1.r_`sector' L2.r_`sector' c.L1.r_`sector'#L1.r_dummy_`sector' c.L2.r_`sector'#L2.r_dummy_`sector' // Independent var
 			
 			* Run model according to type (fe, re, xtscc_fe, xtscc_re)
 			
@@ -444,7 +444,7 @@ Efficiency Tests
 			
 			* FE (cluster by events)
 			
-			dummy_process_sector_r `sector' fe
+			bench_r_efficiency_sector `sector' fe
 			
 			* Test on restrictions
 			
@@ -459,7 +459,7 @@ Efficiency Tests
 			
 			* FE (Driscoll-Kraay)
 			
-			dummy_process_sector_r `sector' xtscc_fe
+			bench_r_efficiency_sector `sector' xtscc_fe
 
 			* Test on restrictions
 			
@@ -474,7 +474,7 @@ Efficiency Tests
 
 			* RE (cluster by events)
 			
-			dummy_process_sector_r `sector' re
+			bench_r_efficiency_sector `sector' re
 			
 			* Test on restrictions
 			
@@ -489,7 +489,7 @@ Efficiency Tests
 
 			* RE (Driscoll-Kraay)
 			
-			dummy_process_sector_r `sector' xtscc_re
+			bench_r_efficiency_sector `sector' xtscc_re
 			
 			* Test on restrictions
 			
@@ -506,9 +506,9 @@ Efficiency Tests
 			
 			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "r_efficiency_benchmark_test.tex", append ///
 				b(%9.3f) se(%9.3f) stats(chi_`sector' p_`sector' n_`sector' h_`sector' N_`sector', label("Chi2" "p-value" "n" "$\bar{h}$" "N") fmt(%9.3f %9.3f %9.0f %9.0f %9.0f)) ///
-				order(_cons) ///
-				keep(_cons L.r_`sector' L2.r_`sector' 1L.dummy_`sector'#cL.r_`sector' 1L2.dummy_`sector'#cL2.r_`sector') ///
-				varlabels(_cons "Intercepto" L.r_`sector' "r(-1)" L2.r_`sector' "r(-2)" 1L.dummy_`sector'#cL.r_`sector' "r(-1)\#dummy(-1)" 1L2.dummy_`sector'#cL2.r_`sector' "r(-2)\#dummy(-2)") ///
+				order(_cons) longtable ///
+				keep(_cons L.r_`sector' L2.r_`sector' 1L.r_dummy_`sector'#cL.r_`sector' 1L2.r_dummy_`sector'#cL2.r_`sector') ///
+				varlabels(_cons "Intercepto" L.r_`sector' "r(-1)" L2.r_`sector' "r(-2)" 1L.r_dummy_`sector'#cL.r_`sector' "r(-1)\#r-dummy(-1)" 1L2.r_dummy_`sector'#cL2.r_`sector' "r(-2)\#r-dummy(-2)") ///
 				noobs ///
 				star(* 0.1 ** 0.05 *** 0.01) ///
 				booktabs style(tex) nodepvars nomtitle ///
