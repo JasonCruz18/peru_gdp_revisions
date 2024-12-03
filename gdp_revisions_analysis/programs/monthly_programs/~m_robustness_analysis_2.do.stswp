@@ -876,11 +876,11 @@ Robustness Analysis
 		* Generate dependent variables for regressions
 		
 		foreach sector of global sectors {
-			gen log_abs_e_`sector' = abs(z_`sector') // ln(abs(z_`sector'))
+			gen log_abs_z_`sector' = abs(z_`sector') // ln(abs(z_`sector'))
 		}
 		
 		foreach sector of global sectors {
-			gen log_sq_e_`sector' = (z_`sector')^2 // ln((z_`sector')^2)
+			gen log_sq_z_`sector' = (z_`sector')^2 // ln((z_`sector')^2)
 		}
 		
 		
@@ -1146,11 +1146,11 @@ Robustness Analysis
 		* Generate dependent variables for regressions
 		
 		foreach sector of global sectors {
-			gen log_abs_e_`sector' = abs(z_`sector') // ln(abs(z_`sector'))
+			gen log_abs_z_`sector' = abs(z_`sector') // ln(abs(z_`sector'))
 		}
 		
 		foreach sector of global sectors {
-			gen log_sq_e_`sector' = (z_`sector')^2 // ln((z_`sector')^2)
+			gen log_sq_z_`sector' = (z_`sector')^2 // ln((z_`sector')^2)
 		}
 		
 		
