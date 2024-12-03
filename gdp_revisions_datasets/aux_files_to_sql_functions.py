@@ -45,11 +45,6 @@ def releases_datasets_merge(frequency, *dataframes):
 
     return merged_df
 
-
-
-
-
-
 # Function to sort merged sectors dataframes by vintages_date 
 #________________________________________________________________
 def sort_by_date(df):
@@ -69,7 +64,6 @@ def sort_by_date(df):
         raise TypeError("'vintages_date' column is not of type datetime64[ns].")
 
     return df.sort_values(by='vintages_date').reset_index(drop=True)
-
 
 # Function to convert releases to to data panel
 #________________________________________________________________
@@ -122,117 +116,112 @@ def releases_convert_to_panel(df):
 # r
 ################################################################################################
 
-
-# Function to calculate intermediate revisions (1/2)
+# Function to calculate revisions
 #________________________________________________________________
 def calculate_r(df):
-    # Encontrar el número más alto que sigue el patrón '_release_'
+    # Find the highest number following the pattern '_release_'
     release_numbers = []
     
     for col in df.columns:
         match = re.search(r'_release_(\d+)', col)
         if match:
-
             release_numbers.append(int(match.group(1)))
     
-    # Determinar el número máximo de releases
+    # Determine the maximum number of releases
     max_release = max(release_numbers) if release_numbers else 0
     
-    # Extraer los nombres de las sectors con los sufijos especificados
+    # Extract sector names with specified suffixes
     sector_names = [col.replace(f'_release_{i}', '').replace('_most_recent', '') 
                       for i in range(1, max_release + 1)
                       for col in df.columns if f'_release_{i}' in col or '_most_recent' in col]
     
-    # Eliminar duplicados de los nombres de sectors
+    # Remove duplicate sector names
     sector_names = list(set(sector_names))
     
-    # Crear una lista para contener las nuevas columnas
+    # Create a list to store the new columns
     new_columns = []
     
-    # Crear nuevas sectors de revisión intermedia para cada sector encontrada
+    # Create intermediate revision columns for each sector found
     for sector in sector_names:
-        for i in range(2, max_release + 1):  # Iterar desde release_2 hasta el release más alto +1
+        for i in range(2, max_release + 1):  # Iterate from release_2 to the highest release + 1
             previous_release_col = f"{sector}_release_{i-1}"
             current_release_col = f"{sector}_release_{i}"
             
             if previous_release_col in df.columns and current_release_col in df.columns:
                 new_column_name = f"r_{i}_{sector}"
-                # Realizar la resta de la revisión actual menos la revisión anterior
+                # Calculate the difference between the current and previous release
                 new_columns.append((new_column_name, df[current_release_col] - df[previous_release_col]))
         
-        # Para la última diferencia, entre most_recent y el release más reciente - 1
+        # For the last difference, between most_recent and the latest release
         most_recent_col = f"{sector}_most_recent"
         last_release_col = f"{sector}_release_{max_release}"
         
         if last_release_col in df.columns and most_recent_col in df.columns:
-            # Modificar el nombre de la columna
-            new_column_name = f"r_{max_release +1}_{sector}"
+            # Modify the column name
+            new_column_name = f"r_{max_release + 1}_{sector}"
             new_columns.append((new_column_name, df[most_recent_col] - df[last_release_col]))
     
-    # Concatenar todas las nuevas columnas al DataFrame
+    # Concatenate all new columns to the DataFrame
     if new_columns:
         df_new_columns = pd.DataFrame(dict(new_columns))
         df = pd.concat([df, df_new_columns], axis=1)
 
-    # Retornar el DataFrame modificado
+    # Return the modified DataFrame
     return df, max_release
 
-# Function to calculate intermediate revisions for dummies
+# Function to calculate revision dummies
 #________________________________________________________________
 def calculate_r_dummies(df):
-    # Encontrar el número más alto que sigue el patrón '_release_'
+    # Find the highest number following the pattern '_release_'
     release_numbers = []
     
     for col in df.columns:
         match = re.search(r'_release_(\d+)', col)
         if match:
-
             release_numbers.append(int(match.group(1)))
     
-    # Determinar el número máximo de releases
+    # Determine the maximum number of releases
     max_release = max(release_numbers) if release_numbers else 0
     
-    # Extraer los nombres de las sectors con los sufijos especificados
+    # Extract sector names with specified suffixes
     sector_names = [col.replace(f'_release_{i}', '').replace('_most_recent', '') 
                       for i in range(1, max_release + 1)
                       for col in df.columns if f'_release_{i}' in col or '_most_recent' in col]
     
-    # Eliminar duplicados de los nombres de sectors
+    # Remove duplicate sector names
     sector_names = list(set(sector_names))
     
-    # Crear una lista para contener las nuevas columnas
+    # Create a list to store the new columns
     new_columns = []
     
-    # Crear nuevas sectors de revisión intermedia para cada sector encontrada
+    # Create intermediate revision columns for each sector found
     for sector in sector_names:
-        for i in range(2, max_release + 1):  # Iterar desde release_2 hasta el release más alto
+        for i in range(2, max_release + 1):  # Iterate from release_2 to the highest release
             previous_release_col = f"{sector}_release_{i-1}"
             current_release_col = f"{sector}_release_{i}"
             
             if previous_release_col in df.columns and current_release_col in df.columns:
                 new_column_name = f"r_{i}_{sector}"
-                # Realizar la resta de la revisión actual menos la revisión anterior
                 new_columns.append((new_column_name, df[current_release_col]))
         
-        # Para la última diferencia, entre most_recent y el release más reciente - 1
+        # For the last difference, between most_recent and the latest release
         most_recent_col = f"{sector}_most_recent"
         last_release_col = f"{sector}_release_{max_release}"
         
         if last_release_col in df.columns and most_recent_col in df.columns:
-            # Modificar el nombre de la columna
-            new_column_name = f"r_{max_release +1}_{sector}"
+            new_column_name = f"r_{max_release + 1}_{sector}"
             new_columns.append((new_column_name, df[most_recent_col]))
     
-    # Concatenar todas las nuevas columnas al DataFrame
+    # Concatenate all new columns to the DataFrame
     if new_columns:
         df_new_columns = pd.DataFrame(dict(new_columns))
         df = pd.concat([df, df_new_columns], axis=1)
 
-    # Retornar el DataFrame modificado
+    # Return the modified DataFrame
     return df, max_release
 
 
-# Function to convert to panel data
+# Function to convert r to panel data
 #________________________________________________________________
 def r_to_panel(df):
     # Get all columns from the dataframe
@@ -277,46 +266,46 @@ def r_to_panel(df):
     return df_panel
 
 
-# Function to convert to panel data
+# Function to convert r dummies to panel data
 #________________________________________________________________
 def r_dummies_to_panel(df):
-    # Obtener todas las columnas del dataframe
+    # Get all columns from the dataframe
     columns = df.columns
     
-    # Conjunto para almacenar los sectores únicos
+    # Set to store unique sectors
     sectors = set()
 
-    # Expresión regular para el patrón 'r_{i}_{sector}'
+    # Regular expression for the pattern 'r_(\d+)_(.+)'
     pattern = re.compile(r'r_(\d+)_(.+)')
 
-    # Identificar todos los sectores a partir de las columnas
+    # Identify all sectors from the columns
     for col in columns:
         match = pattern.search(col)
         if match:
-            sectors.add(match.group(2))  # Extraer el sector y añadirlo al conjunto
+            sectors.add(match.group(2))  # Extract the sector and add it to the set
 
-    # Inicializar el DataFrame resultante en formato panel
+    # Initialize the resulting DataFrame in panel format
     df_panel = pd.DataFrame()
 
-    # Para cada sector, transformar y fusionar los datos
+    # For each sector, transform and merge the data
     for sector in sectors:
-        # Filtrar las columnas que pertenecen a este sector
+        # Filter columns that belong to this sector
         sector_columns = [col for col in columns if f'_{sector}' in col]
         
-        # Convertir las columnas del sector al formato largo
+        # Convert the sector's columns to long format
         sector_melted = pd.melt(df, id_vars=['vintages_date'], 
                                 value_vars=sector_columns, 
                                 var_name='horizon', 
-                                value_name=f'dummy_{sector}')
+                                value_name=f'r_dummy_{sector}')
         
-        # Extraer el número de revisión y eliminar el nombre del sector del campo 'horizon'
+        # Extract the revision number and remove the sector name from the 'horizon' field
         sector_melted['horizon'] = sector_melted['horizon'].str.extract(r'r_(\d+)_')[0].astype(int)
 
-        # Si es el primer sector, inicializar df_panel
+        # If it's the first sector, initialize df_panel
         if df_panel.empty:
             df_panel = sector_melted
         else:
-            # Fusionar el sector actual con el panel general
+            # Merge the current sector with the general panel
             df_panel = pd.merge(df_panel, sector_melted, on=['vintages_date', 'horizon'], how='outer')
 
     return df_panel
@@ -355,13 +344,13 @@ def calculate_e(df):
     
     # Step 6: Create errors from releases for each identified sector 
     for sector in sector_names:
-        # Iterate through the release versions, excluding the last one
+        # Iterate through the horizon
         for i in range(1, max_release + 1):
             release_col = f"{sector}_release_{i}"  # Example: sector_release_1
             most_recent_col = f"{sector}_most_recent"  # Example: sector_most_recent
             if release_col in df.columns and most_recent_col in df.columns:
                 new_column_name = f"e_{i}_{sector}"  # Naming the new revision column
-                # Subtract release value from the most recent value
+                # Compute revisions
                 new_columns.append((new_column_name, df[most_recent_col] - df[release_col]))
     
     # Step 7: Add all newly created e columns to the DataFrame
@@ -371,7 +360,6 @@ def calculate_e(df):
 
     # Step 8: Return the modified DataFrame along with the maximum release number
     return df, max_release
-
 
 # Function to calculate errors dummies
 #________________________________________________________________
@@ -401,7 +389,7 @@ def calculate_e_dummies(df):
     
     # Step 6: Create errors (e) from releases for each identified sector 
     for sector in sector_names:
-        # Iterate through the release versions, excluding the last one
+        # Iterate through the horizon
         for i in range(1, max_release + 1):
             release_col = f"{sector}_release_{i}"  # Example: sector_release_1
             most_recent_col = f"{sector}_most_recent"  # Example: sector_most_recent
@@ -418,9 +406,7 @@ def calculate_e_dummies(df):
     # Step 8: Return the modified DataFrame along with the maximum release number
     return df, max_release
 
-
-
-# Function to convert to data panel
+# Function to convert e to data panel
 #________________________________________________________________
 def e_to_panel(df):
     # Get all columns from the dataframe
@@ -464,8 +450,230 @@ def e_to_panel(df):
 
     return df_panel
 
+# Function to convert e dummies to data panel
+#________________________________________________________________
+def e_dummies_to_panel(df):
+    # Get all columns from the dataframe
+    columns = df.columns
+    
+    # Set to store unique sectors
+    sectors = set()
+
+    # Regular expression for the pattern 'e_{i}_{sector}'
+    pattern = re.compile(r'e_(\d+)_(.+)')
+
+    # Identify all sectors from the columns
+    for col in columns:
+        match = pattern.search(col)
+        if match:
+            sectors.add(match.group(2))  # Extract the sector and add it to the set
+
+    # Initialize the resulting DataFrame in panel format
+    df_panel = pd.DataFrame()
+
+    # For each sector, transform and merge the data
+    for sector in sectors:
+        # Filter columns that belong to this sector
+        sector_columns = [col for col in columns if f'_{sector}' in col]
+        
+        # Convert the sector's columns to long format
+        sector_melted = pd.melt(df, id_vars=['vintages_date'], 
+                                value_vars=sector_columns, 
+                                var_name='horizon', 
+                                value_name=f'e_dummy_{sector}')
+        
+        # Extract the revision number and remove the sector name from the 'horizon' field
+        sector_melted['horizon'] = sector_melted['horizon'].str.extract(r'e_(\d+)_')[0].astype(int)
+
+        # If it's the first sector, initialize df_panel
+        if df_panel.empty:
+            df_panel = sector_melted
+        else:
+            # Merge the current sector with the general panel
+            df_panel = pd.merge(df_panel, sector_melted, on=['vintages_date', 'horizon'], how='outer')
+
+    return df_panel
+
 
 
 ################################################################################################
 # z
 ################################################################################################
+
+# Function to calculate cumulative revisions up to h
+#________________________________________________________________
+def calculate_z(df):
+    # Step 1: Identify all release numbers from the column names
+    release_numbers = []
+    
+    for col in df.columns:
+        # Search for columns that follow the pattern '_release_' and extract the number
+        match = re.search(r'_release_(\d+)', col)
+        if match:
+            release_numbers.append(int(match.group(1)))
+    
+    # Step 2: Determine the maximum release number
+    max_release = max(release_numbers) if release_numbers else 0
+    
+    # Step 3: Extract the sector names by removing the suffixes '_release_' and '_most_recent'
+    sector_names = [col.replace(f'_release_{i}', '').replace('_most_recent', '') 
+                      for i in range(1, max_release + 1)
+                      for col in df.columns if f'_release_{i}' in col or '_most_recent' in col]
+    
+    # Step 4: Remove any duplicate sector names
+    sector_names = list(set(sector_names))
+    
+    # Step 5: Prepare to create new columns for nowcast errors
+    new_columns = []
+    
+    # Step 6: Create cumulative revisions up to h from releases for each identified sector 
+    for sector in sector_names:
+        # Iterate through the horizon
+        for i in range(2, max_release + 1): # first "z" starts from horizon 2
+            release_col = f"{sector}_release_{i}"  # Example: sector_release_2
+            first_release_col = f"{sector}_release_1"  # Example: sector_release_1
+            if release_col in df.columns and first_release_col in df.columns:
+                new_column_name = f"z_{i}_{sector}"  # Naming the new revision column
+                # Compute revisions
+                new_columns.append((new_column_name, df[release_col] - df[first_release_col]))
+    
+    # Step 7: Add all newly created e columns to the DataFrame
+    if new_columns:
+        df_new_columns = pd.DataFrame(dict(new_columns))
+        df = pd.concat([df, df_new_columns], axis=1)
+
+    # Step 8: Return the modified DataFrame along with the maximum release number
+    return df, max_release
+
+# Function to calculate dummies cumulative revisions up to h 
+#________________________________________________________________
+def calculate_z_dummies(df):
+    # Step 1: Identify all release numbers from the column names
+    release_numbers = []
+    
+    for col in df.columns:
+        # Search for columns that follow the pattern '_release_' and extract the number
+        match = re.search(r'_release_(\d+)', col)
+        if match:
+            release_numbers.append(int(match.group(1)))
+    
+    # Step 2: Determine the maximum release number
+    max_release = max(release_numbers) if release_numbers else 0
+    
+    # Step 3: Extract the sector names by removing the suffixes '_release_' and '_most_recent'
+    sector_names = [col.replace(f'_release_{i}', '').replace('_most_recent', '') 
+                      for i in range(1, max_release + 1)
+                      for col in df.columns if f'_release_{i}' in col or '_most_recent' in col]
+    
+    # Step 4: Remove any duplicate sector names
+    sector_names = list(set(sector_names))
+    
+    # Step 5: Prepare to create new columns for nowcast errors
+    new_columns = []
+    
+    # Step 6: Create cumulative revisions up to h from releases for each identified sector 
+    for sector in sector_names:
+        # Iterate through the horizon
+        for i in range(2, max_release + 1): # first "z" starts from horizon 2
+            release_col = f"{sector}_release_{i}"  # Example: sector_release_2
+            first_release_col = f"{sector}_release_1"  # Example: _release_1
+            if release_col in df.columns and first_release_col in df.columns:
+                new_column_name = f"z_{i}_{sector}"  # Naming the new revision column
+                # Compute revisions
+                new_columns.append((new_column_name, df[release_col]))
+    
+    # Step 7: Add all newly created e columns to the DataFrame
+    if new_columns:
+        df_new_columns = pd.DataFrame(dict(new_columns))
+        df = pd.concat([df, df_new_columns], axis=1)
+
+    # Step 8: Return the modified DataFrame along with the maximum release number
+    return df, max_release
+
+# Function to convert z to data panel
+#________________________________________________________________
+def z_to_panel(df):
+    # Get all columns from the dataframe
+    columns = df.columns
+    
+    # Set to store unique sectors
+    sectors = set()
+
+    # Regular expression for the pattern 'z_{i}_{sector}'
+    pattern = re.compile(r'z_(\d+)_(.+)')
+
+    # Identify all sectors from the columns
+    for col in columns:
+        match = pattern.search(col)
+        if match:
+            sectors.add(match.group(2))  # Extract the sector and add it to the set
+
+    # Initialize the resulting DataFrame in panel format
+    df_panel = pd.DataFrame()
+
+    # For each sector, transform and merge the data
+    for sector in sectors:
+        # Filter columns that belong to this sector
+        sector_columns = [col for col in columns if f'_{sector}' in col]
+        
+        # Convert the sector's columns to long format
+        sector_melted = pd.melt(df, id_vars=['vintages_date'], 
+                                value_vars=sector_columns, 
+                                var_name='horizon', 
+                                value_name=f'z_{sector}')
+        
+        # Extract the revision number and remove the sector name from the 'horizon' field
+        sector_melted['horizon'] = sector_melted['horizon'].str.extract(r'z_(\d+)_')[0].astype(int)
+
+        # If it's the first sector, initialize df_panel
+        if df_panel.empty:
+            df_panel = sector_melted
+        else:
+            # Merge the current sector with the general panel
+            df_panel = pd.merge(df_panel, sector_melted, on=['vintages_date', 'horizon'], how='outer')
+
+    return df_panel
+
+# Function to convert z dummies to data panel
+#________________________________________________________________
+def z_dummies_to_panel(df):
+    # Get all columns from the dataframe
+    columns = df.columns
+    
+    # Set to store unique sectors
+    sectors = set()
+
+    # Regular expression for the pattern 'z_{i}_{sector}'
+    pattern = re.compile(r'z_(\d+)_(.+)')
+
+    # Identify all sectors from the columns
+    for col in columns:
+        match = pattern.search(col)
+        if match:
+            sectors.add(match.group(2))  # Extract the sector and add it to the set
+
+    # Initialize the resulting DataFrame in panel format
+    df_panel = pd.DataFrame()
+
+    # For each sector, transform and merge the data
+    for sector in sectors:
+        # Filter columns that belong to this sector
+        sector_columns = [col for col in columns if f'_{sector}' in col]
+        
+        # Convert the sector's columns to long format
+        sector_melted = pd.melt(df, id_vars=['vintages_date'], 
+                                value_vars=sector_columns, 
+                                var_name='horizon', 
+                                value_name=f'z_dummy_{sector}')
+        
+        # Extract the revision number and remove the sector name from the 'horizon' field
+        sector_melted['horizon'] = sector_melted['horizon'].str.extract(r'z_(\d+)_')[0].astype(int)
+
+        # If it's the first sector, initialize df_panel
+        if df_panel.empty:
+            df_panel = sector_melted
+        else:
+            # Merge the current sector with the general panel
+            df_panel = pd.merge(df_panel, sector_melted, on=['vintages_date', 'horizon'], how='outer')
+
+    return df_panel
