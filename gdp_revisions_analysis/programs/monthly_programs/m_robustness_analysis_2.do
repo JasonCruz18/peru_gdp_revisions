@@ -355,7 +355,7 @@ Robustness Analysis
 			args sector model_type
 			
 			local dep_var log_abs_e_`sector' // Dependent var
-			local indep_vars c.horizon##i.e_dummy_`sector' // Independent var
+			local indep_vars i.e_dummy_`sector' // Independent var
 			
 			* Execute model according to type (fe, re, xtscc_fe, xtscc_re)
 			
@@ -435,8 +435,9 @@ Robustness Analysis
 			
 			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "e_abs_affected_m.tex", append ///
 				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
+				keep(_cons 1.e_dummy_`sector') ///
 				order(_cons) longtable ///
-				varlabels(_cons "Intercepto" horizon "h") ///
+				varlabels(_cons "Intercepto" 1.e_dummy_`sector' "e-dummy") ///
 				noobs ///
 				star(* 0.1 ** 0.05 *** 0.01) ///
 				booktabs style(tex) nodepvars nomtitle ///
@@ -464,7 +465,7 @@ Robustness Analysis
 			args sector model_type
 			
 			local dep_var log_abs_e_`sector' // Dependent var
-			local indep_vars c.horizon##i.e_dummy_`sector' // Independent var
+			local indep_vars i.e_dummy_`sector' // Independent var
 			
 			* Execute model according to type (fe, re, xtscc_fe xtscc_re)
 			
@@ -544,8 +545,9 @@ Robustness Analysis
 			
 			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "e_abs_`sector'_affected_m.tex", ///
 			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
-			order(_cons) ///
-			varlabels(_cons "Intercepto" horizon "h") ///
+			keep(_cons 1.e_dummy_`sector') ///
+			order(_cons) longtable ///
+			varlabels(_cons "Intercepto" 1.e_dummy_`sector' "e-dummy") ///
 			noobs ///
 			star(* 0.1 ** 0.05 *** 0.01) ///
 			booktabs style(tex) nodepvars nomtitle ///
@@ -625,7 +627,7 @@ Robustness Analysis
 			args sector model_type
 			
 			local dep_var log_sq_e_`sector' // Dependent var
-			local indep_vars c.horizon##i.e_dummy_`sector' // Independent var
+			local indep_vars i.e_dummy_`sector' // Independent var
 			
 			* Execute model according to type (fe, re, xtscc_fe xtscc_re)
 			
@@ -705,8 +707,9 @@ Robustness Analysis
 			
 			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "e_sq_affected_m.tex", append ///
 				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
+				keep(_cons 1.e_dummy_`sector') ///
 				order(_cons) longtable ///
-				varlabels(_cons "Intercepto" horizon "h") ///
+				varlabels(_cons "Intercepto" 1.e_dummy_`sector' "e-dummy") ///
 				noobs ///
 				star(* 0.1 ** 0.05 *** 0.01) ///
 				booktabs style(tex) nodepvars nomtitle ///
@@ -734,7 +737,7 @@ Robustness Analysis
 			args sector model_type
 			
 			local dep_var log_sq_e_`sector' // Dependent var
-			local indep_vars c.horizon##i.e_dummy_`sector' // Independent var
+			local indep_vars i.e_dummy_`sector' // Independent var
 			
 			* Execute model according to type (fe, re, xtscc_fe xtscc_re)
 			
@@ -814,8 +817,9 @@ Robustness Analysis
 			
 			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "e_sq_`sector'_affected_m.tex", ///
 			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
-			order(_cons) ///
-			varlabels(_cons "Intercepto" horizon "h") ///
+			keep(_cons 1.e_dummy_`sector') ///
+			order(_cons) longtable ///
+			varlabels(_cons "Intercepto" 1.e_dummy_`sector' "e-dummy") ///
 			noobs ///
 			star(* 0.1 ** 0.05 *** 0.01) ///
 			booktabs style(tex) nodepvars nomtitle ///
@@ -895,7 +899,7 @@ Robustness Analysis
 			args sector model_type
 			
 			local dep_var log_abs_z_`sector' // Dependent var
-			local indep_vars c.horizon##i.z_dummy_`sector' // Independent var
+			local indep_vars i.z_dummy_`sector' // Independent var
 			
 			* Execute model according to type (fe, re, xtscc_fe, xtscc_re)
 			
@@ -975,8 +979,9 @@ Robustness Analysis
 			
 			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "z_abs_affected_m.tex", append ///
 				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
+				keep(_cons 1.z_dummy_`sector') ///
 				order(_cons) longtable ///
-				varlabels(_cons "Intercepto" horizon "h") ///
+				varlabels(_cons "Intercepto" 1.z_dummy_`sector' "z-dummy") ///
 				noobs ///
 				star(* 0.1 ** 0.05 *** 0.01) ///
 				booktabs style(tex) nodepvars nomtitle ///
@@ -1004,7 +1009,7 @@ Robustness Analysis
 			args sector model_type
 			
 			local dep_var log_abs_z_`sector' // Dependent var
-			local indep_vars c.horizon##i.z_dummy_`sector' // Independent var
+			local indep_vars i.z_dummy_`sector' // Independent var
 			
 			* Execute model according to type (fe, re, xtscc_fe xtscc_re)
 			
@@ -1084,8 +1089,9 @@ Robustness Analysis
 			
 			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "z_abs_`sector'_affected_m.tex", ///
 			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
-			order(_cons) ///
-			varlabels(_cons "Intercepto" horizon "h") ///
+			keep(_cons 1.z_dummy_`sector') ///
+			order(_cons) longtable ///
+			varlabels(_cons "Intercepto" 1.z_dummy_`sector' "z-dummy") ///
 			noobs ///
 			star(* 0.1 ** 0.05 *** 0.01) ///
 			booktabs style(tex) nodepvars nomtitle ///
@@ -1165,7 +1171,7 @@ Robustness Analysis
 			args sector model_type
 			
 			local dep_var log_sq_z_`sector' // Dependent var
-			local indep_vars c.horizon##i.z_dummy_`sector' // Independent var
+			local indep_vars i.z_dummy_`sector' // Independent var
 			
 			* Execute model according to type (fe, re, xtscc_fe xtscc_re)
 			
@@ -1245,8 +1251,9 @@ Robustness Analysis
 			
 			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "z_sq_affected_m.tex", append ///
 				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
+				keep(_cons 1.z_dummy_`sector') ///
 				order(_cons) longtable ///
-				varlabels(_cons "Intercepto" horizon "h") ///
+				varlabels(_cons "Intercepto" 1.z_dummy_`sector' "z-dummy") ///
 				noobs ///
 				star(* 0.1 ** 0.05 *** 0.01) ///
 				booktabs style(tex) nodepvars nomtitle ///
@@ -1274,7 +1281,7 @@ Robustness Analysis
 			args sector model_type
 			
 			local dep_var log_sq_z_`sector' // Dependent var
-			local indep_vars c.horizon##i.z_dummy_`sector' // Independent var
+			local indep_vars i.z_dummy_`sector' // Independent var
 			
 			* Execute model according to type (fe, re, xtscc_fe xtscc_re)
 			
@@ -1354,8 +1361,9 @@ Robustness Analysis
 			
 			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "z_sq_`sector'_affected_m.tex", ///
 			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
-			order(_cons) ///
-			varlabels(_cons "Intercepto" horizon "h") ///
+			keep(_cons 1.z_dummy_`sector') ///
+			order(_cons) longtable ///
+			varlabels(_cons "Intercepto" 1.z_dummy_`sector' "z-dummy") ///
 			noobs ///
 			star(* 0.1 ** 0.05 *** 0.01) ///
 			booktabs style(tex) nodepvars nomtitle ///
