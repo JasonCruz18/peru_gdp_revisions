@@ -81,7 +81,7 @@ con <- dbConnect(RPostgres::Postgres(),
                  password = password)
 
 # Fetch data from the selected table
-query <- "SELECT * FROM sectorial_gdp_monthly_cum_revisions_panel"
+query <- "SELECT * FROM z_sectorial_gdp_monthly_panel"
 df <- dbGetQuery(con, query)
 
 # Close the database connection
@@ -218,3 +218,33 @@ print(plot)
 #ggsave(file.path(figures_dir, paste0("e_boxplot_", sector, "_m_2", ".png")), 
 #       plot, width = 10, height = 6, dpi = 300)
   
+
+
+
+# Filter data by horizon values (< 20)
+df <- df %>% filter(horizon < 13)
+
+
+# Convert 'horizon' to a factor for categorical analysis
+df$horizon <- as.factor(df$horizon)
+
+value = c(df$z_gdp, df$z_agriculture)
+
+boxplot(value + df$horizon, outline=FALSE)
+
+
+# Crear un dataframe largo para combinar las dos variables
+df_long <- data.frame(
+  value = c(df$z_gdp, df$z_agriculture),
+  variable = rep(c("z_gdp", "z_agriculture"), each = nrow(df)),
+  horizon = rep(df$horizon, 2)
+)
+
+# Crear el boxplot
+boxplot(value ~ variable + horizon, data = df_long, outline = FALSE, 
+        xlab = "Variable y Horizonte", ylab = "Valores", col = c("lightblue", "lightgreen"),
+        las = 2)
+
+
+
+
