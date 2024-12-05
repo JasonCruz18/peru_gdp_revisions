@@ -352,6 +352,20 @@ Summary of Statistics (Unbiassdness)
 		* List the results without observation numbers and in a clean format
 
 		list variable n coef p1 p99 sd, noobs clean
+		
+		
+		* Rename vars
+		
+		rename variable h
+		rename coef Insesgadez
+		rename p1 P1
+		rename p99 P99
+		rename sd SD
+		
+		
+		* Order vars
+		
+		order h Insesgadez P1 P99 SD
 	
 		
 		* Export to excel file
@@ -462,6 +476,20 @@ Summary of Statistics (Unbiassdness)
 		list variable n coef p1 p99 sd, noobs clean
 	
 		
+		* Rename vars
+		
+		rename variable h
+		rename coef Insesgadez
+		rename p1 P1
+		rename p99 P99
+		rename sd SD
+		
+		
+		* Order vars
+		
+		order h Insesgadez P1 P99 SD
+		
+		
 		* Export to excel file
 		
 		export excel using "e_stats_sum_m.xlsx", ///
@@ -568,6 +596,20 @@ Summary of Statistics (Unbiassdness)
 		* List the results without observation numbers and in a clean format
 
 		list variable n coef p1 p99 sd, noobs clean
+		
+		
+		* Rename vars
+		
+		rename variable h
+		rename coef Insesgadez
+		rename p1 P1
+		rename p99 P99
+		rename sd SD
+		
+		
+		* Order vars
+		
+		order h Insesgadez P1 P99 SD
 	
 		
 		* Export to excel file
