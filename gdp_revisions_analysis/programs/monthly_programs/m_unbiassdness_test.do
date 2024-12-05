@@ -141,6 +141,12 @@ Summary of Statistics (Unbiassdness)
 		sort vintages_monthly
 		
 		
+		*** This is a provisional
+		
+		drop if vintages_monthly == tm(2000m4) | vintages_monthly == tm(2013m12)
+
+		
+		
 	save r_ts_cleaned, replace
 	
 	
@@ -248,6 +254,10 @@ Summary of Statistics (Unbiassdness)
 		
 		sort vintages_monthly
 
+		
+		*** This is a provisional
+		
+		drop if vintages_monthly == tm(2000m4) | vintages_monthly == tm(2013m12)
 	
 	save z_ts_cleaned, replace
 	
@@ -307,9 +317,9 @@ Summary of Statistics (Unbiassdness)
 						
 						summarize r_`i'_`sector', detail
 						local n = r(N)                   	// Number of observations
-						local sd = string(r(sd), "%9.3f")  	// Standard deviation
-						local p1 = string(r(p1), "%9.3f")  	// 1st percentile
-						local p99 = string(r(p99), "%9.3f") // 99th percentile
+						local sd = string(r(sd), "%9.2f")  	// Standard deviation
+						local p1 = string(r(p1), "%9.2f")  	// 1st percentile
+						local p99 = string(r(p99), "%9.2f") // 99th percentile
 						
 						*** Extract the constant term coefficient and its p-value
 						
@@ -319,16 +329,16 @@ Summary of Statistics (Unbiassdness)
 						*** Format the coefficient string with significance stars based on the p-value
 						
 						if `pvalue' < 0.01 {
-							local coef = string(`coef', "%9.3f") + "***"
+							local coef = string(`coef', "%9.2f") + "***"
 						}
 						else if `pvalue' >= 0.01 & `pvalue' < 0.05 {
-							local coef = string(`coef', "%9.3f") + "**"
+							local coef = string(`coef', "%9.2f") + "**"
 						}
 						else if `pvalue' >= 0.05 & `pvalue' < 0.10 {
-							local coef = string(`coef', "%9.3f") + "*"
+							local coef = string(`coef', "%9.2f") + "*"
 						}
 						else {
-							local coef = string(`coef', "%9.3f")
+							local coef = string(`coef', "%9.2f")
 						}
 						
 						*** Post the variable name, summary statistics, and formatted coefficient to the results frame
@@ -429,9 +439,9 @@ Summary of Statistics (Unbiassdness)
 						
 						summarize e_`i'_`sector', detail
 						local n = r(N)                   	// Number of observations
-						local sd = string(r(sd), "%9.3f")  	// Standard deviation
-						local p1 = string(r(p1), "%9.3f")  	// 1st percentile
-						local p99 = string(r(p99), "%9.3f") // 99th percentile
+						local sd = string(r(sd), "%9.2f")  	// Standard deviation
+						local p1 = string(r(p1), "%9.2f")  	// 1st percentile
+						local p99 = string(r(p99), "%9.2f") // 99th percentile
 						
 						*** Extract the constant term coefficient and its p-value
 						
@@ -441,16 +451,16 @@ Summary of Statistics (Unbiassdness)
 						*** Format the coefficient string with significance stars based on the p-value
 						
 						if `pvalue' < 0.01 {
-							local coef = string(`coef', "%9.3f") + "***"
+							local coef = string(`coef', "%9.2f") + "***"
 						}
 						else if `pvalue' >= 0.01 & `pvalue' < 0.05 {
-							local coef = string(`coef', "%9.3f") + "**"
+							local coef = string(`coef', "%9.2f") + "**"
 						}
 						else if `pvalue' >= 0.05 & `pvalue' < 0.10 {
-							local coef = string(`coef', "%9.3f") + "*"
+							local coef = string(`coef', "%9.2f") + "*"
 						}
 						else {
-							local coef = string(`coef', "%9.3f")
+							local coef = string(`coef', "%9.2f")
 						}
 						
 						*** Post the variable name, summary statistics, and formatted coefficient to the results frame
@@ -551,9 +561,9 @@ Summary of Statistics (Unbiassdness)
 						
 						summarize z_`i'_`sector', detail
 						local n = r(N)                   	// Number of observations
-						local sd = string(r(sd), "%9.3f")  	// Standard deviation
-						local p1 = string(r(p1), "%9.3f")  	// 1st percentile
-						local p99 = string(r(p99), "%9.3f") // 99th percentile
+						local sd = string(r(sd), "%9.2f")  	// Standard deviation
+						local p1 = string(r(p1), "%9.2f")  	// 1st percentile
+						local p99 = string(r(p99), "%9.2f") // 99th percentile
 						
 						*** Extract the constant term coefficient and its p-value
 						
@@ -563,16 +573,16 @@ Summary of Statistics (Unbiassdness)
 						*** Format the coefficient string with significance stars based on the p-value
 						
 						if `pvalue' < 0.01 {
-							local coef = string(`coef', "%9.3f") + "***"
+							local coef = string(`coef', "%9.2f") + "***"
 						}
 						else if `pvalue' >= 0.01 & `pvalue' < 0.05 {
-							local coef = string(`coef', "%9.3f") + "**"
+							local coef = string(`coef', "%9.2f") + "**"
 						}
 						else if `pvalue' >= 0.05 & `pvalue' < 0.10 {
-							local coef = string(`coef', "%9.3f") + "*"
+							local coef = string(`coef', "%9.2f") + "*"
 						}
 						else {
-							local coef = string(`coef', "%9.3f")
+							local coef = string(`coef', "%9.2f")
 						}
 						
 						*** Post the variable name, summary statistics, and formatted coefficient to the results frame
