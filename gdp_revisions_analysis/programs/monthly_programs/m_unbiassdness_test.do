@@ -365,7 +365,7 @@ Summary of Statistics (Unbiassdness)
 		
 		* Order vars
 		
-		order h Insesgadez P1 P99 SD
+		order h n Insesgadez P1 P99 SD
 	
 		
 		* Export to excel file
@@ -487,7 +487,7 @@ Summary of Statistics (Unbiassdness)
 		
 		* Order vars
 		
-		order h Insesgadez P1 P99 SD
+		order h n Insesgadez P1 P99 SD
 		
 		
 		* Export to excel file
@@ -609,7 +609,7 @@ Summary of Statistics (Unbiassdness)
 		
 		* Order vars
 		
-		order h Insesgadez P1 P99 SD
+		order h n Insesgadez P1 P99 SD
 	
 		
 		* Export to excel file
