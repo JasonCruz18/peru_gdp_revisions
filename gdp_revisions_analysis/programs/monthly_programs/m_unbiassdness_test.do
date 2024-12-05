@@ -370,7 +370,7 @@ Summary of Statistics (Unbiassdness)
 		
 		* Export to excel file
 		
-		export excel using "r_stats_sum_m.xlsx", ///
+		export excel using "$tables_folder/r_stats_sum_m.xlsx", ///
     firstrow(variable) replace
 	
 	
@@ -492,7 +492,7 @@ Summary of Statistics (Unbiassdness)
 		
 		* Export to excel file
 		
-		export excel using "e_stats_sum_m.xlsx", ///
+		export excel using "$tables_folder/e_stats_sum_m.xlsx", ///
     firstrow(variables) replace
 	
 	
@@ -614,7 +614,7 @@ Summary of Statistics (Unbiassdness)
 		
 		* Export to excel file
 		
-		export excel using "z_stats_sum_m.xlsx", ///
+		export excel using "$tables_folder/z_stats_sum_m.xlsx", ///
     firstrow(variables) replace
 					
 	
