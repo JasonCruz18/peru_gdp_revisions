@@ -358,7 +358,7 @@ Predictibility (e)
 			
 			* Report results using esttab
 			
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "e_predictibility_sector_m.tex", append ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "$tables_folder/e_predictibility_sector_m.tex", append ///
 				b(%9.3f) se(%9.3f) stats(chi_`sector' p_`sector' n_`sector' h_`sector' N_`sector', label("Chi2" "p-value" "n" "$\bar{h}$" "N") fmt(%9.3f %9.3f %9.0f %9.0f %9.0f)) ///
 				order(_cons) longtable ///
 				varlabels(_cons "Intercepto" L.r_`sector' "r(-1)" L2.r_`sector' "r(-2)") ///
