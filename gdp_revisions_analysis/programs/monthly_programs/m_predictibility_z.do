@@ -297,7 +297,7 @@ Predictibility (e)
 			
 			** Loop through variables r_#_<sector> where # ranges from 2 to 10
 			
-			forval i = 2/12 {
+			forval i = 3/12 { // starts from 3 for predictibility excercise or 2 otherwise
 				
 				capture confirm variable z_`i'_`sector' // Check if the variable z_<i>_<sector> exists
 				
