@@ -237,9 +237,9 @@ Efficiency Cross-Sectors
 		* Generate combined table with results
 		
 		esttab `all_models' using "$tables_folder/r_efficiency_test_bench_m.tex", replace ///
-			b(%9.2f) se(%9.2f) stats(chi2_stat p_val n_model h_model N_model, ///
+			b(%9.3f) se(%9.3f) stats(chi2_stat p_val n_model h_model N_model, ///
 			label("Chi2" "p-value" "n" "$\bar{h}$" "N") ///
-				fmt(%9.2f %9.2f %9.0f %9.0f %9.0f)) ///
+				fmt(%9.3f %9.3f %9.0f %9.0f %9.0f)) ///
 			order(_cons L.r_gdp L2.r_gdp) longtable ///
 			varlabels(_cons "Intercepto" L.r_gdp "r(-1)" L2.r_gdp "r(-2)" L.r_agriculture "r(-1): Agropecuario" L.r_fishing "r(-1): Pesca" L.r_manufacturing "r(-1): Manufactura" L.r_mining "r(-1): Minería e Hidrocarburos" L.r_construction "r(-1): Construcción" L.r_commerce "r(-1): Comercio" L.r_services "r(-1): Otros Servicios" L.r_electricity "r(-1): Electricidad y Agua") ///
 			noobs ///
