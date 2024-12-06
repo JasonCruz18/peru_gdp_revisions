@@ -335,30 +335,30 @@ Predictibility (e)
 						*** Format the coefficient string with significance stars based on the p-value
 						
 						if `constant_pvalue' < 0.01 {
-							local constant = string(`constant', "%9.3f") + "***"
+							local constant = string(`constant', "%9.2f") + "***"
 						}
 						else if `constant_pvalue' >= 0.01 & `constant_pvalue' < 0.05 {
-							local constant = string(`constant', "%9.3f") + "**"
+							local constant = string(`constant', "%9.2f") + "**"
 						}
 						else if `constant_pvalue' >= 0.05 & `constant_pvalue' < 0.10 {
-							local constant = string(`constant', "%9.3f") + "*"
+							local constant = string(`constant', "%9.2f") + "*"
 						}
 						else {
-							local constant = string(`constant', "%9.3f")
+							local constant = string(`constant', "%9.2f")
 						}
 						
 						
 						if `coef_pvalue' < 0.01 {
-							local coef = string(`coef', "%9.3f") + "***"
+							local coef = string(`coef', "%9.2f") + "***"
 						}
 						else if `coef_pvalue' >= 0.01 & `coef_pvalue' < 0.05 {
-							local coef = string(`coef', "%9.3f") + "**"
+							local coef = string(`coef', "%9.2f") + "**"
 						}
 						else if `coef_pvalue' >= 0.05 & `coef_pvalue' < 0.10 {
-							local coef = string(`coef', "%9.3f") + "*"
+							local coef = string(`coef', "%9.2f") + "*"
 						}
 						else {
-							local coef = string(`coef', "%9.3f")
+							local coef = string(`coef', "%9.2f")
 						}
 						
 						*** Post the variable name, summary statistics, and formatted coefficient to the results frame
@@ -393,7 +393,7 @@ Predictibility (e)
 		
 		* Order vars
 		
-		order h n Insesgadez P1 P99 SD
+		order h n Intercepto Beta
 	
 		
 		* Export to excel file
