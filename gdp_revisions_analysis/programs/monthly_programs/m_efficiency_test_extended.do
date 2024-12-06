@@ -236,7 +236,7 @@ Efficiency Cross-Sectors
 
 		* Generate combined table with results
 		
-		esttab `all_models' using "r_efficiency_test_bench_m.tex", replace ///
+		esttab `all_models' using "$tables_folder/r_efficiency_test_bench_m.tex", replace ///
 			b(%9.2f) se(%9.2f) stats(chi2_stat p_val n_model h_model N_model, ///
 			label("Chi2" "p-value" "n" "$\bar{h}$" "N") ///
 				fmt(%9.2f %9.2f %9.0f %9.0f %9.0f)) ///
