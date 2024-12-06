@@ -240,7 +240,7 @@ Efficiency Cross-Sectors
 			b(%9.2f) se(%9.2f) stats(chi2_stat p_val n_model h_model N_model, ///
 			label("Chi2" "p-value" "n" "$\bar{h}$" "N") ///
 				fmt(%9.2f %9.2f %9.0f %9.0f %9.0f)) ///
-			order(_cons L.r_gdp L2.r_gdp) ///
+			order(_cons L.r_gdp L2.r_gdp) longtable///
 			varlabels(_cons "Intercepto" L.r_gdp "r(-1)" L2.r_gdp "r(-2)" L.r_agriculture "r(-1): Agropecuario" L.r_fishing "r(-1): Pesca" L.r_manufacturing "r(-1): Manufactura" L.r_mining "r(-1): Minería e Hidrocarburos" L.r_construction "r(-1): Construcción" L.r_commerce "r(-1): Comercio" L.r_services "r(-1): Otros Servicios" L.r_electricity "r(-1): Electricidad y Agua") ///
 			noobs ///
 			star(* 0.1 ** 0.05 *** 0.01) ///
