@@ -323,7 +323,7 @@ Efficiency Tests
 			
 			* Report results using esttab
 			
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "r_efficiency_test_m.tex", append ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "$tables_folder/r_efficiency_test_m.tex", append ///
 				b(%9.3f) se(%9.3f) stats(chi_`sector' p_`sector' n_`sector' h_`sector' N_`sector', label("Chi2" "p-value" "n" "$\bar{h}$" "N") fmt(%9.3f %9.3f %9.0f %9.0f %9.0f)) ///
 				order(_cons) longtable ///
 				varlabels(_cons "Intercepto" L.r_`sector' "r(-1)" L2.r_`sector' "r(-2)") ///
@@ -511,7 +511,7 @@ Efficiency Tests
 			
 			* Report results using esttab
 			
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "r_efficiency_benchmark_test.tex", append ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "$tables_folder/r_efficiency_benchmark_test.tex", append ///
 				b(%9.3f) se(%9.3f) stats(chi_`sector' p_`sector' n_`sector' h_`sector' N_`sector', label("Chi2" "p-value" "n" "$\bar{h}$" "N") fmt(%9.3f %9.3f %9.0f %9.0f %9.0f)) ///
 				order(_cons) longtable ///
 				keep(_cons L.r_`sector' L2.r_`sector' 1L.r_dummy_`sector'#cL.r_`sector' 1L2.r_dummy_`sector'#cL2.r_`sector') ///
