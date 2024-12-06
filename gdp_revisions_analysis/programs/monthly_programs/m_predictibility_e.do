@@ -235,7 +235,7 @@ Predictibility (e)
 		program define e_predictibility_sector
 			args sector model_type
 			
-			local dep_var r_`sector' // Dependent var
+			local dep_var e_`sector' // Dependent var
 			local indep_vars L1.r_`sector' L2.r_`sector' // Independent var
 			
 			* Run the model according to type (fe, re, xtscc_fe, xtscc_re)
