@@ -386,7 +386,7 @@ Predictibility (e)
 		
 		* Export to excel file
 		
-		export excel using "z_predictibility_m.xlsx", ///
+		export excel using "$tables_folder/z_predictibility_m.xlsx", ///
     firstrow(variable) replace
 					
 						
