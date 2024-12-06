@@ -382,6 +382,18 @@ Predictibility (e)
 		* List the results without observation numbers and in a clean format
 
 		list variable n constant coef, noobs clean
+		
+		
+		* Rename vars
+		
+		rename variable h
+		rename constant Intercepto
+		rename coef Beta
+		
+		
+		* Order vars
+		
+		order h n Insesgadez P1 P99 SD
 	
 		
 		* Export to excel file
