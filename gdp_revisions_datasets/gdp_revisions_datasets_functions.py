@@ -1435,9 +1435,9 @@ def calculate_z(df):
     # Step 6: Create cumulative revisions up to h from releases for each identified sector 
     for sector in sector_names:
         # Iterate through the horizon
-        for i in range(3, max_release + 1): # first "z" starts from horizon 3
+        for i in range(3, max_release + 1): # First "z" starts from horizon 3 for predictibility excercise and from 2 otherwise.
             release_col = f"{sector}_release_{i}"  # Example: sector_release_3
-            first_release_col = f"{sector}_release_1"  # Example: sector_release_1
+            first_release_col = f"{sector}_release_2"  # Use "1" like sector_release_1. For predicitibility excercise use "2" like {sector}_release_2 and starts to iterate from 3 above. 
             if release_col in df.columns and first_release_col in df.columns:
                 new_column_name = f"z_{i}_{sector}"  # Naming the new revision column
                 # Compute revisions
@@ -1480,9 +1480,9 @@ def calculate_z_dummies(df):
     # Step 6: Create cumulative revisions up to h from releases for each identified sector 
     for sector in sector_names:
         # Iterate through the horizon
-        for i in range(3, max_release + 1): # first "z" starts from horizon 2
-            release_col = f"{sector}_release_{i}"  # Example: sector_release_2
-            first_release_col = f"{sector}_release_1"  # Example: _release_1
+        for i in range(3, max_release + 1): # First "z" starts from horizon 3 for predictibility excercise and from 2 otherwise.
+            release_col = f"{sector}_release_{i}"  # Example: sector_release_3
+            first_release_col = f"{sector}_release_2"  # Use "1" like sector_release_1. For predicitibility excercise use "2" like {sector}_release_2 and starts to iterate from 3 above. 
             if release_col in df.columns and first_release_col in df.columns:
                 new_column_name = f"z_{i}_{sector}"  # Naming the new revision column
                 # Compute revisions
