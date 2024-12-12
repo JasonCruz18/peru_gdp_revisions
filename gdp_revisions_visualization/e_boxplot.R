@@ -160,6 +160,13 @@ summary(df_filtered[[paste0("z_", sector)]])
 # e
 #........................
 
+
+# Ruta para guardar el archivo
+output_file <- file.path(figures_dir, paste0("e_boxplot_", sector, "_m", ".png"))
+
+# Abrir dispositivo gráfico PNG
+png(filename = output_file, width = 10, height = 6, units = "in", res = 300)
+
 # Create the boxplot
 boxplot(
   e_gdp ~ horizon, 
@@ -190,7 +197,7 @@ points(
 
 # Add a legend for the mean
 legend(
-  "top", 
+  "bottomright", 
   legend = "Media", 
   pch = 16,            # Forma de los puntos
   cex = 1.5,           # Tamaño de los puntos
@@ -198,17 +205,17 @@ legend(
   bty = "n",            # Sin cuadro alrededor de la leyenda
 )
 
-
-# Save the plot as a PNG file
-ggsave(file.path(figures_dir, paste0("e_boxplot_", sector, "_m", ".png")), 
-       plot, width = 10, height = 6, dpi = 300)
-
-
+dev.off()
 
 #........................
 # z
 #........................
 
+# Ruta para guardar el archivo
+output_file <- file.path(figures_dir, paste0("z_boxplot_", sector, "_m", ".png"))
+
+# Abrir dispositivo gráfico PNG
+png(filename = output_file, width = 10, height = 6, units = "in", res = 300)
 
 # Create the boxplot
 boxplot(
@@ -240,7 +247,7 @@ points(
 
 # Add a legend for the mean
 legend(
-  "top", 
+  "bottomright", 
   legend = "Media", 
   pch = 16,            # Forma de los puntos
   cex = 1.5,           # Tamaño de los puntos
@@ -249,11 +256,7 @@ legend(
 )
 
 
-# Save the plot as a PNG file
-ggsave(file.path(figures_dir, paste0("z_boxplot_", sector, "_m", ".png")), 
-       plot, width = 10, height = 6, dpi = 300)
-
-
+dev.off()
 
 
 
