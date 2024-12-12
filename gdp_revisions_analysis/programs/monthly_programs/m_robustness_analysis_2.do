@@ -433,7 +433,7 @@ Robustness Analysis
 			
 			* Report results using esttab
 			
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "e_abs_affected_m.tex", append ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "$tables_folder/e_abs_affected_m.tex", append ///
 				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 				keep(_cons 1.e_dummy_`sector') ///
 				order(_cons) longtable ///
@@ -543,7 +543,7 @@ Robustness Analysis
 			
 			* Report results using esttab
 			
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "e_abs_`sector'_affected_m.tex", ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "$tables_folder/e_abs_`sector'_affected_m.tex", ///
 			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 			keep(_cons 1.e_dummy_`sector') ///
 			order(_cons) longtable ///
@@ -705,7 +705,7 @@ Robustness Analysis
 			
 			* Report results using esttab
 			
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "e_sq_affected_m.tex", append ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "$tables_folder/e_sq_affected_m.tex", append ///
 				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 				keep(_cons 1.e_dummy_`sector') ///
 				order(_cons) longtable ///
@@ -815,7 +815,7 @@ Robustness Analysis
 			
 			* Report results using esttab
 			
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "e_sq_`sector'_affected_m.tex", ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "$tables_folder/e_sq_`sector'_affected_m.tex", ///
 			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 			keep(_cons 1.e_dummy_`sector') ///
 			order(_cons) longtable ///
@@ -977,7 +977,7 @@ Robustness Analysis
 			
 			* Report results using esttab
 			
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "z_abs_affected_m.tex", append ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "$tables_folder/z_abs_affected_m.tex", append ///
 				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 				keep(_cons 1.z_dummy_`sector') ///
 				order(_cons) longtable ///
@@ -1087,7 +1087,7 @@ Robustness Analysis
 			
 			* Report results using esttab
 			
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "z_abs_`sector'_affected_m.tex", ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "$tables_folder/z_abs_`sector'_affected_m.tex", ///
 			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 			keep(_cons 1.z_dummy_`sector') ///
 			order(_cons) longtable ///
@@ -1249,7 +1249,7 @@ Robustness Analysis
 			
 			* Report results using esttab
 			
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "z_sq_affected_m.tex", append ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "$tables_folder/z_sq_affected_m.tex", append ///
 				b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 				keep(_cons 1.z_dummy_`sector') ///
 				order(_cons) longtable ///
@@ -1359,7 +1359,7 @@ Robustness Analysis
 			
 			* Report results using esttab
 			
-			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "z_sq_`sector'_affected_m.tex", ///
+			esttab fe_`sector' xtscc_fe_`sector' re_`sector' xtscc_re_`sector' using "$tables_folder/z_sq_`sector'_affected_m.tex", ///
 			b(%9.3f) se(%9.3f) stats(n_`sector' h_`sector' N_`sector', label("n" "$\bar{h}$" "N") fmt(%9.0f %9.0f %9.0f)) ///
 			keep(_cons 1.z_dummy_`sector') ///
 			order(_cons) longtable ///
