@@ -263,5 +263,107 @@ boxplot(value ~ variable + horizon, data = df_long, outline = FALSE,
         las = 2)
 
 
+#........................
+# e
+#........................
+
+# Create the boxplot
+boxplot(
+  e_gdp ~ horizon, 
+  data = df_filtered, 
+  outline = FALSE,
+  main = "Boxplot of e_gdp by Horizon",
+  xlab = "h",
+  ylab = NA,
+  col = "#FF0060",
+  border = "#292929",
+  lwd = 3,            # Grosor del contorno de las cajas
+  outpch = 19,        # Forma para los outliers
+  outcol = "#292929"  # Color de los outliers
+)
+
+# Calculate group means
+means <- tapply(df_filtered$e_gdp, df_filtered$horizon, mean, na.rm = TRUE)
+
+# Add points for the means with a black border for the diamonds
+points(
+  x = 1:length(means), 
+  y = means, 
+  col = "black",       # Color del borde de los puntos
+  pch = 16,            # Forma de los puntos
+  cex = 1.5,           # Tamaño de los puntos
+  bg = "white"         # Color de relleno de los puntos
+)
+
+# Add a legend for the mean
+legend(
+  "top", 
+  legend = "Media", 
+  pch = 16,            # Forma de los puntos
+  cex = 1.5,           # Tamaño de los puntos
+  bg = "white",         # Color de relleno de los puntos
+  bty = "n",            # Sin cuadro alrededor de la leyenda
+)
+
+
+# Save the plot as a PNG file
+ggsave(file.path(figures_dir, paste0("e_boxplot_", sector, "_m", ".png")), 
+       plot, width = 10, height = 6, dpi = 300)
+
+
+
+#........................
+# z
+#........................
+
+
+# Create the boxplot
+boxplot(
+  z_gdp ~ horizon, 
+  data = df_filtered, 
+  outline = FALSE,
+  main = "Boxplot of e_gdp by Horizon",
+  xlab = "h",
+  ylab = NA,
+  col = "#0079FF",
+  border = "#292929",
+  lwd = 3,            # Grosor del contorno de las cajas
+  outpch = 19,        # Forma para los outliers
+  outcol = "#292929"  # Color de los outliers
+)
+
+# Calculate group means
+means <- tapply(df_filtered$e_gdp, df_filtered$horizon, mean, na.rm = TRUE)
+
+# Add points for the means with a black border for the diamonds
+points(
+  x = 1:length(means), 
+  y = means, 
+  col = "black",       # Color for the border of the diamonds
+  pch = 16,            # Diamond shape
+  cex = 1.5,           # Size of the diamonds
+  bg = "white"         # Fill color (white) for the diamonds
+)
+
+# Add a legend for the mean
+legend(
+  "top", 
+  legend = "Media", 
+  pch = 16,            # Forma de los puntos
+  cex = 1.5,           # Tamaño de los puntos
+  bg = "white",         # Color de relleno de los puntos
+  bty = "n",            # Sin cuadro alrededor de la leyenda
+)
+
+
+# Save the plot as a PNG file
+ggsave(file.path(figures_dir, paste0("z_boxplot_", sector, "_m", ".png")), 
+       plot, width = 10, height = 6, dpi = 300)
+
+
+
+
+
+
 
 
