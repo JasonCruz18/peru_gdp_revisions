@@ -80,12 +80,30 @@ con <- dbConnect(RPostgres::Postgres(),
                  user = user,
                  password = password)
 
-# Fetch data from the selected table
-query <- "SELECT * FROM z_sectorial_gdp_monthly_panel"
-df <- dbGetQuery(con, query)
+# Fetch data from the first table
+query1 <- "SELECT * FROM e_sectorial_gdp_monthly_panel"
+df1 <- dbGetQuery(con, query1)
+
+# Fetch data from the second table
+query2 <- "SELECT * FROM z_sectorial_gdp_monthly_panel"
+df2 <- dbGetQuery(con, query2)
 
 # Close the database connection
 dbDisconnect(con)
+
+#*******************************************************************************
+# Data Merging
+#*******************************************************************************
+
+# Merge the two datasets loaded form PostgresSQL
+merged_df <- df1 %>%
+  full_join(df2, by = c("vintages_date", "horizon")) # Replace with actual common column names
+
+# Sort merged_df by “vintages_date” and “horizon”.
+merged_df <- merged_df %>%
+  arrange(vintages_date, horizon)
+
+cat("Datasets merged successfully. Rows in merged data frame:", nrow(merged_df), "\n")
 
 
 
@@ -112,26 +130,25 @@ tkwait.window(win)
 sector <- tclvalue(selected_sector)
 
 # Filter data to remove rows with missing values in key columns
-df <- df %>% 
+merged_df <- merged_df %>% 
   filter(!is.na(.data[[paste0("e_", sector)]]) & 
+           !is.na(.data[[paste0("z_", sector)]]) & 
            !is.na(horizon) & 
            !is.na(vintages_date))
 
-# Filter data by horizon values (< 20)
-df <- df %>% filter(horizon < 21)
+# Filter data by horizon values (< 13)
+merged_df <- merged_df %>% filter(horizon < 13)
 
 
 # Convert 'horizon' to a factor for categorical analysis
-df$horizon <- as.factor(df$horizon)
+merged_df$horizon <- as.factor(merged_df$horizon)
 
 # Further filter data for sector values within a specific range (-0.9 to 0.9)
-df_filtered <- df
-
-#df_filtered <- df %>%
-#  filter(.data[[paste0("e_", sector)]] >= -10 & .data[[paste0("e_", sector)]] <= 10)
+df_filtered <- merged_df
 
 # Display summary statistics of the filtered sector values
 summary(df_filtered[[paste0("e_", sector)]])
+summary(df_filtered[[paste0("z_", sector)]])
 
 
 
@@ -139,11 +156,11 @@ summary(df_filtered[[paste0("e_", sector)]])
 # Visualization
 #*******************************************************************************
 
-# Calcular la media para cada horizonte
-media_data <- df_filtered %>%
+# Calculate the mean for each horizon
+mean_data <- df_filtered %>%
   group_by(horizon = factor(horizon)) %>%
   summarize(
-    media_value = mean(.data[[paste0("e_", sector)]], na.rm = TRUE),
+    mean_value = mean(.data[[paste0("e_", sector)]], na.rm = TRUE),
     .groups = "drop"
   )
 
@@ -158,16 +175,16 @@ df_filtered <- df_filtered %>%
   )
 
 # Filtrar los datos para eliminar los outliers
-df_filtered_no_outliers <- df_filtered %>%
-  filter(
-    .data[[paste0("e_", sector)]] >= lower_bound & .data[[paste0("e_", sector)]] <= upper_bound
-  )
+#df_filtered_no_outliers <- df_filtered %>%
+#  filter(
+#    .data[[paste0("e_", sector)]] >= lower_bound & .data[[paste0("e_", sector)]] <= upper_bound
+#  )
 
 # Calcular el ancho de la caja para ajustar la línea de la mediana
 box_width <- 0.8  # Ancho de las cajas (ajustable según preferencias)
 
 # Crear el boxplot con ajuste automático del ancho de la mediana
-plot <- ggplot(df_filtered_no_outliers, aes(x = factor(horizon), y = .data[[paste0("e_", sector)]])) +
+plot <- ggplot(df_filtered, aes(x = factor(horizon), y = .data[[paste0("e_", sector)]])) +
   geom_boxplot(
     width = box_width,                                  # Ancho de las cajas
     color = "#222831",                                  # Color de los bordes y bigotes
@@ -179,12 +196,12 @@ plot <- ggplot(df_filtered_no_outliers, aes(x = factor(horizon), y = .data[[past
     outlier.stroke = 1.2                                # Grosor del borde de los outliers
   ) +
   geom_segment(
-    data = media_data,
+    data = mean_data,
     aes(
       x = as.numeric(horizon) - box_width / 2,          # Ajuste dinámico basado en el ancho
       xend = as.numeric(horizon) + box_width / 2,       # Ajuste dinámico basado en el ancho
-      y = media_value, 
-      yend = media_value,
+      y = mean_value, 
+      yend = mean_value,
       color = "Media"                                   # Mapeo estático para incluir en la leyenda
     ),
     linewidth = 1.8
@@ -228,9 +245,9 @@ df <- df %>% filter(horizon < 13)
 # Convert 'horizon' to a factor for categorical analysis
 df$horizon <- as.factor(df$horizon)
 
-value = c(df$z_gdp, df$z_agriculture)
+value = c(df_filtered$e_gdp, df_filtered$e_agriculture)
 
-boxplot(value + df$horizon, outline=FALSE)
+boxplot(value + df_filtered$horizon, outline=FALSE)
 
 
 # Crear un dataframe largo para combinar las dos variables
