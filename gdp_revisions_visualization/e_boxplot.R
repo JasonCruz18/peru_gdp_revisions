@@ -137,7 +137,7 @@ merged_df <- merged_df %>%
            !is.na(vintages_date))
 
 # Filter data by horizon values (< 13)
-merged_df <- merged_df %>% filter(horizon < 13)
+merged_df <- merged_df %>% filter(horizon < 11)
 
 
 # Convert 'horizon' to a factor for categorical analysis
@@ -152,14 +152,9 @@ summary(df_filtered[[paste0("z_", sector)]])
 
 
 
-#*******************************************************************************
-# Visualization
-#*******************************************************************************
-
 #........................
 # e
 #........................
-
 
 # Ruta para guardar el archivo
 output_file <- file.path(figures_dir, paste0("e_boxplot_", sector, "_m", ".png"))
@@ -167,20 +162,26 @@ output_file <- file.path(figures_dir, paste0("e_boxplot_", sector, "_m", ".png")
 # Abrir dispositivo gráfico PNG
 png(filename = output_file, width = 10, height = 6, units = "in", res = 300)
 
-# Create the boxplot
+
+# Create the boxplot without default axes
 boxplot(
   e_gdp ~ horizon, 
   data = df_filtered, 
   outline = FALSE,
-  main = "Boxplot of e_gdp by Horizon",
-  xlab = "h",
+  xlab = "Horizonte",
   ylab = NA,
   col = "#FF0060",
   border = "#292929",
-  lwd = 3,            # Grosor del contorno de las cajas
-  outpch = 19,        # Forma para los outliers
-  outcol = "#292929"  # Color de los outliers
+  lwd = 2.5,            # Grosor del contorno de las cajas
+  cex.axis = 2.4,       # Tamaño de la fuente de los ejes
+  cex.lab = 2.4,        # Tamaño de la fuente de las etiquetas de los ejes
+  axes = FALSE          # Elimina los ejes predeterminados
 )
+
+# Redibujar los ejes sin marcas (ticks)
+axis(1, lwd = 2.5, cex.axis = 2.4, tck = 0, at = 1:length(df_filtered$horizon), labels = df_filtered$horizon) # Eje X sin marcas
+axis(2, lwd = 2.5, cex.axis = 2.4, tck = 0) # Eje Y sin marcas
+box(lwd = 2.5) # Añade el contorno del gráfico
 
 # Calculate group means
 means <- tapply(df_filtered$e_gdp, df_filtered$horizon, mean, na.rm = TRUE)
@@ -189,21 +190,20 @@ means <- tapply(df_filtered$e_gdp, df_filtered$horizon, mean, na.rm = TRUE)
 points(
   x = 1:length(means), 
   y = means, 
-  col = "black",       # Color del borde de los puntos
-  pch = 16,            # Forma de los puntos
-  cex = 1.5,           # Tamaño de los puntos
-  bg = "white"         # Color de relleno de los puntos
+  col = "#FF0060",       # Color del borde de los puntos
+  pch = 21,            # Forma de los puntos
+  cex = 2,           # Tamaño de los puntos
+  bg = "#292929",         # Color de relleno de los puntos
+  lwd = 2.5
 )
 
 # Add a legend for the mean
-legend(
-  "bottomright", 
-  legend = "Media", 
-  pch = 16,            # Forma de los puntos
-  cex = 1.5,           # Tamaño de los puntos
-  bg = "white",         # Color de relleno de los puntos
-  bty = "n",            # Sin cuadro alrededor de la leyenda
-)
+legend('top', horiz=TRUE, cex=1,
+       c('Mean'),
+       pch = 21,           # Tamaño de los puntos
+       lwd = 2.5,
+       inset=c(-0.2,0), bty='o', bg=rgb(1,1,1,.55), xpd=NA)
+
 
 dev.off()
 
@@ -227,9 +227,9 @@ boxplot(
   ylab = NA,
   col = "#0079FF",
   border = "#292929",
-  lwd = 3,            # Grosor del contorno de las cajas
-  outpch = 19,        # Forma para los outliers
-  outcol = "#292929"  # Color de los outliers
+  lwd = 2.5,            # Grosor del contorno de las cajas
+  outpch = 19        # Forma para los outliers
+  #outcol = "#292929"  # Color de los outliers
 )
 
 # Calculate group means
@@ -239,7 +239,7 @@ means <- tapply(df_filtered$e_gdp, df_filtered$horizon, mean, na.rm = TRUE)
 points(
   x = 1:length(means), 
   y = means, 
-  col = "black",       # Color for the border of the diamonds
+  col = "#F6FA70",       # Color for the border of the diamonds
   pch = 16,            # Diamond shape
   cex = 1.5,           # Size of the diamonds
   bg = "white"         # Fill color (white) for the diamonds
@@ -247,7 +247,7 @@ points(
 
 # Add a legend for the mean
 legend(
-  "bottomright", 
+  "bottomleft", 
   legend = "Media", 
   pch = 16,            # Forma de los puntos
   cex = 1.5,           # Tamaño de los puntos
@@ -256,7 +256,83 @@ legend(
 )
 
 
-dev.off()
+#dev.off()
+
+
+
+
+
+
+
+
+
+
+
+
+library(ggplot2)
+
+# Ruta para guardar el archivo
+output_file <- file.path(figures_dir, paste0("e_boxplot_", sector, "_m", ".png"))
+
+# Calcular los límites del eje y excluyendo los outliers
+non_outlier_limits <- quantile(df_filtered$e_gdp, probs = c(0.05, 0.95), na.rm = TRUE)
+
+# Crear el gráfico y guardarlo como PNG
+ggplot(df_filtered, aes(x = as.factor(horizon), y = e_gdp)) +
+  geom_boxplot(
+    fill = "#FF0060", 
+    color = "#292929", 
+    size = 1.25,  # Grosor del contorno de las cajas
+    outlier.shape = NA,  # Eliminar outliers del gráfico
+    whisker.linetype = "dashed"  # Línea entrecortada para los bigotes
+  ) +
+  stat_summary(
+    fun = mean, 
+    geom = "point", 
+    shape = 21, 
+    size = 4, 
+    color = "#FF0060",  # Color del borde de los puntos
+    fill = "#292929",   # Color de relleno de los puntos
+    stroke = 1.25        # Grosor del borde de los puntos
+  ) +
+  scale_y_continuous(limits = c(non_outlier_limits[1] - 0.1 * diff(non_outlier_limits), 
+                                non_outlier_limits[2] + 0.1 * diff(non_outlier_limits))) +  # Escalar el eje y ajustando mejor las cajas
+  labs(
+    x = "Horizonte",
+    y = NULL
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.title.y = element_blank(),
+    panel.grid.major = element_line(color = "#E5E5E5"),
+    panel.grid.minor = element_blank(),
+    axis.text = element_text(color = "black"),
+    axis.title = element_text(color = "black"),
+    plot.title = element_text(hjust = 0.5)
+  ) +
+  ggtitle("Distribución de e_gdp por horizonte") +
+  geom_segment(
+    aes(x = as.numeric(as.factor(horizon)), xend = as.numeric(as.factor(horizon)), 
+        y = non_outlier_limits[1], yend = min(df_filtered$e_gdp, na.rm = TRUE)),
+    color = "#292929", linetype = "dashed", size = 0.75
+  ) +
+  geom_segment(
+    aes(x = as.numeric(as.factor(horizon)), xend = as.numeric(as.factor(horizon)), 
+        y = non_outlier_limits[2], yend = max(df_filtered$e_gdp, na.rm = TRUE)),
+    color = "#292929", linetype = "dashed", size = 0.75
+  ) +
+  geom_segment(
+    aes(x = as.numeric(as.factor(horizon)) - 0.15, xend = as.numeric(as.factor(horizon)) + 0.15, 
+        y = non_outlier_limits[1], yend = non_outlier_limits[1]),
+    color = "#292929", size = 0.75
+  ) +
+  geom_segment(
+    aes(x = as.numeric(as.factor(horizon)) - 0.15, xend = as.numeric(as.factor(horizon)) + 0.15, 
+        y = non_outlier_limits[2], yend = non_outlier_limits[2]),
+    color = "#292929", size = 0.75
+  )
+
+#ggsave(output_file, width = 10, height = 6, dpi = 300)
 
 
 
