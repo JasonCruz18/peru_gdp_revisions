@@ -153,62 +153,6 @@ summary(df_filtered[[paste0("z_", sector)]])
 
 
 #........................
-# e
-#........................
-
-# Ruta para guardar el archivo
-output_file <- file.path(figures_dir, paste0("e_boxplot_", sector, "_m", ".png"))
-
-# Abrir dispositivo gráfico PNG
-png(filename = output_file, width = 10, height = 6, units = "in", res = 300)
-
-
-# Create the boxplot without default axes
-boxplot(
-  e_gdp ~ horizon, 
-  data = df_filtered, 
-  outline = FALSE,
-  xlab = NA,
-  ylab = NA,
-  col = "#FF0060",
-  border = "#292929",
-  lwd = 3.0,            # Grosor del contorno de las cajas
-  cex.axis = 2.0,       # Tamaño de la fuente de los ejes
-  cex.lab = 2.0        # Tamaño de la fuente de las etiquetas de los ejes
-)
-
-
-# Calculate group means
-means <- tapply(df_filtered$e_gdp, df_filtered$horizon, mean, na.rm = TRUE)
-
-# Add points for the means with a black border for the diamonds
-points(
-  x = 1:length(means), 
-  y = means, 
-  col = "black",       # Color del borde de los puntos
-  pch = 21,            # Forma de los puntos
-  cex = 2.0,           # Tamaño de los puntos
-  bg = rgb(255, 0, 96, maxColorValue = 255, alpha = 170),  # Color de relleno con 50% de transparencia
-  lwd = 3.0
-)
-
-# Add a legend for the mean
-legend("bottomright",
-       legend = "Media", 
-       col = "black",
-       pch = 21,            # Forma de los puntos
-       pt.cex = 2.0,        # Tamaño de bola
-       cex = 2.0,
-       pt.bg = rgb(255, 0, 96, maxColorValue = 255, alpha = 170),  # Color de relleno con 50% de transparencia
-       text.col = "black",# Color del texto
-       horiz=TRUE,
-       bty="n",
-       pt.lwd = 3.0            # Grosor del contorno de los puntos
-)
-
-dev.off()
-
-#........................
 # z
 #........................
 
@@ -241,28 +185,87 @@ means <- tapply(df_filtered$e_gdp, df_filtered$horizon, mean, na.rm = TRUE)
 points(
   x = 1:length(means), 
   y = means, 
-  col = "black",       # Color del borde de los puntos
+  col = "#0079FF",       # Color del borde de los puntos
   pch = 21,            # Forma de los puntos
   cex = 2.0,           # Tamaño de los puntos
-  bg = rgb(0, 121, 255, maxColorValue = 255, alpha = 170),  # Color de relleno con 50% de transparencia
-  lwd = 3.0
+  bg = "black",  # Color de relleno con 50% de transparencia
+  lwd = 1.5
 )
 
 # Add a legend for the mean
 legend("bottomleft",
        legend = "Media", 
-       col = "black",
+       col = "#0079FF",
        pch = 21,            # Forma de los puntos
        pt.cex = 2.0,        # Tamaño de bola
        cex = 2.0,
-       pt.bg = rgb(0, 121, 255, maxColorValue = 255, alpha = 170),  # Color de relleno con 50% de transparencia
+       pt.bg = "black",  # Color de relleno con 50% de transparencia
        text.col = "black",# Color del texto
        horiz=TRUE,
        bty="n",
-       pt.lwd = 3.0            # Grosor del contorno de los puntos
+       pt.lwd = 1.5            # Grosor del contorno de los puntos
 )
 
 dev.off()
+
+
+
+#........................
+# e
+#........................
+
+# Ruta para guardar el archivo
+output_file <- file.path(figures_dir, paste0("e_boxplot_", sector, "_m", ".png"))
+
+# Abrir dispositivo gráfico PNG
+png(filename = output_file, width = 10, height = 6, units = "in", res = 300)
+
+# Create the boxplot without default axes
+boxplot(
+  e_gdp ~ horizon, 
+  data = df_filtered, 
+  outline = FALSE,
+  xlab = NA,
+  ylab = NA,
+  col = "#FF0060",
+  border = "#292929",
+  lwd = 3.0,            # Grosor del contorno de las cajas
+  cex.axis = 2.0,       # Tamaño de la fuente de los ejes
+  cex.lab = 2.0        # Tamaño de la fuente de las etiquetas de los ejes
+)
+
+
+# Calculate group means
+means <- tapply(df_filtered$e_gdp, df_filtered$horizon, mean, na.rm = TRUE)
+
+# Add points for the means with a black border for the diamonds
+points(
+  x = 1:length(means), 
+  y = means, 
+  col = "#FF0060",       # Color del borde de los puntos
+  pch = 21,            # Forma de los puntos
+  cex = 2.0,           # Tamaño de los puntos
+  bg = "black",  # Color de relleno con 50% de transparencia
+  lwd = 1.5
+)
+
+# Add a legend for the mean
+legend("bottomright",
+       legend = "Media", 
+       col = "#FF0060",
+       pch = 21,            # Forma de los puntos
+       pt.cex = 2.0,        # Tamaño de bola
+       cex = 2.0,
+       pt.bg = "black",  # Color de relleno con 50% de transparencia
+       text.col = "black",# Color del texto
+       horiz=TRUE,
+       bty="n",
+       pt.lwd = 1.5            # Grosor del contorno de los puntos
+)
+
+dev.off()
+
+
 
 
 
