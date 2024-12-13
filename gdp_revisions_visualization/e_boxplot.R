@@ -168,20 +168,15 @@ boxplot(
   e_gdp ~ horizon, 
   data = df_filtered, 
   outline = FALSE,
-  xlab = "Horizonte",
+  xlab = NA,
   ylab = NA,
   col = "#FF0060",
   border = "#292929",
-  lwd = 2.5,            # Grosor del contorno de las cajas
-  cex.axis = 2.4,       # Tamaño de la fuente de los ejes
-  cex.lab = 2.4,        # Tamaño de la fuente de las etiquetas de los ejes
-  axes = FALSE          # Elimina los ejes predeterminados
+  lwd = 3.0,            # Grosor del contorno de las cajas
+  cex.axis = 2.0,       # Tamaño de la fuente de los ejes
+  cex.lab = 2.0        # Tamaño de la fuente de las etiquetas de los ejes
 )
 
-# Redibujar los ejes sin marcas (ticks)
-axis(1, lwd = 2.5, cex.axis = 2.4, tck = 0, at = 1:length(df_filtered$horizon), labels = df_filtered$horizon) # Eje X sin marcas
-axis(2, lwd = 2.5, cex.axis = 2.4, tck = 0) # Eje Y sin marcas
-box(lwd = 2.5) # Añade el contorno del gráfico
 
 # Calculate group means
 means <- tapply(df_filtered$e_gdp, df_filtered$horizon, mean, na.rm = TRUE)
@@ -190,18 +185,26 @@ means <- tapply(df_filtered$e_gdp, df_filtered$horizon, mean, na.rm = TRUE)
 points(
   x = 1:length(means), 
   y = means, 
-  col = "#FF0060",       # Color del borde de los puntos
+  col = "black",       # Color del borde de los puntos
   pch = 21,            # Forma de los puntos
-  cex = 2,           # Tamaño de los puntos
-  bg = "#292929",         # Color de relleno de los puntos
-  lwd = 2.5
+  cex = 2.0,           # Tamaño de los puntos
+  bg = rgb(255, 0, 96, maxColorValue = 255, alpha = 170),  # Color de relleno con 50% de transparencia
+  lwd = 3.0
 )
 
 # Add a legend for the mean
-legend("bottomright", c("group A", "group B"), pch=c(1,2), lty=c(1,2),
-       inset=c(0,1), xpd=TRUE, horiz=TRUE, bty="n"
+legend("bottomright",
+       legend = "Media", 
+       col = "black",
+       pch = 21,            # Forma de los puntos
+       pt.cex = 2.0,        # Tamaño de bola
+       cex = 2.0,
+       pt.bg = rgb(255, 0, 96, maxColorValue = 255, alpha = 170),  # Color de relleno con 50% de transparencia
+       text.col = "black",# Color del texto
+       horiz=TRUE,
+       bty="n",
+       pt.lwd = 3.0            # Grosor del contorno de los puntos
 )
-
 
 dev.off()
 
@@ -216,9 +219,6 @@ output_file <- file.path(figures_dir, paste0("z_boxplot_", sector, "_m", ".png")
 png(filename = output_file, width = 10, height = 6, units = "in", res = 300)
 
 
-# Ajustar los márgenes para agregar espacio inferior
-par(mar = c(8, 4, 4, 2))  # bottom, left, top, right
-
 # Create the boxplot without default axes
 boxplot(
   z_gdp ~ horizon, 
@@ -226,18 +226,13 @@ boxplot(
   outline = FALSE,
   xlab = NA,
   ylab = NA,
-  col = "#1F83FF",
+  col = "#0079FF",
   border = "#292929",
-  lwd = 2.5,            # Grosor del contorno de las cajas
-  cex.axis = 2.4,       # Tamaño de la fuente de los ejes
-  cex.lab = 2.4,        # Tamaño de la fuente de las etiquetas de los ejes
-  axes = FALSE          # Elimina los ejes predeterminados
+  lwd = 3.0,            # Grosor del contorno de las cajas
+  cex.axis = 2.0,       # Tamaño de la fuente de los ejes
+  cex.lab = 2.0        # Tamaño de la fuente de las etiquetas de los ejes
 )
 
-# Redibujar los ejes sin marcas (ticks)
-axis(1, lwd = 2.5, cex.axis = 2.4, tck = 0, at = 1:length(df_filtered$horizon), labels = df_filtered$horizon) # Eje X sin marcas
-axis(2, lwd = 2.5, cex.axis = 2.4, tck = 0) # Eje Y sin marcas
-box(lwd = 2.5) # Añade el contorno del gráfico
 
 # Calculate group means
 means <- tapply(df_filtered$e_gdp, df_filtered$horizon, mean, na.rm = TRUE)
@@ -246,30 +241,34 @@ means <- tapply(df_filtered$e_gdp, df_filtered$horizon, mean, na.rm = TRUE)
 points(
   x = 1:length(means), 
   y = means, 
-  col = "#1F83FF",       # Color del borde de los puntos
+  col = "black",       # Color del borde de los puntos
   pch = 21,            # Forma de los puntos
-  cex = 2.4,           # Tamaño de los puntos
-  bg = "#292929",         # Color de relleno de los puntos
-  lwd = 2.5
+  cex = 2.0,           # Tamaño de los puntos
+  bg = rgb(0, 121, 255, maxColorValue = 255, alpha = 170),  # Color de relleno con 50% de transparencia
+  lwd = 3.0
 )
 
 # Add a legend for the mean
-legend("bottom",
+legend("bottomleft",
        legend = "Media", 
+       col = "black",
        pch = 21,            # Forma de los puntos
-       pt.cex = 2.4,        # Tamaño del texto en la leyenda
-       cex = 2.2,
-       pt.bg = "#1F83FF",    # Color de relleno de los puntos
-       box.col = "#292929", # Color del contorno del cuadro
-       text.col = "#292929",# Color del texto
-       xpd=TRUE,
+       pt.cex = 2.0,        # Tamaño de bola
+       cex = 2.0,
+       pt.bg = rgb(0, 121, 255, maxColorValue = 255, alpha = 170),  # Color de relleno con 50% de transparencia
+       text.col = "black",# Color del texto
        horiz=TRUE,
-       bty="o",
-       box.lwd = 2,
-       inset=c(-0.42,-0.42)  # Ajuste la leyenda fuera del gráfico
+       bty="n",
+       pt.lwd = 3.0            # Grosor del contorno de los puntos
 )
 
 dev.off()
+
+
+
+
+
+
 
 
 
