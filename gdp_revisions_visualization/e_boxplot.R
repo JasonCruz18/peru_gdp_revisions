@@ -1,5 +1,5 @@
 #*******************************************************************************
-# Boxplots: Backast Errors by Horizon by Pooling Fixed-Event Forecasts
+# Boxplots: Backcast Errors by Horizon by Pooling Fixed-Event Forecasts
 #*******************************************************************************
 
 #-------------------------------------------------------------------------------
@@ -9,8 +9,6 @@
 # + First Created: 11/10/24
 # + Last Updated: 11/--/24
 #-------------------------------------------------------------------------------
-
-
 
 #*******************************************************************************
 # Libraries
@@ -25,29 +23,14 @@ library(dplyr)        # For data manipulation and transformation
 library(tidyr)        # For reshaping data
 library(sandwich)     # For robust standard errors
 library(lmtest)       # For hypothesis testing
-library(tcltk)        # For creating GUI elements
-library(scales)       # Format number
-
-
+library(scales)       # For formatting numbers
 
 #*******************************************************************************
 # Initial Setup
 #*******************************************************************************
 
-# Use a dialog box to select the folder
-if (requireNamespace("rstudioapi", quietly = TRUE)) {
-  user_path <- rstudioapi::selectDirectory()
-  if (!is.null(user_path)) {
-    setwd(user_path)
-    cat("The working directory has been set to:", getwd(), "\n")
-  } else {
-    cat("No folder was selected.\n")
-  }
-} else {
-  cat("Install the 'rstudioapi' package to use this functionality.\n")
-}
-
 # Define output directories
+user_path <- getwd() # Set the current working directory
 output_dir <- file.path(user_path, "output")
 figures_dir <- file.path(output_dir, "figures")
 tables_dir <- file.path(output_dir, "tables")
@@ -58,8 +41,6 @@ if (!dir.exists(figures_dir)) dir.create(figures_dir, recursive = TRUE)
 if (!dir.exists(tables_dir)) dir.create(tables_dir, recursive = TRUE)
 
 cat("Directories created successfully in:", user_path, "\n")
-
-
 
 #*******************************************************************************
 # Database Connection
@@ -95,184 +76,102 @@ dbDisconnect(con)
 # Data Merging
 #*******************************************************************************
 
-# Merge the two datasets loaded form PostgresSQL
+# Merge the two datasets loaded from PostgreSQL
 merged_df <- df1 %>%
   full_join(df2, by = c("vintages_date", "horizon")) # Replace with actual common column names
 
-# Sort merged_df by “vintages_date” and “horizon”.
+# Sort merged_df by "vintages_date" and "horizon"
 merged_df <- merged_df %>%
   arrange(vintages_date, horizon)
 
 cat("Datasets merged successfully. Rows in merged data frame:", nrow(merged_df), "\n")
 
-
-
 #*******************************************************************************
 # Data Preparation
 #*******************************************************************************
 
-# Prompt the user to select a sector via a GUI
+# Define the sectors to iterate over
 sectors <- c("gdp", "agriculture", "fishing", "mining", "manufacturing", 
              "construction", "commerce", "electricity", "services")
 
-selected_sector <- tclVar("gdp")  # Default sector value
-
-# Create a selection window
-win <- tktoplevel()
-tklabel(win, text = "Select a sector:") %>% tkpack()
-dropdown <- ttkcombobox(win, values = sectors, textvariable = selected_sector) %>% tkpack()
-tkbutton(win, text = "OK", command = function() tkdestroy(win)) %>% tkpack()
-
-# Wait for the user to make a selection
-tkwait.window(win)
-
-# Retrieve the selected sector
-sector <- tclvalue(selected_sector)
-
 # Filter data to remove rows with missing values in key columns
 merged_df <- merged_df %>% 
-  filter(!is.na(.data[[paste0("e_", sector)]]) & 
-           !is.na(.data[[paste0("z_", sector)]]) & 
-           !is.na(horizon) & 
-           !is.na(vintages_date))
+  filter(!is.na(horizon) & !is.na(vintages_date))
 
 # Filter data by horizon values (< 13)
 merged_df <- merged_df %>% filter(horizon < 11)
 
-
 # Convert 'horizon' to a factor for categorical analysis
 merged_df$horizon <- as.factor(merged_df$horizon)
 
-# Further filter data for sector values within a specific range (-0.9 to 0.9)
-df_filtered <- merged_df
+#*******************************************************************************
+# Plotting Function
+#*******************************************************************************
 
-# Display summary statistics of the filtered sector values
-summary(df_filtered[[paste0("e_", sector)]])
-summary(df_filtered[[paste0("z_", sector)]])
+# Function to create boxplots for e and z variables
+generate_boxplot <- function(data, variable, color, legend_position, sector, figures_dir) {
+  # Path to save the plot
+  output_file <- file.path(figures_dir, paste0(variable, "_boxplot_", sector, "_m", ".png"))
+  
+  # Open PNG device
+  png(filename = output_file, width = 10, height = 6, units = "in", res = 300)
+  
+  # Create the boxplot without default axes
+  boxplot(
+    formula = as.formula(paste0(variable, "_", sector, " ~ horizon")), 
+    data = data, 
+    outline = FALSE,
+    xlab = NA,
+    ylab = NA,
+    col = color,
+    border = "#292929",
+    lwd = 3.0,            # Box contour thickness
+    cex.axis = 2.0,       # Axis font size
+    cex.lab = 2.0         # Label font size
+  )
+  
+  # Calculate group means
+  means <- tapply(data[[paste0(variable, "_", sector)]], data$horizon, mean, na.rm = TRUE)
+  
+  # Add points for the means with a black border for the diamonds
+  points(
+    x = 3:length(means), 
+    y = means, 
+    col = color,         # Border color of points
+    pch = 21,            # Shape of points
+    cex = 2.0,           # Point size
+    bg = "black",       # Fill color with 50% transparency
+    lwd = 1.5
+  )
+  
+  # Add a legend for the mean
+  legend(legend_position,
+         legend = "Mean", 
+         col = color,
+         pch = 21,            # Shape of points
+         pt.cex = 2.0,        # Point size
+         cex = 2.0,
+         pt.bg = "black",    # Fill color with 50% transparency
+         text.col = "black", # Text color
+         horiz = TRUE,
+         bty = "n",
+         pt.lwd = 1.5         # Contour thickness of points
+  )
+  
+  # Close PNG device
+  dev.off()
+}
 
+#*******************************************************************************
+# Generate Plots for e and z for All Sectors
+#*******************************************************************************
 
-
-#........................
-# z
-#........................
-
-# Ruta para guardar el archivo
-output_file <- file.path(figures_dir, paste0("z_boxplot_", sector, "_m", ".png"))
-
-# Abrir dispositivo gráfico PNG
-png(filename = output_file, width = 10, height = 6, units = "in", res = 300)
-
-
-# Create the boxplot without default axes
-boxplot(
-  z_gdp ~ horizon, 
-  data = df_filtered, 
-  outline = FALSE,
-  xlab = NA,
-  ylab = NA,
-  col = "#0079FF",
-  border = "#292929",
-  lwd = 3.0,            # Grosor del contorno de las cajas
-  cex.axis = 2.0,       # Tamaño de la fuente de los ejes
-  cex.lab = 2.0        # Tamaño de la fuente de las etiquetas de los ejes
-)
-
-
-# Calculate group means
-means <- tapply(df_filtered$e_gdp, df_filtered$horizon, mean, na.rm = TRUE)
-
-# Add points for the means with a black border for the diamonds
-points(
-  x = 1:length(means), 
-  y = means, 
-  col = "#0079FF",       # Color del borde de los puntos
-  pch = 21,            # Forma de los puntos
-  cex = 2.0,           # Tamaño de los puntos
-  bg = "black",  # Color de relleno con 50% de transparencia
-  lwd = 1.5
-)
-
-# Add a legend for the mean
-legend("bottomleft",
-       legend = "Media", 
-       col = "#0079FF",
-       pch = 21,            # Forma de los puntos
-       pt.cex = 2.0,        # Tamaño de bola
-       cex = 2.0,
-       pt.bg = "black",  # Color de relleno con 50% de transparencia
-       text.col = "black",# Color del texto
-       horiz=TRUE,
-       bty="n",
-       pt.lwd = 1.5            # Grosor del contorno de los puntos
-)
-
-dev.off()
-
-
-
-#........................
-# e
-#........................
-
-# Ruta para guardar el archivo
-output_file <- file.path(figures_dir, paste0("e_boxplot_", sector, "_m", ".png"))
-
-# Abrir dispositivo gráfico PNG
-png(filename = output_file, width = 10, height = 6, units = "in", res = 300)
-
-# Create the boxplot without default axes
-boxplot(
-  e_gdp ~ horizon, 
-  data = df_filtered, 
-  outline = FALSE,
-  xlab = NA,
-  ylab = NA,
-  col = "#FF0060",
-  border = "#292929",
-  lwd = 3.0,            # Grosor del contorno de las cajas
-  cex.axis = 2.0,       # Tamaño de la fuente de los ejes
-  cex.lab = 2.0        # Tamaño de la fuente de las etiquetas de los ejes
-)
-
-
-# Calculate group means
-means <- tapply(df_filtered$e_gdp, df_filtered$horizon, mean, na.rm = TRUE)
-
-# Add points for the means with a black border for the diamonds
-points(
-  x = 1:length(means), 
-  y = means, 
-  col = "#FF0060",       # Color del borde de los puntos
-  pch = 21,            # Forma de los puntos
-  cex = 2.0,           # Tamaño de los puntos
-  bg = "black",  # Color de relleno con 50% de transparencia
-  lwd = 1.5
-)
-
-# Add a legend for the mean
-legend("bottomright",
-       legend = "Media", 
-       col = "#FF0060",
-       pch = 21,            # Forma de los puntos
-       pt.cex = 2.0,        # Tamaño de bola
-       cex = 2.0,
-       pt.bg = "black",  # Color de relleno con 50% de transparencia
-       text.col = "black",# Color del texto
-       horiz=TRUE,
-       bty="n",
-       pt.lwd = 1.5            # Grosor del contorno de los puntos
-)
-
-dev.off()
-
-
-
-
-
-
-
-
-
-
-
-
+for (sector in sectors) {
+  # Filter data for the current sector
+  df_filtered <- merged_df %>% 
+    filter(!is.na(.data[[paste0("e_", sector)]]) & !is.na(.data[[paste0("z_", sector)]]))
+  
+  # Generate plots for z (legend at bottomleft) and e (legend at bottomright)
+  generate_boxplot(df_filtered, "z", "#0079FF", "bottomleft", sector, figures_dir)  # Plot for z
+  generate_boxplot(df_filtered, "e", "#FF0060", "bottomright", sector, figures_dir)  # Plot for e
+}
