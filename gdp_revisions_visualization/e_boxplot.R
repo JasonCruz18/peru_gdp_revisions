@@ -10,6 +10,8 @@
 # + Last Updated: 11/--/24
 #-------------------------------------------------------------------------------
 
+
+
 #*******************************************************************************
 # Libraries
 #*******************************************************************************
@@ -25,6 +27,8 @@ library(sandwich)     # For robust standard errors
 library(lmtest)       # For hypothesis testing
 library(scales)       # For formatting numbers
 library(tcltk)        # For folder selection dialog
+
+
 
 #*******************************************************************************
 # Initial Setup
@@ -87,6 +91,8 @@ df2 <- dbGetQuery(con, query2)
 # Close the database connection
 dbDisconnect(con)
 
+
+
 #*******************************************************************************
 # Data Merging
 #*******************************************************************************
@@ -100,6 +106,8 @@ merged_df <- merged_df %>%
   arrange(vintages_date, horizon)
 
 cat("Datasets merged successfully. Rows in merged data frame:", nrow(merged_df), "\n")
+
+
 
 #*******************************************************************************
 # Data Preparation
@@ -118,6 +126,8 @@ merged_df <- merged_df %>% filter(horizon > 2 & horizon < 11)
 
 # Convert 'horizon' to a factor for categorical analysis
 merged_df$horizon <- as.factor(merged_df$horizon)
+
+
 
 #*******************************************************************************
 # Plotting Function
@@ -148,7 +158,7 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, fig
   
   # Add y-axis with default ticks and formatted labels
   y_ticks <- axTicks(2) # Get default tick positions for y-axis
-  axis(2, at = y_ticks, labels = format(y_ticks, nsmall = 1), cex.axis = 2.0)
+  axis(2, at = y_ticks, labels = format(y_ticks, nsmall = 1), cex.axis = 1.0, las=0)
   
   # Calculate group means
   means <- tapply(data[[paste0(variable, "_", sector)]], data$horizon, mean, na.rm = TRUE)
@@ -181,6 +191,8 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, fig
   # Close PNG device
   dev.off()
 }
+
+
 
 #*******************************************************************************
 # Generate Plots for e and z for All Sectors
