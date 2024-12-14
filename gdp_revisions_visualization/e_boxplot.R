@@ -158,7 +158,7 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, fig
   
   # Add y-axis with default ticks and formatted labels
   y_ticks <- axTicks(2) # Get default tick positions for y-axis
-  axis(2, at = y_ticks, labels = format(y_ticks, nsmall = 1), cex.axis = 1.0, las=0)
+  axis(2, at = y_ticks, labels = sprintf("%.1f", y_ticks), cex.axis = 1.0, las=0)
   
   # Calculate group means
   means <- tapply(data[[paste0(variable, "_", sector)]], data$horizon, mean, na.rm = TRUE)
