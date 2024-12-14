@@ -36,21 +36,22 @@ library(tcltk)        # For folder selection dialog
 
 # Use a dialog box to select the folder
 if (requireNamespace("rstudioapi", quietly = TRUE)) {
-  user_path <- rstudioapi::selectDirectory()
+  # Check if rstudioapi is available for folder selection
+  user_path <- rstudioapi::selectDirectory() # Open directory selection dialog
   if (!is.null(user_path)) {
-    setwd(user_path)
+    setwd(user_path)  # Set the working directory to the selected folder
     cat("The working directory has been set to:", getwd(), "\n")
   } else {
-    cat("No folder was selected.\n")
+    cat("No folder was selected.\n")  # If no folder was selected
   }
 } else {
-  cat("Install the 'rstudioapi' package to use this functionality.\n")
+  cat("Install the 'rstudioapi' package to use this functionality.\n")  # If rstudioapi is not installed
 }
 
 # Define output directories
-output_dir <- file.path(user_path, "output")
-figures_dir <- file.path(output_dir, "figures")
-tables_dir <- file.path(output_dir, "tables")
+output_dir <- file.path(user_path, "output")  # Main output directory
+figures_dir <- file.path(output_dir, "figures")  # Directory for figures
+tables_dir <- file.path(output_dir, "tables")  # Directory for tables
 
 # Create output directories if they do not exist
 if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
@@ -66,11 +67,11 @@ cat("Directories created successfully in:", user_path, "\n")
 #*******************************************************************************
 
 # Retrieve database credentials from environment variables
-user <- Sys.getenv("CIUP_SQL_USER")
-password <- Sys.getenv("CIUP_SQL_PASS")
-host <- Sys.getenv("CIUP_SQL_HOST")
-port <- 5432
-database <- "gdp_revisions_datasets"
+user <- Sys.getenv("CIUP_SQL_USER")  # PostgreSQL username
+password <- Sys.getenv("CIUP_SQL_PASS")  # PostgreSQL password
+host <- Sys.getenv("CIUP_SQL_HOST")  # Host of the PostgreSQL server
+port <- 5432  # Default PostgreSQL port
+database <- "gdp_revisions_datasets"  # Database name
 
 # Connect to PostgreSQL database
 con <- dbConnect(RPostgres::Postgres(),
@@ -97,9 +98,9 @@ dbDisconnect(con)
 # Data Merging
 #*******************************************************************************
 
-# Merge the two datasets loaded from PostgreSQL
+# Merge the two datasets loaded from PostgreSQL using a full join
 merged_df <- df1 %>%
-  full_join(df2, by = c("vintages_date", "horizon")) # Replace with actual common column names
+  full_join(df2, by = c("vintages_date", "horizon"))  # Replace with actual common column names
 
 # Sort merged_df by "vintages_date" and "horizon"
 merged_df <- merged_df %>%
@@ -113,7 +114,7 @@ cat("Datasets merged successfully. Rows in merged data frame:", nrow(merged_df),
 # Data Preparation
 #*******************************************************************************
 
-# Define the sectors to iterate over
+# Define the sectors to iterate over for plotting
 sectors <- c("gdp", "agriculture", "fishing", "mining", "manufacturing", 
              "construction", "commerce", "electricity", "services")
 
@@ -121,10 +122,10 @@ sectors <- c("gdp", "agriculture", "fishing", "mining", "manufacturing",
 merged_df <- merged_df %>% 
   filter(!is.na(horizon) & !is.na(vintages_date))
 
-# Filter data by horizon values (>2 &< 11)
+# Filter data by horizon values (>2 &< 11) for relevant analysis
 merged_df <- merged_df %>% filter(horizon > 2 & horizon < 11)
 
-# Convert 'horizon' to a factor for categorical analysis
+# Convert 'horizon' to a factor for categorical analysis in the plots
 merged_df$horizon <- as.factor(merged_df$horizon)
 
 
@@ -138,9 +139,12 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, fig
   # Path to save the plot
   output_file <- file.path(figures_dir, paste0(variable, "_boxplot_", sector, "_m", ".png"))
   
-  # Open PNG device
+  # Open PNG device to save the plot with specified size and resolution
   png(filename = output_file, width = 10, height = 6, units = "in", res = 300)
-
+  
+  # Set the background to transparent
+  par(bg = "transparent")
+  
   # Create the boxplot with custom y-axis labels always showing one decimal
   boxplot(
     formula = as.formula(paste0(variable, "_", sector, " ~ horizon")), 
@@ -149,18 +153,18 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, fig
     xlab = NA,
     ylab = NA,
     col = color,
-    border = "#292929",
-    lwd = 3.0,            # Box contour thickness
-    cex.axis = 2.0,       # Axis font size
-    cex.lab = 2.0,        # Label font size
-    yaxt = "n"            # Suppress default y-axis
+    border = "#292929",  # Color for the border of the boxes
+    lwd = 3.0,           # Box contour thickness
+    cex.axis = 2.0,      # Axis font size
+    cex.lab = 2.0,       # Label font size
+    yaxt = "n"           # Suppress default y-axis to add custom ticks
   )
-  
-  # Add y-axis with default ticks and formatted labels
-  y_ticks <- axTicks(2) # Get default tick positions for y-axis
+
+  # Add y-axis with default ticks and formatted labels (1 decimal place)
+  y_ticks <- axTicks(2)  # Get default tick positions for y-axis
   axis(2, at = y_ticks, labels = sprintf("%.1f", y_ticks), cex.axis = 1.0, las=0)
   
-  # Calculate group means
+  # Calculate group means for each horizon
   means <- tapply(data[[paste0(variable, "_", sector)]], data$horizon, mean, na.rm = TRUE)
   
   # Add points for the means with a black border for the diamonds
@@ -168,9 +172,9 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, fig
     x = 1:length(means), 
     y = means, 
     col = color,         # Border color of points
-    pch = 21,            # Shape of points
+    pch = 21,            # Shape of points (diamonds)
     cex = 2.0,           # Point size
-    bg = "black",       # Fill color with 50% transparency
+    bg = "black",        # Fill color with 50% transparency
     lwd = 2.0
   )
   
@@ -178,17 +182,17 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, fig
   legend(legend_position,
          legend = "Media", 
          col = color,
-         pch = 21,            # Shape of points
+         pch = 21,            # Shape of points (diamonds)
          pt.cex = 2.0,        # Point size
          cex = 2.0,
-         pt.bg = "black",    # Fill color with 50% transparency
-         text.col = "black", # Text color
-         horiz = TRUE,
-         bty = "n",
-         pt.lwd = 2.0         # Contour thickness of points
+         pt.bg = "black",     # Fill color with 50% transparency
+         text.col = "black",  # Text color for the legend
+         horiz = TRUE,        # Horizontal legend layout
+         bty = "n",           # No box around the legend
+         pt.lwd = 2.0         # Contour thickness of points in the legend
   )
   
-  # Close PNG device
+  # Close PNG device to save the plot
   dev.off()
 }
 
@@ -198,6 +202,7 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, fig
 # Generate Plots for e and z for All Sectors
 #*******************************************************************************
 
+# Loop through each sector and generate boxplots for e and z variables
 for (sector in sectors) {
   # Filter data for the current sector
   df_filtered <- merged_df %>% 
