@@ -113,8 +113,8 @@ sectors <- c("gdp", "agriculture", "fishing", "mining", "manufacturing",
 merged_df <- merged_df %>% 
   filter(!is.na(horizon) & !is.na(vintages_date))
 
-# Filter data by horizon values (< 13)
-merged_df <- merged_df %>% filter(horizon < 11)
+# Filter data by horizon values (>2 &< 11)
+merged_df <- merged_df %>% filter(horizon > 2 & horizon < 11)
 
 # Convert 'horizon' to a factor for categorical analysis
 merged_df$horizon <- as.factor(merged_df$horizon)
@@ -130,8 +130,8 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, fig
   
   # Open PNG device
   png(filename = output_file, width = 10, height = 6, units = "in", res = 300)
-  
-  # Create the boxplot without default axes
+
+  # Create the boxplot with custom y-axis labels always showing one decimal
   boxplot(
     formula = as.formula(paste0(variable, "_", sector, " ~ horizon")), 
     data = data, 
@@ -142,8 +142,13 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, fig
     border = "#292929",
     lwd = 3.0,            # Box contour thickness
     cex.axis = 2.0,       # Axis font size
-    cex.lab = 2.0         # Label font size
+    cex.lab = 2.0,        # Label font size
+    yaxt = "n"            # Suppress default y-axis
   )
+  
+  # Add y-axis with default ticks and formatted labels
+  y_ticks <- axTicks(2) # Get default tick positions for y-axis
+  axis(2, at = y_ticks, labels = format(y_ticks, nsmall = 1), cex.axis = 2.0)
   
   # Calculate group means
   means <- tapply(data[[paste0(variable, "_", sector)]], data$horizon, mean, na.rm = TRUE)
@@ -156,12 +161,12 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, fig
     pch = 21,            # Shape of points
     cex = 2.0,           # Point size
     bg = "black",       # Fill color with 50% transparency
-    lwd = 1.5
+    lwd = 2.0
   )
   
   # Add a legend for the mean
   legend(legend_position,
-         legend = "Mean", 
+         legend = "Media", 
          col = color,
          pch = 21,            # Shape of points
          pt.cex = 2.0,        # Point size
@@ -170,7 +175,7 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, fig
          text.col = "black", # Text color
          horiz = TRUE,
          bty = "n",
-         pt.lwd = 1.5         # Contour thickness of points
+         pt.lwd = 2.0         # Contour thickness of points
   )
   
   # Close PNG device
@@ -189,5 +194,6 @@ for (sector in sectors) {
   # Generate plots for z (legend at bottomleft) and e (legend at bottomright)
   generate_boxplot(df_filtered, "z", "#0079FF", "bottomleft", sector, figures_dir)  # Plot for z
   generate_boxplot(df_filtered, "e", "#FF0060", "bottomright", sector, figures_dir)  # Plot for e
-}
+}     
 
+   
