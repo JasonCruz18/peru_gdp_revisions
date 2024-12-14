@@ -24,13 +24,26 @@ library(tidyr)        # For reshaping data
 library(sandwich)     # For robust standard errors
 library(lmtest)       # For hypothesis testing
 library(scales)       # For formatting numbers
+library(tcltk)        # For folder selection dialog
 
 #*******************************************************************************
 # Initial Setup
 #*******************************************************************************
 
+# Use a dialog box to select the folder
+if (requireNamespace("rstudioapi", quietly = TRUE)) {
+  user_path <- rstudioapi::selectDirectory()
+  if (!is.null(user_path)) {
+    setwd(user_path)
+    cat("The working directory has been set to:", getwd(), "\n")
+  } else {
+    cat("No folder was selected.\n")
+  }
+} else {
+  cat("Install the 'rstudioapi' package to use this functionality.\n")
+}
+
 # Define output directories
-user_path <- getwd() # Set the current working directory
 output_dir <- file.path(user_path, "output")
 figures_dir <- file.path(output_dir, "figures")
 tables_dir <- file.path(output_dir, "tables")
@@ -42,19 +55,42 @@ if (!dir.exists(tables_dir)) dir.create(tables_dir, recursive = TRUE)
 
 cat("Directories created successfully in:", user_path, "\n")
 
+
+
+#*******************************************************************************
+# Sector Selection
+#*******************************************************************************
+
+# Define available sectors
+sectors <- c("gdp", "agriculture", "fishing", "mining", "manufacturing", 
+             "construction", "commerce", "electricity", "services")
+
+# GUI for sector selection
+selected_sector <- tclVar("gdp")  # Default sector
+win <- tktoplevel()
+tklabel(win, text = "Select a sector:") %>% tkpack()
+dropdown <- ttkcombobox(win, values = sectors, textvariable = selected_sector) %>% tkpack()
+tkbutton(win, text = "OK", command = function() tkdestroy(win)) %>% tkpack()
+
+# Wait for user input
+tkwait.window(win)
+sector <- tclvalue(selected_sector)
+
+
+
 #*******************************************************************************
 # Database Connection
 #*******************************************************************************
 
-# Retrieve environment variables for database credentials
-user <- Sys.getenv("CIUP_SQL_USER")   # Database username
-password <- Sys.getenv("CIUP_SQL_PASS")  # Database password
-host <- Sys.getenv("CIUP_SQL_HOST")    # Database host
-port <- 5432                           # Default PostgreSQL port
-database <- "gdp_revisions_datasets"   # Name of the database
+# Retrieve database credentials from environment variables
+user <- Sys.getenv("CIUP_SQL_USER")
+password <- Sys.getenv("CIUP_SQL_PASS")
+host <- Sys.getenv("CIUP_SQL_HOST")
+port <- 5432
+database <- "gdp_revisions_datasets"
 
-# Establish connection to the PostgreSQL database
-con <- dbConnect(RPostgres::Postgres(), 
+# Connect to PostgreSQL database
+con <- dbConnect(RPostgres::Postgres(),
                  dbname = database,
                  host = host,
                  port = port,
@@ -135,7 +171,7 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, fig
   
   # Add points for the means with a black border for the diamonds
   points(
-    x = 3:length(means), 
+    x = 1:length(means), 
     y = means, 
     col = color,         # Border color of points
     pch = 21,            # Shape of points
@@ -175,3 +211,4 @@ for (sector in sectors) {
   generate_boxplot(df_filtered, "z", "#0079FF", "bottomleft", sector, figures_dir)  # Plot for z
   generate_boxplot(df_filtered, "e", "#FF0060", "bottomright", sector, figures_dir)  # Plot for e
 }
+
