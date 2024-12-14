@@ -58,27 +58,6 @@ cat("Directories created successfully in:", user_path, "\n")
 
 
 #*******************************************************************************
-# Sector Selection
-#*******************************************************************************
-
-# Define available sectors
-sectors <- c("gdp", "agriculture", "fishing", "mining", "manufacturing", 
-             "construction", "commerce", "electricity", "services")
-
-# GUI for sector selection
-selected_sector <- tclVar("gdp")  # Default sector
-win <- tktoplevel()
-tklabel(win, text = "Select a sector:") %>% tkpack()
-dropdown <- ttkcombobox(win, values = sectors, textvariable = selected_sector) %>% tkpack()
-tkbutton(win, text = "OK", command = function() tkdestroy(win)) %>% tkpack()
-
-# Wait for user input
-tkwait.window(win)
-sector <- tclvalue(selected_sector)
-
-
-
-#*******************************************************************************
 # Database Connection
 #*******************************************************************************
 
