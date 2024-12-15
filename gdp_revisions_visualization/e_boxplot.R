@@ -1,13 +1,13 @@
 #*******************************************************************************
-# Boxplots: Backcast Errors by Horizon by Pooling Fixed-Event Forecasts
+# Boxplots: Forecast Errors by Horizon by Pooling Fixed-Event Forecasts
 #*******************************************************************************
 
 #-------------------------------------------------------------------------------
 # Author: Jason Cruz
 #...............................................................................
-# Program: e_boxplot.R
+# Program: z_e_boxplot.R
 # + First Created: 11/10/24
-# + Last Updated: 11/--/24
+# + Last Updated: 12/15/24
 #-------------------------------------------------------------------------------
 
 
@@ -82,12 +82,12 @@ con <- dbConnect(RPostgres::Postgres(),
                  password = password)
 
 # Fetch data from the first table
-query1 <- "SELECT * FROM e_sectorial_gdp_monthly_panel"
-df1 <- dbGetQuery(con, query1)
+query_1 <- "SELECT * FROM e_sectorial_gdp_monthly_panel"
+df_1 <- dbGetQuery(con, query_1)
 
 # Fetch data from the second table
-query2 <- "SELECT * FROM z_sectorial_gdp_monthly_panel"
-df2 <- dbGetQuery(con, query2)
+query_2 <- "SELECT * FROM z_sectorial_gdp_monthly_panel"
+df_2 <- dbGetQuery(con, query_2)
 
 # Close the database connection
 dbDisconnect(con)
@@ -99,8 +99,8 @@ dbDisconnect(con)
 #*******************************************************************************
 
 # Merge the two datasets loaded from PostgreSQL using a full join
-merged_df <- df1 %>%
-  full_join(df2, by = c("vintages_date", "horizon"))  # Replace with actual common column names
+merged_df <- df_1 %>%
+  full_join(df_2, by = c("vintages_date", "horizon"))  # Replace with actual common column names
 
 # Sort merged_df by "vintages_date" and "horizon"
 merged_df <- merged_df %>%
@@ -122,8 +122,8 @@ sectors <- c("gdp", "agriculture", "fishing", "mining", "manufacturing",
 merged_df <- merged_df %>% 
   filter(!is.na(horizon) & !is.na(vintages_date))
 
-# Filter data by horizon values (>2 &< 11) for relevant analysis
-merged_df <- merged_df %>% filter(horizon > 2 & horizon < 11)
+# Filter data by horizon values (>1 & <11) for relevant analysis
+merged_df <- merged_df %>% filter(horizon > 1 & horizon < 11)
 
 # Convert 'horizon' to a factor for categorical analysis in the plots
 merged_df$horizon <- as.factor(merged_df$horizon)
@@ -159,12 +159,12 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, fig
     cex.lab = 1.8,       # Label font size
     yaxt = "n"           # Suppress default y-axis to add custom ticks
   )
-
+  
   # Add y-axis with default ticks and formatted labels (1 decimal place)
   y_ticks <- axTicks(2)  # Get default tick positions for y-axis
   axis(2, at = y_ticks, labels = sprintf("%.1f", y_ticks), cex.axis = 1.8, las=0)
   
-  # 
+  # Add a box around the plot
   box(lwd = 2.2)
   
   # Calculate group means for each horizon
@@ -214,6 +214,6 @@ for (sector in sectors) {
   # Generate plots for z (legend at bottomleft) and e (legend at bottomright)
   generate_boxplot(df_filtered, "z", "#0079FF", "bottomleft", sector, figures_dir)  # Plot for z
   generate_boxplot(df_filtered, "e", "#FF0060", "bottomright", sector, figures_dir)  # Plot for e
-}     
+}
 
    
