@@ -139,7 +139,7 @@ df_long <- df_filtered %>%
 
 plot <- ggplot(df_long, aes(x = horizon, y = value, color = year, group = year)) +
   geom_line(linewidth = 1.8) +
-  geom_point(size = 3.8) +
+  geom_point(size = 4.2) +
   labs(x = NULL, y = NULL, title = NULL, color = NULL) +
   theme_minimal() +
   theme(
@@ -147,6 +147,9 @@ plot <- ggplot(df_long, aes(x = horizon, y = value, color = year, group = year))
     panel.grid.minor.x = element_line(color = "#F5F5F5", linewidth = 1.2),
     panel.grid.minor.y = element_blank(),
     axis.text = element_text(color = "black", size = 24),
+    axis.text.y = element_text(color = "black", angle = 0, hjust = 0.5),  # Center y-axis labels
+    axis.ticks = element_line(color = "black"),  # Add ticks to both axes
+    axis.ticks.length = unit(0.1, "inches"),  # Increase tick length
     legend.position = "bottom",
     legend.title = element_blank(),
     legend.text = element_text(size = 24, color = "black"),

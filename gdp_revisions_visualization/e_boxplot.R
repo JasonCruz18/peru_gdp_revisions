@@ -155,17 +155,17 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, fig
     col = color,
     border = "#292929",  # Color for the border of the boxes
     lwd = 3.0,           # Box contour thickness
-    cex.axis = 1.7,      # Axis font size
-    cex.lab = 1.7,       # Label font size
+    cex.axis = 1.8,      # Axis font size
+    cex.lab = 1.8,       # Label font size
     yaxt = "n"           # Suppress default y-axis to add custom ticks
   )
 
   # Add y-axis with default ticks and formatted labels (1 decimal place)
   y_ticks <- axTicks(2)  # Get default tick positions for y-axis
-  axis(2, at = y_ticks, labels = sprintf("%.1f", y_ticks), cex.axis = 1.7, las=2)
+  axis(2, at = y_ticks, labels = sprintf("%.1f", y_ticks), cex.axis = 1.8, las=0)
   
   # 
-  box(lwd = 2.0)
+  box(lwd = 2.2)
   
   # Calculate group means for each horizon
   means <- tapply(data[[paste0(variable, "_", sector)]], data$horizon, mean, na.rm = TRUE)
