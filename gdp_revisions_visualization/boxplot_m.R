@@ -157,8 +157,12 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, fig
     lwd = 3.0,           # Box contour thickness
     cex.axis = 1.8,      # Axis font size
     cex.lab = 1.8,       # Label font size
+    xaxt = "n",           # Suppress default x-axis to add custom ticks
     yaxt = "n"           # Suppress default y-axis to add custom ticks
   )
+  
+  # Custom x-axis labels (t+2, t+3, ..., t+10)
+  axis(1, at = 1:length(levels(data$horizon)), labels = paste0("t+", 2:10), cex.axis = 1.8)
   
   # Add y-axis with default ticks and formatted labels (1 decimal place)
   y_ticks <- axTicks(2)  # Get default tick positions for y-axis
