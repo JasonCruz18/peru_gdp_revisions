@@ -139,7 +139,7 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, out
   png(filename = output_file, width = 10, height = 6, units = "in", res = 300)
   
   # Set the background to transparent
-  par(bg = "transparent")
+  par(bg = "transparent", mar = c(2.3, 2.3, 1.3, 1.3))
   
   # Create the boxplot with custom y-axis labels always showing one decimal
   boxplot(
