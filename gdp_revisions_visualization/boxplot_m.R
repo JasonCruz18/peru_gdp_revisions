@@ -139,7 +139,7 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, out
   png(filename = output_file, width = 10, height = 6, units = "in", res = 300)
   
   # Set the background to transparent
-  par(bg = "transparent", mar = c(2.3, 2.3, 1.3, 1.3))
+  par(bg = "transparent", mar = c(2.0, 2.55, 1.2, 0.2)) # mar = c(bottom, left, top, right)
   
   # Create the boxplot with custom y-axis labels always showing one decimal
   boxplot(
@@ -151,18 +151,18 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, out
     col = color,
     border = "#292929",  # Color for the border of the boxes
     lwd = 3.0,           # Box contour thickness
-    cex.axis = 1.8,      # Axis font size
-    cex.lab = 1.8,       # Label font size
-    xaxt = "n",           # Suppress default x-axis to add custom ticks
+    cex.axis = 2.2,      # Axis font size
+    cex.lab = 2.2,       # Label font size
+    xaxt = "n",          # Suppress default x-axis to add custom ticks
     yaxt = "n"           # Suppress default y-axis to add custom ticks
   )
   
   # Custom x-axis labels (t+2, t+3, ..., t+10)
-  axis(1, at = 1:length(levels(data$horizon)), labels = paste0("t+", 2:10), cex.axis = 1.8)
+  axis(1, at = 1:length(levels(data$horizon)), labels = paste0("t+", 2:10), cex.axis = 2.2)
   
   # Add y-axis with default ticks and formatted labels (1 decimal place)
   y_ticks <- axTicks(2)  # Get default tick positions for y-axis
-  axis(2, at = y_ticks, labels = sprintf("%.1f", y_ticks), cex.axis = 1.8, las=0)
+  axis(2, at = y_ticks, labels = sprintf("%.1f", y_ticks), cex.axis = 2.2, las=0)
   
   # Add a box around the plot
   box(lwd = 2.2)
@@ -176,7 +176,7 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, out
     y = means, 
     col = color,         # Border color of points
     pch = 21,            # Shape of points (diamonds)
-    cex = 2.0,           # Point size
+    cex = 3.5,           # Point size
     bg = "black",        # Fill color with 50% transparency
     lwd = 2.0
   )
@@ -186,8 +186,8 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, out
          legend = "Media", 
          col = color,
          pch = 21,            # Shape of points (diamonds)
-         pt.cex = 2.0,        # Point size
-         cex = 2.0,
+         pt.cex = 3.5,        # Point size
+         cex = 2.5,
          pt.bg = "black",     # Fill color with 50% transparency
          text.col = "black",  # Text color for the legend
          horiz = TRUE,        # Horizontal legend layout
