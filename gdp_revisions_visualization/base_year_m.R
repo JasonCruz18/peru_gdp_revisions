@@ -176,15 +176,15 @@ generate_sector_plot <- function(sector, merged_df, figures_dir) {
   # Plot the four averaged variables across the horizon
   plot <- ggplot(merged_df_mean, aes(x = horizon)) +
     # Lines and points for e-sector
-    geom_line(aes(y = e_sector_x_mean, color = "e-Sector", group = 1), linewidth = 1.8) +
-    geom_line(aes(y = e_sector_y_mean, color = "e-Sector (affected)", group = 1), 
+    geom_line(aes(y = e_sector_x_mean, color = "e", group = 1), linewidth = 1.8) +
+    geom_line(aes(y = e_sector_y_mean, color = "e (con año base)", group = 1), 
               linewidth = 1.8, linetype = "dashed", alpha = 0.65) +
-    geom_point(aes(y = e_sector_x_mean, color = "e-Sector"), size = 4.2) +
+    geom_point(aes(y = e_sector_x_mean, color = "e"), size = 4.2) +
     # Lines and points for z-sector
-    geom_line(aes(y = z_sector_x_mean, color = "z-Sector", group = 1), linewidth = 1.8) +
-    geom_line(aes(y = z_sector_y_mean, color = "z-Sector (affected)", group = 1), 
+    geom_line(aes(y = z_sector_x_mean, color = "z", group = 1), linewidth = 1.8) +
+    geom_line(aes(y = z_sector_y_mean, color = "z (con año base)", group = 1), 
               linewidth = 1.8, linetype = "dashed", alpha = 0.65) +
-    geom_point(aes(y = z_sector_x_mean, color = "z-Sector"), size = 4.2) +
+    geom_point(aes(y = z_sector_x_mean, color = "z"), size = 4.2) +
     # Theme and axis configuration
     labs(x = NULL, y = NULL, title = NULL, color = NULL) +
     theme_minimal() +
@@ -205,10 +205,10 @@ generate_sector_plot <- function(sector, merged_df, figures_dir) {
     ) +
     scale_color_manual(
       values = c(
-        "e-Sector" = "#FF0060",
-        "e-Sector (affected)" = "#FF0060",
-        "z-Sector" = "#0079FF",
-        "z-Sector (affected)" = "#0079FF"
+        "e" = "#FF0060",
+        "e (con año base)" = "#FF0060",
+        "z" = "#0079FF",
+        "z (con año base)" = "#0079FF"
       )
     ) +
     scale_x_discrete(
