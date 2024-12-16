@@ -146,13 +146,13 @@ plot <- ggplot(df_long, aes(x = horizon, y = value, color = year, group = year))
     panel.grid.major = element_line(color = "#F5F5F5", linewidth = 1.2),
     panel.grid.minor.x = element_line(color = "#F5F5F5", linewidth = 1.2),
     panel.grid.minor.y = element_blank(),
-    axis.text = element_text(color = "black", size = 24),
+    axis.text = element_text(color = "black", size = 24), # optional size: 32
     axis.text.y = element_text(color = "black", angle = 0, hjust = 0.5),  # Center y-axis labels
     axis.ticks = element_line(color = "black"),  # Add ticks to both axes
     axis.ticks.length = unit(0.1, "inches"),  # Increase tick length
     legend.position = "bottom",
     legend.title = element_blank(),
-    legend.text = element_text(size = 24, color = "black"),
+    legend.text = element_text(size = 24, color = "black"), # optional size: 32
     legend.background = element_rect(fill = "white", color = "black", linewidth = 0.8),
     axis.line = element_line(color = "black", linewidth = 0.8),
     panel.border = element_rect(color = "black", linewidth = 0.8, fill = NA),
