@@ -49,14 +49,10 @@ if (requireNamespace("rstudioapi", quietly = TRUE)) {
 }
 
 # Define output directories
-output_dir <- file.path(user_path, "output")  # Main output directory
-figures_dir <- file.path(output_dir, "figures")  # Directory for figures
-tables_dir <- file.path(output_dir, "tables")  # Directory for tables
+output_dir <- file.path(user_path, "charts")  # Main output directory
 
 # Create output directories if they do not exist
 if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
-if (!dir.exists(figures_dir)) dir.create(figures_dir, recursive = TRUE)
-if (!dir.exists(tables_dir)) dir.create(tables_dir, recursive = TRUE)
 
 cat("Directories created successfully in:", user_path, "\n")
 
@@ -162,7 +158,7 @@ merged_df$horizon <- as.factor(merged_df$horizon)
 #*******************************************************************************
 
 # This function generates the plot for forecast errors by sector
-generate_sector_plot <- function(sector, merged_df, figures_dir) {
+generate_sector_plot <- function(sector, merged_df, output_dir) {
   # Calculate the log of the average squared forecast errors by horizon for the 4 variables
   merged_df_mean <- merged_df %>%
     group_by(horizon) %>%
@@ -222,7 +218,7 @@ generate_sector_plot <- function(sector, merged_df, figures_dir) {
   print(plot)
   
   ggsave(
-    filename = file.path(figures_dir, paste0("base_year_", sector, ".png")),
+    filename = file.path(output_dir, paste0("base_year_", sector, ".png")),
     plot = plot, width = 10, height = 6, dpi = 300
   )
 }
@@ -232,5 +228,5 @@ generate_sector_plot <- function(sector, merged_df, figures_dir) {
 #*******************************************************************************
 
 # Call the function with the selected sector
-generate_sector_plot(sector = sector, merged_df = merged_df, figures_dir = figures_dir)
+generate_sector_plot(sector = sector, merged_df = merged_df, output_dir = output_dir)
 

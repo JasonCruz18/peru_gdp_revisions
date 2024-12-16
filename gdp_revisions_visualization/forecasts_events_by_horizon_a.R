@@ -48,14 +48,10 @@ if (requireNamespace("rstudioapi", quietly = TRUE)) {
 }
 
 # Define output directories
-output_dir <- file.path(user_path, "output")
-figures_dir <- file.path(output_dir, "figures")
-tables_dir <- file.path(output_dir, "tables")
+output_dir <- file.path(user_path, "charts")
 
 # Create output directories if they do not exist
 if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
-if (!dir.exists(figures_dir)) dir.create(figures_dir, recursive = TRUE)
-if (!dir.exists(tables_dir)) dir.create(tables_dir, recursive = TRUE)
 
 cat("Directories created successfully in:", user_path, "\n")
 
@@ -168,6 +164,6 @@ plot <- ggplot(df_long, aes(x = horizon, y = value, color = year, group = year))
 print(plot)
 
 # Save the plot as a PNG file
-ggsave(file.path(figures_dir, paste0("motivation_", sector, ".png")), 
+ggsave(file.path(output_dir, paste0("motivation_", sector, ".png")), 
        plot, width = 10, height = 6, dpi = 300)
 

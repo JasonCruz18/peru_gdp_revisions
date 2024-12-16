@@ -49,14 +49,10 @@ if (requireNamespace("rstudioapi", quietly = TRUE)) {
 }
 
 # Define output directories
-output_dir <- file.path(user_path, "output")  # Main output directory
-figures_dir <- file.path(output_dir, "figures")  # Directory for figures
-tables_dir <- file.path(output_dir, "tables")  # Directory for tables
+output_dir <- file.path(user_path, "charts")  # Main output directory
 
 # Create output directories if they do not exist
 if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
-if (!dir.exists(figures_dir)) dir.create(figures_dir, recursive = TRUE)
-if (!dir.exists(tables_dir)) dir.create(tables_dir, recursive = TRUE)
 
 cat("Directories created successfully in:", user_path, "\n")
 
@@ -135,9 +131,9 @@ merged_df$horizon <- as.factor(merged_df$horizon)
 #*******************************************************************************
 
 # Function to create boxplots for e and z variables
-generate_boxplot <- function(data, variable, color, legend_position, sector, figures_dir) {
+generate_boxplot <- function(data, variable, color, legend_position, sector, output_dir) {
   # Path to save the plot
-  output_file <- file.path(figures_dir, paste0(variable, "_boxplot_", sector, "_m", ".png"))
+  output_file <- file.path(output_dir, paste0(variable, "_boxplot_", sector, "_m", ".png"))
   
   # Open PNG device to save the plot with specified size and resolution
   png(filename = output_file, width = 10, height = 6, units = "in", res = 300)
@@ -219,8 +215,8 @@ for (sector in sectors) {
     filter(!is.na(.data[[paste0("e_", sector)]]) & !is.na(.data[[paste0("z_", sector)]]))
   
   # Generate plots for z (legend at bottomleft) and e (legend at bottomright)
-  generate_boxplot(df_filtered, "z", "#0079FF", "bottomleft", sector, figures_dir)  # Plot for z
-  generate_boxplot(df_filtered, "e", "#FF0060", "bottomright", sector, figures_dir)  # Plot for e
+  generate_boxplot(df_filtered, "z", "#0079FF", "bottomleft", sector, output_dir)  # Plot for z
+  generate_boxplot(df_filtered, "e", "#FF0060", "bottomright", sector, output_dir)  # Plot for e
 }
 
    
