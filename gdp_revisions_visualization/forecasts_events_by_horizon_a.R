@@ -152,7 +152,7 @@ plot <- ggplot(df_long, aes(x = horizon, y = value, color = year, group = year))
     legend.background = element_rect(fill = "white", color = "black", linewidth = 0.8),
     axis.line = element_line(color = "black", linewidth = 0.8),
     panel.border = element_rect(color = "black", linewidth = 0.8, fill = NA),
-    plot.margin = margin(10, 10, 10, 10)  # margin(top, right, bottom, left)
+    plot.margin = margin(9, 5, 9, 4) # margin(top, right, bottom, left)
   ) +
   scale_color_manual(
     values = setNames(c("#FF0060", "#0079FF"), c("1998", "1999")),
