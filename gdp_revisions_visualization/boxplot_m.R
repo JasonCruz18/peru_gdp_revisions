@@ -165,7 +165,7 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, out
   axis(2, at = y_ticks, labels = sprintf("%.1f", y_ticks), cex.axis = 2.2, las=0)
   
   # Add a box around the plot
-  box(lwd = 2.2)
+  box(lwd = 2.5)
   
   # Calculate group means for each horizon
   means <- tapply(data[[paste0(variable, "_", sector)]], data$horizon, mean, na.rm = TRUE)
