@@ -5,7 +5,7 @@
 #-------------------------------------------------------------------------------
 # Author: Jason Cruz
 #...............................................................................
-# Program: z_e_boxplot.R
+# Program: z_e_boxplot_m.R
 # + First Created: 11/10/24
 # + Last Updated: 12/15/24
 #-------------------------------------------------------------------------------
@@ -207,6 +207,9 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, fig
 
 # Loop through each sector and generate boxplots for e and z variables
 for (sector in sectors) {
+  
+  cat("Generating plot for sector:", sector, "\n")
+  
   # Filter data for the current sector
   df_filtered <- merged_df %>% 
     filter(!is.na(.data[[paste0("e_", sector)]]) & !is.na(.data[[paste0("z_", sector)]]))

@@ -1,5 +1,5 @@
 #*******************************************************************************
-# Lines: Specific Annual Events by Horizon
+# Lines: Specific Annual Events by Horizon (1998 & 1999)
 #*******************************************************************************
 
 #-------------------------------------------------------------------------------
@@ -7,7 +7,7 @@
 #...............................................................................
 # Program: forecasts_events_by_horizon_a.R
 # + First Created: 11/10/24
-# + Last Updated: 11/--/24
+# + Last Updated: 12/15/24
 #-------------------------------------------------------------------------------
 
 
@@ -67,7 +67,7 @@ cat("Directories created successfully in:", user_path, "\n")
 
 # Define available sectors
 sectors <- c("gdp", "agriculture", "fishing", "mining", "manufacturing", 
-             "construction", "commerce", "electricity", "services")
+             "construction", "commerce", "services")
 
 # GUI for sector selection
 selected_sector <- tclVar("gdp")  # Default sector
@@ -127,9 +127,9 @@ columns_to_plot <- c("year_1998", "year_1999")
 df_long <- df_filtered %>%
   select(horizon, all_of(columns_to_plot)) %>%  # Keep only the necessary columns
   pivot_longer(cols = all_of(columns_to_plot),  # Reshape to long format
-               names_to = "year",              # Column for years
-               values_to = "value") %>%        # Column for values
-  mutate(year = gsub("year_", "", year))       # Remove 'year_' prefix from column names
+               names_to = "year",               # Column for years
+               values_to = "value") %>%         # Column for values
+  mutate(year = gsub("year_", "", year))        # Remove 'year_' prefix from column names
 
 
 
@@ -156,7 +156,7 @@ plot <- ggplot(df_long, aes(x = horizon, y = value, color = year, group = year))
     legend.background = element_rect(fill = "white", color = "black", linewidth = 0.8),
     axis.line = element_line(color = "black", linewidth = 0.8),
     panel.border = element_rect(color = "black", linewidth = 0.8, fill = NA),
-    plot.margin = margin(10, 10, 10, 10)  # Márgenes: top, right, bottom, left
+    plot.margin = margin(10, 10, 10, 10)  # margin(top, right, bottom, left)
   ) +
   scale_color_manual(
     values = setNames(c("#FF0060", "#0079FF"), c("1998", "1999")),
@@ -170,5 +170,4 @@ print(plot)
 # Save the plot as a PNG file
 ggsave(file.path(figures_dir, paste0("motivation_", sector, ".png")), 
        plot, width = 10, height = 6, dpi = 300)
-
 
