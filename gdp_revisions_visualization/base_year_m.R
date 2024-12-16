@@ -174,19 +174,19 @@ generate_sector_plot <- function(sector, merged_df, output_dir) {
     # Lines and points for e-sector
     geom_line(aes(y = e_sector_x_mean, color = "e", group = 1), linewidth = 1.8) +
     geom_line(aes(y = e_sector_y_mean, color = "e (con año base)", group = 1), 
-              linewidth = 1.8, linetype = "dashed", alpha = 0.65) +
+              linewidth = 1.8, linetype = "dashed", alpha = 0.60) +
     geom_point(aes(y = e_sector_x_mean, color = "e"), size = 4.2) +
     # Lines and points for z-sector
     geom_line(aes(y = z_sector_x_mean, color = "z", group = 1), linewidth = 1.8) +
     geom_line(aes(y = z_sector_y_mean, color = "z (con año base)", group = 1), 
-              linewidth = 1.8, linetype = "dashed", alpha = 0.65) +
+              linewidth = 1.8, linetype = "dashed", alpha = 0.60) +
     geom_point(aes(y = z_sector_x_mean, color = "z"), size = 4.2) +
     # Theme and axis configuration
     labs(x = NULL, y = NULL, title = NULL, color = NULL) +
     theme_minimal() +
     theme(
-      panel.grid.major = element_line(color = "#F5F5F5", linewidth = 1.2),
-      panel.grid.minor.x = element_line(color = "#F5F5F5", linewidth = 1.2),
+      panel.grid.major = element_line(color = "#F5F5F5", linewidth = 0.8),
+      panel.grid.minor.x = element_line(color = "#F5F5F5", linewidth = 0.8),
       panel.grid.minor.y = element_blank(),
       axis.text = element_text(color = "black", size = 24),
       axis.ticks = element_line(color = "black"),
