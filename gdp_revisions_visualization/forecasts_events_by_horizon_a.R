@@ -66,8 +66,8 @@ cat("Directories created successfully in:", user_path, "\n")
 #*******************************************************************************
 
 # Define available sectors
-sectors <- c("gdp", "agriculture", "fishing", "mining", "manufacturing",
-             "electricity", "construction", "commerce", "services")
+sectors <- c("gdp", "agriculture", "fishing", "mining", "manufacturing", 
+             "construction", "commerce", "services")
 
 # GUI for sector selection
 selected_sector <- tclVar("gdp")  # Default sector

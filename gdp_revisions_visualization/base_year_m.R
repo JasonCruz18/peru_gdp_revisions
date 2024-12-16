@@ -107,8 +107,8 @@ dbDisconnect(con)
 #*******************************************************************************
 
 # Define available sectors for selection
-sectors <- c("gdp", "agriculture", "fishing", "mining", "manufacturing", 
-             "construction", "commerce", "services")
+sectors <- c("gdp", "agriculture", "fishing", "mining", "manufacturing",
+             "electricity", "construction", "commerce", "services")
 
 # GUI for sector selection using the Tcl/Tk library
 selected_sector <- tclVar("gdp")  # Default sector set to 'gdp'
