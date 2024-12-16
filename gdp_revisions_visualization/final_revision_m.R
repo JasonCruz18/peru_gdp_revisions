@@ -148,7 +148,7 @@ for (sector in sectors) {
       panel.grid.major = element_line(color = "#F5F5F5", linewidth = 0.8),
       panel.grid.minor.x = element_line(color = "#F5F5F5", linewidth = 0.8),
       panel.grid.minor.y = element_blank(),
-      axis.text = element_text(color = "black", size = 24), # optional size: 32
+      axis.text = element_text(color = "black", size = 22), # optional size: 32
       axis.text.y = element_text(color = "black", angle = 0, hjust = 0.5),  # Center y-axis labels
       axis.ticks = element_line(color = "black"),  # Add ticks to both axes
       axis.ticks.length = unit(0.1, "inches"),  # Increase tick length
