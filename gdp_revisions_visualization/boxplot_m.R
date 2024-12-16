@@ -112,7 +112,7 @@ cat("Datasets merged successfully. Rows in merged data frame:", nrow(merged_df),
 
 # Define the sectors to iterate over for plotting
 sectors <- c("gdp", "agriculture", "fishing", "mining", "manufacturing", 
-             "construction", "commerce", "electricity", "services")
+             "electricity", "construction", "commerce", "services")
 
 # Filter data to remove rows with missing values in key columns
 merged_df <- merged_df %>% 
