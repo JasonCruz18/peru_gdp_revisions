@@ -113,7 +113,7 @@ date_label_format <- function(date) {
 # Generate a sequence of dates for the first month of each year
 breaks_dates <- seq(from = as.Date("1993-01-01"), 
                     to = as.Date("2025-01-01"), 
-                    by = "3 year")
+                    by = "2 year")
 
 # Iterate over the sectors to create and save plots
 for (sector in sectors) {
@@ -148,7 +148,8 @@ for (sector in sectors) {
       panel.grid.major = element_line(color = "#F5F5F5", linewidth = 0.8),
       panel.grid.minor.x = element_line(color = "#F5F5F5", linewidth = 0.8),
       panel.grid.minor.y = element_blank(),
-      axis.text = element_text(color = "black", size = 22), # optional size: 32
+      axis.text = element_text(color = "black", size = 24), # optional size: 32
+      axis.text.x = element_text(color = "black", angle = 90, hjust = 0.5, vjust = 0.5),  # Rotate X-axis labels
       axis.text.y = element_text(color = "black", angle = 0, hjust = 0.5),  # Center y-axis labels
       axis.ticks = element_line(color = "black"),  # Add ticks to both axes
       axis.ticks.length = unit(0.1, "inches"),  # Increase tick length
@@ -156,7 +157,6 @@ for (sector in sectors) {
       axis.title.y = element_blank(),  # Remove the Y-axis title
       plot.title = element_blank(),  # Remove the plot title
       axis.title.y.right = element_blank(),  # Remove the title of the right Y-axis
-      axis.text.x = element_text(angle = 0),  # Rotate X-axis labels
       legend.position = "bottom",
       legend.title = element_blank(),
       legend.text = element_text(size = 18, color = "black"),
