@@ -1,5 +1,5 @@
 #*******************************************************************************
-# Stacked Bars: Sectoral Contribution to Global GDP by Horizon
+# Stacked Bars: Sectoral Contribution to PBI Global by Horizon
 #*******************************************************************************
 
 #-------------------------------------------------------------------------------
@@ -167,7 +167,7 @@ plot <- ggplot() +
            position = "stack", 
            stat = "identity", 
            color = "black",    # Black border for bars
-           linewidth = 0.8,    # Set border thickness
+           linewidth = 0.65,    # Set border thickness
            alpha = 0.85) +     # Set transparency to 85%
   
   # Line and points for r_gdp_mean
@@ -184,11 +184,11 @@ plot <- ggplot() +
   
   # Customize the legend
   scale_color_manual(name = NULL, values = c("r_gdp_mean" = "#292929"), 
-                     labels = c("Global GDP")) +  # Line color for GDP
+                     labels = c("PBI Global")) +  # Line color for GDP
   scale_linetype_manual(name = NULL, values = c("r_gdp_mean" = "solid"), 
-                        labels = c("Global GDP")) + # Line style for GDP
+                        labels = c("PBI Global")) + # Line style for GDP
   scale_shape_manual(name = NULL, values = c("r_gdp_mean" = 21), 
-                     labels = c("Global GDP")) + # Point style for GDP
+                     labels = c("PBI Global")) + # Point style for GDP
   
   # Set manual labels for bar legend
   scale_fill_manual(values = c("r_agriculture_mean" = "#FF0060", 
@@ -218,7 +218,7 @@ plot <- ggplot() +
     axis.ticks.length = unit(0.1, "inches"),
     legend.position = "bottom",
     legend.title = element_blank(),
-    legend.text = element_text(size = 14, color = "black"),
+    legend.text = element_text(size = 13, color = "black"),
     legend.background = element_rect(fill = "white", color = "black", linewidth = 0.8),
     axis.line = element_line(color = "black", linewidth = 0.8),
     panel.border = element_rect(color = "black", linewidth = 0.8, fill = NA),
