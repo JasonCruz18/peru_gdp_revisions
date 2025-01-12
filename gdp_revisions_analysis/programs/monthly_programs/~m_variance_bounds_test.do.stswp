@@ -199,7 +199,7 @@ Variance Bounds Test
 		* Generate dependent variables for regressions
 		
 		foreach sector of global sectors {
-			gen log_abs_z_`sector' = ln(abs(z_`sector')) // ln(abs(z_`sector'))
+			gen log_abs_z_`sector' = ln(abs(_`sector')) // ln(abs(z_`sector'))
 		}
 		
 		foreach sector of global sectors {
