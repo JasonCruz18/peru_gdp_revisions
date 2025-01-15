@@ -127,6 +127,9 @@ df_long <- df_filtered %>%
                values_to = "value") %>%         # Column for values
   mutate(year = gsub("year_", "", year))        # Remove 'year_' prefix from column names
 
+# Convert 'horizon' column to factor (df_long)
+df_long$horizon <- factor(df_long$horizon, levels = c("t+1", "t+6", "t+12", "t+18", "t+24"))
+
 
 
 #*******************************************************************************
@@ -159,6 +162,10 @@ plot <- ggplot(df_long, aes(x = horizon, y = value, color = year, group = year))
     labels = c("1998", "1999")
   ) +
   scale_y_continuous(labels = number_format(accuracy = 0.1)) +
+  scale_x_discrete(
+    limits = c("t+1", "t+6", "t+12", "t+18", "t+24"),  # Orden y valores en el eje x
+    labels = c("1", "6", "12", "18", "24")  # Etiquetas personalizadas
+  ) +
   coord_cartesian(clip = "off")
 
 print(plot)
