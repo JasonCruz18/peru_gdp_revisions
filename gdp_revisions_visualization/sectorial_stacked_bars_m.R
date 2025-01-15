@@ -146,7 +146,7 @@ final_result <- reduce(results, full_join, by = "horizon")
 # Transform the format of the data
 # Reshape the final result dataframe into a long format suitable for plotting.
 data_long <- gather(final_result, sector, value, r_gdp_mean:r_services_mean) %>%
-  arrange(factor(horizon, levels = c("t+2", "t+3", "t+4", "t+5", "t+6", "t+7", "t+8", "t+9", "t+10"))) %>% 
+  arrange(factor(horizon, levels = c("2", "3", "4", "5", "6", "7", "8", "9", "10"))) %>% 
   mutate(horizon=factor(horizon, levels=unique(horizon)))
 
 # Display a preview of the reshaped data
@@ -226,7 +226,7 @@ plot <- ggplot() +
   ) +
   scale_x_discrete(
     breaks = 2:10,
-    labels = paste0("t+", 2:10)
+    labels = 2:10
   ) +
   scale_y_continuous(labels = number_format(accuracy = 0.1)) +
   coord_cartesian(clip = "off")

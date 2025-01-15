@@ -209,7 +209,7 @@ generate_sector_plot <- function(sector, merged_df, output_dir) {
     ) +
     scale_x_discrete(
       breaks = 2:10,
-      labels = paste0("t+", 2:10)
+      labels = 2:10
     ) +
     scale_y_continuous(labels = number_format(accuracy = 0.1)) +
     coord_cartesian(clip = "off")
