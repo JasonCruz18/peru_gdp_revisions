@@ -257,10 +257,10 @@ Efficiency Tests
 					local p1 = string(r(p1), "%9.2f")
 					local p99 = string(r(p99), "%9.2f")
 					
-					local coef_1 = M[1,1]
-					local coef_2 = M[1,2]
-					local pvalue_1 = P[1,1]
-					local pvalue_2 = P[1,2]
+					local coef_1 = M[1,2]
+					local coef_2 = M[1,1]
+					local pvalue_1 = P[1,2]
+					local pvalue_2 = P[1,1]
 					
 					if `pvalue_1' < 0.01 {
 						local coef_1 = string(`coef_1', "%9.2f") + "***"
@@ -303,13 +303,13 @@ Efficiency Tests
 	list variable n coef_1 coef_2 p1 p99 sd, noobs clean
 
 	rename variable h
-	rename coef_1 Intercept
-	rename coef_2 BenchDummy
+	rename coef_1 Insesgadez
+	rename coef_2 Dummy
 	rename p1 P1
 	rename p99 P99
 	rename sd SD
 
-	order h n Intercept BenchDummy P1 P99 SD
+	order h n Insesgadez Dummy P1 P99 SD
 
 	export excel using "$tables_folder/r_results.xlsx", firstrow(variable) replace
 	
