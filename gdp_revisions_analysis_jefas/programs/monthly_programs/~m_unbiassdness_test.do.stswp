@@ -142,7 +142,7 @@ Summary of Statistics (Unbiassdness)
 	
 		* Keep obs in specific date range
 		
-		//keep if vintages_date > tm(1992m12) & vintages_date < tm(2023m11)
+		keep if vintages_date > tm(1992m12) & vintages_date < tm(2023m11)
 		
 	
 	save gdp_releases_cleaned, replace
@@ -349,7 +349,7 @@ Summary of Statistics (Unbiassdness)
 	
 	use r_e_z_gdp_releases, clear
 		
-	
+		
 		* Create a new frame named `stats_sum_e` to store regression results and summary statistics
 
 		frame create stats_sum_e str32 variable int n str32 coef str8 sd str8 p1 str8 p99
