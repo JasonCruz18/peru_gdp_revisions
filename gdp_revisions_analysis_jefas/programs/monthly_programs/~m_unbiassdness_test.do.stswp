@@ -138,8 +138,13 @@ Summary of Statistics (Unbiassdness)
 		*** This is a provisional
 		
 		//drop if vintages_monthly == tm(2000m4) | vintages_monthly == tm(2013m12)
+	
+	
+		* Keep obs in specific date range
 		
+		//keep if vintages_date > tm(1992m12) & vintages_date < tm(2023m11)
 		
+	
 	save gdp_releases_cleaned, replace
 	
 	
@@ -226,12 +231,7 @@ Summary of Statistics (Unbiassdness)
 
 	
 	use r_e_z_gdp_releases, clear
-	
 		
-		* Define in the macro `$sectors`
-
-	global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
-	
 	
 		* Create a new frame named `stats_sum_r` to store regression results and summary statistics
 
@@ -348,12 +348,7 @@ Summary of Statistics (Unbiassdness)
 
 	
 	use r_e_z_gdp_releases, clear
-	
 		
-		* Define in the macro `$sectors`
-
-	global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
-	
 	
 		* Create a new frame named `stats_sum_e` to store regression results and summary statistics
 
@@ -364,11 +359,11 @@ Summary of Statistics (Unbiassdness)
 
 		foreach sector in $sectors {
 			
-			** Loop through variables e_#_<sector> where # ranges from 1 to 19
+			** Loop through variables e_`i'_`sector' where `i' ranges from 1 to 11
 			
 			forval i = 1/11 {
 				
-				capture confirm variable e_`i'_`sector' // Check if the variable e_<i>_<sector> exists
+				capture confirm variable e_`i'_`sector' // Check if the variable e_`i'_`sector' exists
 				
 				if !_rc { // If the variable exists (_rc == 0)
 					
@@ -437,7 +432,7 @@ Summary of Statistics (Unbiassdness)
 		* List the results without observation numbers and in a clean format
 
 		list variable n coef p1 p99 sd, noobs clean
-	
+		
 		
 		* Rename vars
 		
@@ -451,12 +446,12 @@ Summary of Statistics (Unbiassdness)
 		* Order vars
 		
 		order h n Insesgadez P1 P99 SD
-		
+	
 		
 		* Export to excel file
 		
 		export excel using "$tables_folder/e_stats_sum_m.xlsx", ///
-    firstrow(variables) replace
+    firstrow(variable) replace
 	
 	
 	
@@ -472,11 +467,6 @@ Summary of Statistics (Unbiassdness)
 	use r_e_z_gdp_releases, clear
 	
 		
-		* Define in the macro `$sectors`
-
-	global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
-	
-	
 		* Create a new frame named `stats_sum_z` to store regression results and summary statistics
 
 		frame create stats_sum_z str32 variable int n str32 coef str8 sd str8 p1 str8 p99
@@ -486,11 +476,11 @@ Summary of Statistics (Unbiassdness)
 
 		foreach sector in $sectors {
 			
-			** Loop through variables z_#_<sector> where # ranges from 1 to 19
+			** Loop through variables z_`i'_`sector' where `i' ranges from 2 to 12
 			
 			forval i = 2/12 {
 				
-				capture confirm variable z_`i'_`sector' // Check if the variable e_<i>_<sector> exists
+				capture confirm variable z_`i'_`sector' // Check if the variable z_`i'_`sector' exists
 				
 				if !_rc { // If the variable exists (_rc == 0)
 					
@@ -540,7 +530,7 @@ Summary of Statistics (Unbiassdness)
 						
 						*** Post the variable name, summary statistics, and formatted coefficient to the results frame
 						
-						frame post stats_sum_z ("z_`i'_`sector'") (`n') ("`coef'") ("`sd'") ("`p1'") ("`p99'")
+						frame post stats_sum_e ("z_`i'_`sector'") (`n') ("`coef'") ("`sd'") ("`p1'") ("`p99'")
 					}
 				}
 				
@@ -578,7 +568,7 @@ Summary of Statistics (Unbiassdness)
 		* Export to excel file
 		
 		export excel using "$tables_folder/z_stats_sum_m.xlsx", ///
-    firstrow(variables) replace
+    firstrow(variable) replace
 					
 	
 	
