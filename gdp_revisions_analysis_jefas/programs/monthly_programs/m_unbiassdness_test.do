@@ -186,7 +186,6 @@ Summary of Statistics (Unbiassdness)
 			}
 		}
 		
-
 	
 	save r_e_gdp_releases, replace
 	
@@ -253,7 +252,7 @@ Summary of Statistics (Unbiassdness)
 					
 					capture {
 						
-						tsset vintages_monthly
+						tsset vintages_date
 					
 						newey r_`i'_`sector', lag(1) force // Regression
 						
@@ -367,7 +366,7 @@ Summary of Statistics (Unbiassdness)
 			
 			** Loop through variables e_#_<sector> where # ranges from 1 to 19
 			
-			forval i = 1/12 {
+			forval i = 1/11 {
 				
 				capture confirm variable e_`i'_`sector' // Check if the variable e_<i>_<sector> exists
 				
@@ -375,7 +374,7 @@ Summary of Statistics (Unbiassdness)
 					
 					capture {
 						
-						tsset vintages_monthly
+						tsset vintages_date
 					
 						newey e_`i'_`sector', lag(1) force // Regression
 						
@@ -497,7 +496,7 @@ Summary of Statistics (Unbiassdness)
 					
 					capture {
 						
-						tsset vintages_monthly
+						tsset vintages_date
 					
 						newey z_`i'_`sector', lag(1) force // Regression
 						
