@@ -208,7 +208,7 @@ Summary of Statistics (Unbiassdness)
 				gen z_`i'_`sector' = `sector'_release_`i' - `sector'_release_1
 			}
 			* Compute final revision (12th horizon)
-			gen z_12_`sector' = `sector'_release_12 - `sector'_release_1
+			gen z_12_`sector' = `sector'_most_recent - `sector'_release_1
 		}
 		
 
