@@ -188,7 +188,7 @@ Summary of Statistics (Unbiassdness)
 		
 
 	
-	save r_e_gdp_releases, replaces
+	save r_e_gdp_releases, replace
 	
 	
 
@@ -211,7 +211,7 @@ Summary of Statistics (Unbiassdness)
 		
 
 	
-	save r_e_z_gdp_releases, replaces
+	save r_e_z_gdp_releases, replace
 	
 	
 	
