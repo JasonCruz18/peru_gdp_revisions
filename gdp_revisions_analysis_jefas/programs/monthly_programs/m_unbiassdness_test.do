@@ -204,9 +204,11 @@ Summary of Statistics (Unbiassdness)
 		* Generate prediction error for each horizon and sector
 		
 		foreach sector in $sectors {
-			forval i = 2/12 {
-				gen z_`i'_`sector' = `sector'_release_`i' - `sector'_release_1 
+			forval i = 2/11 {
+				gen z_`i'_`sector' = `sector'_release_`i' - `sector'_release_1
 			}
+			* Compute final revision (12th horizon)
+			gen z_12_`sector' = `sector'_release_12 - `sector'_release_1
 		}
 		
 
