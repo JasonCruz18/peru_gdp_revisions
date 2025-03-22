@@ -242,11 +242,11 @@ Summary of Statistics (Unbiassdness)
 
 		foreach sector in $sectors {
 			
-			** Loop through variables r_#_<sector> where # ranges from 2 to 10
+			** Loop through variables r_`i'_`sector' where `i' ranges from 2 to 12
 			
 			forval i = 2/12 {
 				
-				capture confirm variable r_`i'_`sector' // Check if the variable r_<i>_<sector> exists
+				capture confirm variable r_`i'_`sector' // Check if the variable r_`i'_`sector' exists
 				
 				if !_rc { // If the variable exists (_rc == 0)
 					
@@ -530,7 +530,7 @@ Summary of Statistics (Unbiassdness)
 						
 						*** Post the variable name, summary statistics, and formatted coefficient to the results frame
 						
-						frame post stats_sum_e ("z_`i'_`sector'") (`n') ("`coef'") ("`sd'") ("`p1'") ("`p99'")
+						frame post stats_sum_z ("z_`i'_`sector'") (`n') ("`coef'") ("`sd'") ("`p1'") ("`p99'")
 					}
 				}
 				
