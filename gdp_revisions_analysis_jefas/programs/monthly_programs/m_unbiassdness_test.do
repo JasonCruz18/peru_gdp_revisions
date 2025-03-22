@@ -210,7 +210,7 @@ Summary of Statistics (Unbiassdness)
 			* Compute final revision (12th horizon)
 			gen z_12_`sector' = `sector'_most_recent - `sector'_release_1
 		}
-		
+			
 
 	
 	save r_e_z_gdp_releases, replace
@@ -226,7 +226,7 @@ Summary of Statistics (Unbiassdness)
 	-----------------------*/
 
 	
-	use r_ts_cleaned, clear
+	use r_e_z_gdp_releases, clear
 	
 		
 		* Define in the macro `$sectors`
@@ -348,7 +348,7 @@ Summary of Statistics (Unbiassdness)
 	-----------------------*/
 
 	
-	use e_ts_cleaned, clear
+	use r_e_z_gdp_releases, clear
 	
 		
 		* Define in the macro `$sectors`
@@ -470,7 +470,7 @@ Summary of Statistics (Unbiassdness)
 	-----------------------*/
 
 	
-	use z_ts_cleaned, clear
+	use r_e_z_gdp_releases, clear
 	
 		
 		* Define in the macro `$sectors`
