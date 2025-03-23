@@ -1,5 +1,5 @@
 /********************
-Predictibility (y)
+Summary of Statistics (Unbiassdness)
 ***
 
 		Author
@@ -7,9 +7,9 @@ Predictibility (y)
 		Jason Cruz
 		*********************/
 
-		*** Program: m_predictibility_y.do
-		** 	First Created: 12/03/24
-		** 	Last Updated:  12/--/24
+		*** Program: m_unbiassdness_test_jefas.do
+		** 	First Created: 03/20/25
+		** 	Last Updated:  03/21/25
 			
 	***
 	** Just click on the "Run (do)" button, the code will do the rest for you.
@@ -55,7 +55,7 @@ Predictibility (y)
 	shell mkdir "output" 			// Creates folder to save outputs.
 	//shell mkdir "output/charts" 	// Creates folder to save charts.
 	shell mkdir "output/tables" 	// Creates folder to save tables.
-	//shell mkdir "output/data" 	// Creates folder to save data.
+	//shell mkdir "output/data" 		// Creates folder to save data.
 		
 	
 	* Set as global vars
@@ -70,237 +70,184 @@ Predictibility (y)
 	Import ODBC dataset and
 	save temp
 	-----------------------*/
-	
-	
-	odbc load, exec("select * from r_sectorial_gdp_monthly") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+		
+		
+	odbc load, exec("select * from r_sectorial_gdp_monthly_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
-	save r_ts, replace
-	
-	
-	odbc load, exec("select * from e_sectorial_gdp_monthly") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
-		
-	
-	save e_ts, replace
-	
-	
-	odbc load, exec("select * from z_sectorial_gdp_monthly") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
-		
-	
-	save z_ts, replace
-	
-	
-
-	/*----------------------
-	On-the-fly data cleaning
-	(r)
-	-----------------------*/
-
-	
-	use r_ts, clear
-
-	
-		* Sort by vintages_date
-		
-		sort vintages_date // Key step to set both the ID and time vars for panel data.
-
-		
-		* At a glance (inspect data)
-
-		d // Check entire dataset vars to understand its structure.
-		sum // Summarize stats for all vars in the dataset (mean, standard deviation, etc.).
-		count // Count the total number of observations, expected to be 6,696.
-
-		
-		* Fixing date format
-		
-		gen numeric_date = dofc(vintages_date) // To a Stata date in days.
-		format numeric_date %td // To standard Stata date (e.g., day-month-year).
-
-		gen target_date = mofd(numeric_date) // To a monthly date format.
-		format target_date %tm // To standard Stata month (e.g., Jan 2023).
-
-		drop vintages_date numeric_date // Drop the original vars since they are no longer needed.
-
-		
-		order target_date // Reorder vars so that 'target_date' and 'horizon' appear first in the dataset.
-
-
-		* Sort by target_date and horizon
-		
-		sort target_date
-	
-	
-	save r_ts_cleaned, replace
+	save gdp_releases, replace
 	
 	
 	
 	/*----------------------
 	On-the-fly data cleaning
-	(e)
+	(GDP releases)
 	-----------------------*/
 
+		
+	use gdp_releases, clear
 	
-		use e_ts, clear
+		* Remove the current definitive value (most recent publication) for each target period and sector
+		
+		drop *_most_recent
+		
+		
+		* Remove columns for h>12
+		
+		ds *_release_*
+		
+		foreach var in `r(varlist)' {
+			// Extraer el número al final del nombre de la variable
+			if regexm("`var'", "([0-9]+)$") {
+				local num = regexs(1)  // Usamos regexs(1) para capturar el número
 
+				// Verificar si el número es mayor a 12
+				if real("`num'") > 12 {
+					drop `var'
+				}
+			}
+		}
+				
+				
+		* Define the release of h=12 as the definitive value of GDP growth.
+		
+		** Define in the macro `$sectors`
+
+		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
+		
+		foreach sector in $sectors {
+			rename `sector'_release_12 `sector'_most_recent
+		}
 	
-		* Sort by vintages_date
+		* Format the date variable
 		
-		sort vintages_date // Key step to set both the ID and time vars for panel data.
-
+		replace vintages_date = mofd(dofc(vintages_date))
+		format vintages_date %tm
 		
-		* At a glance (inspect data)
-
-		d // Check entire dataset vars to understand its structure.
-		sum // Summarize stats for all vars in the dataset (mean, standard deviation, etc.).
-		count // Count the total number of observations, expected to be 6,696.
-
 		
-		* Fixing date format
+		* Set vintages_monthly as first column
 		
-		gen numeric_date = dofc(vintages_date) // To a Stata date in days.
-		format numeric_date %td // To standard Stata date (e.g., day-month-year).
-
-		gen target_date = mofd(numeric_date) // To a monthly date format.
-		format target_date %tm // To standard Stata month (e.g., Jan 2023).
-
-		drop vintages_date numeric_date // Drop the original vars since they are no longer needed.
-
+		order vintages_date
 		
-		order target_date // Reorder vars so that 'target_date' and 'horizon' appear first in the dataset.
-
-
-		* Sort by target_date and horizon
 		
-		sort target_date
+		* Sort by vintages_monthly
+		
+		sort vintages_date
+		
+		
+		*** This is a provisional
+		
+		//drop if vintages_monthly == tm(2000m4) | vintages_monthly == tm(2013m12)
 	
 	
-	save e_ts_cleaned, replace
+		* Keep obs in specific date range
+		
+		keep if vintages_date > tm(1992m12) & vintages_date < tm(2023m11)
+		
+	
+	save gdp_releases_cleaned, replace
 	
 	
 	
 	/*----------------------
-	On-the-fly data cleaning
-	(z)
+	Compute ongoing
+	revisions (r)
 	-----------------------*/
 
 	
-		use z_ts, clear
-
-	
-		* Sort by vintages_date
-		
-		sort vintages_date // Key step to set both the ID and time vars for panel data.
-
-		
-		* At a glance (inspect data)
-
-		d // Check entire dataset vars to understand its structure.
-		sum // Summarize stats for all vars in the dataset (mean, standard deviation, etc.).
-		count // Count the total number of observations, expected to be 6,696.
-
-		
-		* Fixing date format
-		
-		gen numeric_date = dofc(vintages_date) // To a Stata date in days.
-		format numeric_date %td // To standard Stata date (e.g., day-month-year).
-
-		gen target_date = mofd(numeric_date) // To a monthly date format.
-		format target_date %tm // To standard Stata month (e.g., Jan 2023).
-
-		drop vintages_date numeric_date // Drop the original vars since they are no longer needed.
-
-		
-		order target_date // Reorder vars so that 'target_date' and 'horizon' appear first in the dataset.
-
-
-		* Sort by target_date and horizon
-		
-		sort target_date
+	use gdp_releases_cleaned, clear
 	
 	
-	save z_ts_cleaned, replace
+		* Generate ongoing revisions for each horizon and sector
+		
+		foreach sector in $sectors {
+			forval i = 2/11 {
+				gen r_`i'_`sector' = `sector'_release_`i' - `sector'_release_`=`i'-1'
+			}
+			* Compute final revision (12th horizon)
+			gen r_12_`sector' = `sector'_most_recent - `sector'_release_11
+		}
+				
+
+	
+	save r_gdp_releases, replace
 	
 	
 	
 	/*----------------------
-	Merge r, e, z
+	Compute prediction
+	errors (e)
 	-----------------------*/
+
+	
+	use r_gdp_releases, clear
 	
 	
-	use r_ts_cleaned, clear
+		* Generate prediction error for each horizon and sector
+		
+		foreach sector in $sectors {
+			forval i = 1/11 {
+				gen e_`i'_`sector' = `sector'_most_recent - `sector'_release_`i'
+			}
+		}
+		
+	
+	save r_e_gdp_releases, replace
+	
 	
 
-		* Merge with the second dataset (e_panel_cleaned)
-		
-		merge 1:1 target_date using e_ts_cleaned
-
-		
-		* Check the merge result
-		
-		tab _merge // _merge values: 1 = only in master, 2 = only in using, 3 = matched
-
-		
-		* If you want to keep only the matches:
-		
-		keep if _merge == 3
-		drop _merge
-		
-		
-		* Merge with the third dataset (z_panel_cleaned)
-		
-		merge 1:1 target_date using z_ts_cleaned
-		
-		
-		* Check the merge result
-		
-		tab _merge // _merge values: 1 = only in master, 2 = only in using, 3 = matched
-
-		
-		* If you want to keep only the matches:
-		
-		keep if _merge == 3
-		drop _merge
-		
-
-	save r_e_z_ts, replace
-
-		
-		
 	/*----------------------
-	Predictibility (z)
+	Compute prediction
+	errors (z)
+	-----------------------*/
+
+	
+	use r_e_gdp_releases, clear
+	
+	
+		* Generate prediction error for each horizon and sector
+		
+		foreach sector in $sectors {
+			forval i = 2/11 {
+				gen z_`i'_`sector' = `sector'_release_`i' - `sector'_release_1
+			}
+			* Compute final revision (12th horizon)
+			gen z_12_`sector' = `sector'_most_recent - `sector'_release_1
+		}
+			
+
+	
+	save r_e_z_gdp_releases, replace
+	
+	
+	
+	/*----------------------
+	r: summary of stats
+	(mean with significance)
 	________________________
 	Paper and presentation
 	version
 	-----------------------*/
 
-	* z_t(h) = c + \beta_1 r_t(h=2)
-	*.........................................................................
-
 	
-	use r_e_z_ts, clear
-	
-	
-		* Define in the macro `$sectors`
-
-		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
+	use r_e_z_gdp_releases, clear
 		
-		
+	
 		* Create a new frame named `y_predictibility` to store regression results
 		frame create y_predictibility str32 variable int n double constant double coef str32 test_result double pvalue
 
 		* Iterate over all sectors defined in the macro `$sectors`
 		foreach sector in $sectors {
 
-			* Loop through variables `sector'_release_`i' where `i` ranges from 2 to 12
-			forval i = 1/19 {
+			* Loop through variables `sector'_release_`i' where `i` ranges from 1 to 11
+			forval i = 1/11 {
 
 				capture confirm variable `sector'_release_`i' // Check if the variable exists
 
 				if !_rc { // If the variable exists
 
 					capture {
-						tsset target_date
+						tsset vintages_date
 
 						* Run regression with Newey-West standard errors
 						newey `sector'_most_recent `sector'_release_`i', lag(1) force
@@ -378,13 +325,12 @@ Predictibility (y)
 		export excel using "$tables_folder/y_predictibility_m.xlsx", ///
     firstrow(variable) replace
 					
-						
+	
 	
 	/*----------------------
 	Drop aux data and tables
 	-----------------------*/	
 
-	
 	* List all .dta, .txt and .tex files in the current directory and store in a local macro
 	
 	local dta_files : dir . files "*.dta"
@@ -397,7 +343,7 @@ Predictibility (y)
 	foreach file of local dta_files {
 		erase "`file'"
 	}	
-	
+
 	
 	* Iterate over each .txt file and delete it
 	
