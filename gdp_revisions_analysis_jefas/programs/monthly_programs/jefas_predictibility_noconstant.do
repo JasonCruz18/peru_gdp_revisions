@@ -227,7 +227,7 @@ Encompassing Test
 		
 		* Loop through variables e_`i'_gdp where `i' ranges from 1 to 11
 		
-		forval i = 1/11 {
+		forval i = 2/12 {
 			
 			capture confirm variable e_`i'_gdp
 			
