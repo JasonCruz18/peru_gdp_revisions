@@ -218,7 +218,7 @@ Encompassing Test
 
 	
 	use r_e_z_gdp_releases, clear
-		
+	
 	
 		* Create a new frame named `r_e_encompassing` to store regression results
 		
