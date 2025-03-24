@@ -270,87 +270,114 @@ Mincer–Zarnowitz Regressions
 	
 	use gdp_bench_r_releases, clear		
 	
+	
+		* Create a new frame named `y_min_zar_bench` to store regression results
 
-		* Create a new frame named `y_min_zar` to store regression results
+		frame create y_min_zar_bench str32 variable int n str32 coef_1 str32 coef_2 str32 coef_3 str32 coef_4
 		
-		frame create y_min_zar_bench str32 variable int n double constant double coef_1 double coef_2 double coef_3 str32 test_result double pvalue
-
 		
-		* Loop through variables gdp_release_`i' where `i` ranges from 1 to 11
+		* Loop through variables gdp_release_`i' where `i' ranges from 2 to 12
 		
-		forval i = 1/11 {
-
-			capture confirm variable gdp_release_`i' // Check if the variable exists
-
-			if !_rc { // If the variable exists
-
+		forval i = 2/12 {
+			
+			capture confirm variable gdp_release_`i'
+			
+			if !_rc {
+				
 				capture {
+					
 					tsset vintages_date
-
-					* Run regression with Newey-West standard errors
+					
+					quietly count if !missing(gdp_release_`i')
+					if r(N) < 5 continue  // Salta si hay menos de 5 observaciones
+					
 					newey gdp_most_recent c.gdp_release_`i'##i.gdp_release_`i'_dummy, lag(1) force
-
-					if _rc == 2001 { // If regression fails due to insufficient observations
+					
+					if _rc == 2001 {
 						di in red "Insufficient observations for gdp_release_`i'"
 						continue
 					}
-
-					* Extract regression results
-					matrix M = r(table)
-         					
-					local constant = M[1, colsof(M)]
-					local coef_1 = M[1, 1]
-					local coef_2 = M[1, 3] 
-					local coef_3 = M[1, 5]
 					
-
-					* Perform the hypothesis test: H0: constant = 0 & coef = 1
-					test (_cons = 0) (gdp_release_`i' = 1)
-
-					if _rc == 0 { // If the test command succeeds
-						local pvalue = r(p)
-
-						* Extract number of observations
-						summarize gdp_most_recent, detail
-						local n = r(N)
-
-						* Determine significance based on the p-value of the joint test
-						local test_result
-						if `pvalue' < 0.01 {
-							local test_result = "***"
-						}
-						else if `pvalue' >= 0.01 & `pvalue' < 0.05 {
-							local test_result = "**"
-						}
-						else if `pvalue' >= 0.05 & `pvalue' < 0.10 {
-							local test_result = "*"
-						}
-						else {
-							local test_result = "Fail to Reject H0"
-						}
-
-						* Post results to the results frame
-						frame post y_min_zar_bench ("gdp_release_`i'") (`n') (`constant') (`coef_1') (`coef_2') (`coef_3') ("`test_result'") (`pvalue')
+					matrix M = r(table)
+					
+					summarize gdp_release_`i', detail
+					local n = r(N)
+					
+					local coef_1 = M[1,colsof(M)] // constant
+					local coef_2 = M[1,1] // gdp_release_`i' 
+					local coef_3 = M[1,3] // gdp_release_`i'_dummy
+					local coef_4 = M[1,5] // gdp_release_`i'*gdp_release_`i'_dummy
+					
+					
+					local pvalue_1 = M[4,colsof(M)] // constant p-value
+					local pvalue_2 = M[4,1]
+					local pvalue_3 = M[4,3]
+					local pvalue_4 = M[4,5]
+					
+					if `pvalue_1' < 0.01 {
+						local coef_1 = string(`coef_1', "%9.2f") + "***"
+					}
+					else if `pvalue_1' < 0.05 {
+						local coef_1 = string(`coef_1', "%9.2f") + "**"
+					}
+					else if `pvalue_1' < 0.10 {
+						local coef_1 = string(`coef_1', "%9.2f") + "*"
 					}
 					else {
-						di in red "Test failed for gdp_release_`i'"
+						local coef_1 = string(`coef_1', "%9.2f")
 					}
+					
+					if `pvalue_2' < 0.01 {
+						local coef_2 = string(`coef_2', "%9.2f") + "***"
+					}
+					else if `pvalue_2' < 0.05 {
+						local coef_2 = string(`coef_2', "%9.2f") + "**"
+					}
+					else if `pvalue_2' < 0.10 {
+						local coef_2 = string(`coef_2', "%9.2f") + "*"
+					}
+					else {
+						local coef_2 = string(`coef_2', "%9.2f")
+					}
+					
+					if `pvalue_3' < 0.01 {
+						local coef_3 = string(`coef_3', "%9.2f") + "***"
+					}
+					else if `pvalue_3' < 0.05 {
+						local coef_3 = string(`coef_3', "%9.2f") + "**"
+					}
+					else if `pvalue_3' < 0.10 {
+						local coef_3 = string(`coef_3', "%9.2f") + "*"
+					}
+					else {
+						local coef_3 = string(`coef_3', "%9.2f")
+					}
+					
+					if `pvalue_4' < 0.01 {
+						local coef_4 = string(`coef_4', "%9.2f") + "***"
+					}
+					else if `pvalue_4' < 0.05 {
+						local coef_4 = string(`coef_4', "%9.2f") + "**"
+					}
+					else if `pvalue_4' < 0.10 {
+						local coef_4 = string(`coef_4', "%9.2f") + "*"
+					}
+					else {
+						local coef_4 = string(`coef_4', "%9.2f")
+					}
+					
+					frame post y_min_zar_bench ("gdp_release_`i'") (`n') ("`coef_1'") ("`coef_2'") ("`coef_3'") ("`coef_4'")
 				}
 			}
+			
 			else {
 				di in yellow "Variable gdp_release_`i' does not exist"
 			}
 		}
 
-		
-		* Switch to the `y_min_zar_bench` frame to view the stored results
-		
-		frame change y_min_zar_bench
+	frame change y_min_zar_bench
 
-		
-		* List the results without observation numbers and in a clean format
-	
-		list variable n constant coef_1 coef_2 coef_3 test_result pvalue, noobs clean
+	list variable n coef_1 coef_2 coef_3 coef_4, noobs clean
 		
 		
 		* Display the matrix M in the command window
@@ -361,15 +388,15 @@ Mincer–Zarnowitz Regressions
 		* Rename vars
 		
 		rename variable h
-		rename constant Intercepto
-		rename coef_1 Beta_1
-		rename coef_2 Beta_2
-		rename coef_3 Beta_3
+		rename coef_1 Intercepto
+		rename coef_2 Beta
+		rename coef_3 Dummy
+		rename coef_4 Interacción
 		
 		
 		* Order vars
 		
-		order h n Intercepto Beta_1 Beta_2 Beta_3	
+		order h n Intercepto Beta Dummy Interacción
 	
 		
 		* Export to excel file
