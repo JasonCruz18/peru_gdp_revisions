@@ -78,6 +78,12 @@ Mincer–Zarnowitz Regressions
 	save gdp_releases, replace
 	
 	
+	odbc load, exec("select * from r_sectorial_gdp_monthly_seasonal_dummies") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+		
+	
+	save gdp_bench_releases, replace
+	
+	
 	
 	/*----------------------
 	On-the-fly data cleaning
@@ -164,48 +170,93 @@ Mincer–Zarnowitz Regressions
 	
 	
 	/*----------------------
-	Compute prediction
-	errors (e)
+	On-the-fly data cleaning
+	(GDP bench revisions)
 	-----------------------*/
 
-	
-	use r_gdp_releases, clear
-	
-	
-		* Generate forecast error for each horizon and sector
 		
-		forval i = 1/11 {
-			gen e_`i'_gdp = gdp_most_recent - gdp_release_`i'
-		}
+	use gdp_bench_releases, clear
+	
+	
+		* Keep ongoing revisions for global GDP only
 		
-	
-	save r_e_gdp_releases, replace
-	
-	
+		keep vintages_date gdp_release_*
+				
+		
+		* Remove columns for h>12
+		
+		ds gdp_release_* // Required to use `r(varlist)' below
+		
+		foreach var in `r(varlist)' {
+			// Extraer el número al final del nombre de la variable
+			if regexm("`var'", "gdp_release_([0-9]+)") {
+				local num = regexs(1)  // Usamos regexs(1) para capturar el número
 
+				// Verificar si el número es mayor a 12
+				if real("`num'") > 12 {
+					drop `var'
+				}
+			}
+		}
+				
+		
+		* Add the suffix "dummy" in each column
+				
+		foreach var of varlist * {
+			if "`var'" != "vintages_date" {
+				rename `var' `var'_dummy
+			}
+		}
+				
+		
+		* Format all vars from double to int 
+		
+		ds vintages_date, not  // Captura todas las variables excepto vintages_date
+		recast int `r(varlist)', force
+		
+		
+		* Format the date variable
+		
+		replace vintages_date = mofd(dofc(vintages_date))
+		format vintages_date %tm
+		
+		
+		* Set vintages_monthly as first column
+		
+		order vintages_date
+		
+		
+		* Sort by vintages_monthly
+		
+		sort vintages_date
+		
+		
+		*** This is a provisional
+		
+		//drop if vintages_monthly == tm(2000m4) | vintages_monthly == tm(2013m12)
+	
+	
+		* Keep obs in specific date range
+		
+		keep if vintages_date > tm(1992m12) & vintages_date < tm(2023m11)
+		
+	
+	save gdp_bench_releases_cleaned, replace
+	
+	
+	
 	/*----------------------
-	Compute prediction
-	errors (z)
+	Merge revisions with bench
+	revisions datasets
 	-----------------------*/
-
 	
-	use r_e_gdp_releases, clear
+	use r_gdp_releases
 	
-	
-		* Generate forecast error for each horizon and sector	
+		merge 1:1 vintages_date using gdp_bench_releases_cleaned
 		
-		forval i = 2/11 {
-			gen z_`i'_gdp = gdp_release_`i' - gdp_release_1
-		}
-	
-	
-		* Compute final revision (12th horizon)
+		drop _merge
 		
-		gen z_12_gdp = gdp_most_recent - gdp_release_1
-		
-	
-	save r_e_z_gdp_releases, replace
-	export delimited using "jefas_gdp_revisions.csv", replace
+	save gdp_bench_r_releases, replace
 	
 	
 	
@@ -217,13 +268,16 @@ Mincer–Zarnowitz Regressions
 	-----------------------*/
 
 	
-	use r_e_z_gdp_releases, clear
-		
+	use gdp_bench_r_releases, clear		
 	
-		* Create a new frame named `y_min_zar` to store regression results
-		frame create y_min_zar str32 variable int n double constant double coef str32 test_result double pvalue
 
+		* Create a new frame named `y_min_zar` to store regression results
+		
+		frame create y_min_zar_bench str32 variable int n double constant double coef_1 double coef_2 double coef_3 str32 test_result double pvalue
+
+		
 		* Loop through variables gdp_release_`i' where `i` ranges from 1 to 11
+		
 		forval i = 1/11 {
 
 			capture confirm variable gdp_release_`i' // Check if the variable exists
@@ -234,7 +288,7 @@ Mincer–Zarnowitz Regressions
 					tsset vintages_date
 
 					* Run regression with Newey-West standard errors
-					newey gdp_most_recent gdp_release_`i', lag(1) force
+					newey gdp_most_recent c.gdp_release_`i'##i.gdp_release_`i'_dummy, lag(1) force
 
 					if _rc == 2001 { // If regression fails due to insufficient observations
 						di in red "Insufficient observations for gdp_release_`i'"
@@ -243,8 +297,12 @@ Mincer–Zarnowitz Regressions
 
 					* Extract regression results
 					matrix M = r(table)
-					local constant = M["b", "_cons"]
-					local coef = M["b", "gdp_release_`i'"]
+         					
+					local constant = M[1, colsof(M)]
+					local coef_1 = M[1, 1]
+					local coef_2 = M[1, 3] 
+					local coef_3 = M[1, 5]
+					
 
 					* Perform the hypothesis test: H0: constant = 0 & coef = 1
 					test (_cons = 0) (gdp_release_`i' = 1)
@@ -272,7 +330,7 @@ Mincer–Zarnowitz Regressions
 						}
 
 						* Post results to the results frame
-						frame post y_min_zar ("gdp_release_`i'") (`n') (`constant') (`coef') ("`test_result'") (`pvalue')
+						frame post y_min_zar_bench ("gdp_release_`i'") (`n') (`constant') (`coef_1') (`coef_2') (`coef_3') ("`test_result'") (`pvalue')
 					}
 					else {
 						di in red "Test failed for gdp_release_`i'"
@@ -284,28 +342,39 @@ Mincer–Zarnowitz Regressions
 			}
 		}
 
-		* Switch to the `y_min_zar` frame to view the stored results
-		frame change y_min_zar
+		
+		* Switch to the `y_min_zar_bench` frame to view the stored results
+		
+		frame change y_min_zar_bench
 
+		
 		* List the results without observation numbers and in a clean format
-		list variable n constant coef test_result pvalue, noobs clean
+	
+		list variable n constant coef_1 coef_2 coef_3 test_result pvalue, noobs clean
+		
+		
+		* Display the matrix M in the command window
+		
+		//matrix list M
 				
 				
 		* Rename vars
 		
 		rename variable h
 		rename constant Intercepto
-		rename coef Beta
+		rename coef_1 Beta_1
+		rename coef_2 Beta_2
+		rename coef_3 Beta_3
 		
 		
 		* Order vars
 		
-		order h n Intercepto Beta
+		order h n Intercepto Beta_1 Beta_2 Beta_3	
 	
 		
 		* Export to excel file
 		
-		export excel using "$tables_folder/gdp_releases_min_zar.xlsx", ///
+		export excel using "$tables_folder/gdp_bench_releases_min_zar.xlsx", ///
     firstrow(variable) replace
 					
 	
