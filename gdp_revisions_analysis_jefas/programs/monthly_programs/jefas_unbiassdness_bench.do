@@ -7,7 +7,7 @@ Summary of Statistics (Unbiassdness)
 		Jason Cruz
 		*********************/
 
-		*** Program: m_bench_unbiassdness_test_jefas.do
+		*** Program: jefas_unbiassdness_bench.do
 		** 	First Created: 03/20/25
 		** 	Last Updated:  03/22/25
 			
@@ -72,7 +72,7 @@ Summary of Statistics (Unbiassdness)
 	-----------------------*/
 		
 		
-	odbc load, exec("select * from r_sectorial_gdp_monthly_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+	odbc load, exec("select * from r_gdp_monthly_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
 	save gdp_releases, replace
@@ -93,7 +93,8 @@ Summary of Statistics (Unbiassdness)
 		
 	use gdp_releases, clear
 	
-		* Remove the current definitive value (most recent publication) for each target period and sector
+	
+		* Remove the current definitive value (most recent release) for each target period and sector
 		
 		drop *_most_recent
 		
@@ -103,27 +104,20 @@ Summary of Statistics (Unbiassdness)
 		ds *_release_*
 		
 		foreach var in `r(varlist)' {
-			// Extraer el número al final del nombre de la variable
-			if regexm("`var'", "([0-9]+)$") {
-				local num = regexs(1)  // Usamos regexs(1) para capturar el número
+			if regexm("`var'", "([0-9]+)$") { // Extract the number at the end of the variable name
+				local num = regexs(1)  // We use regexs(1) to capture the number
 
-				// Verificar si el número es mayor a 12
-				if real("`num'") > 12 {
+				if real("`num'") > 12 { // Check if "num" is greater than 12
 					drop `var'
 				}
 			}
 		}
 				
 				
-		* Define the release of h=12 as the definitive value of GDP growth.
+		* Redefine the 12th release as the definitive value of GDP growth
 		
-		** Define in the macro `$sectors`
-
-		global sectors gdp agriculture fishing mining manufacturing electricity construction commerce services
-		
-		foreach sector in $sectors {
-			rename `sector'_release_12 `sector'_most_recent
-		}
+		rename gdp_release_12 gdp_most_recent
+	
 	
 		* Format the date variable
 		
@@ -131,21 +125,16 @@ Summary of Statistics (Unbiassdness)
 		format vintages_date %tm
 		
 		
-		* Set vintages_monthly as first column
+		* Set vintages_date as first column
 		
 		order vintages_date
 		
 		
-		* Sort by vintages_monthly
+		* Sort by vintages_date
 		
 		sort vintages_date
 		
 		
-		*** This is a provisional
-		
-		//drop if vintages_monthly == tm(2000m4) | vintages_monthly == tm(2013m12)
-	
-	
 		* Keep obs in specific date range
 		
 		keep if vintages_date > tm(1992m12) & vintages_date < tm(2023m11)
@@ -159,22 +148,21 @@ Summary of Statistics (Unbiassdness)
 	Compute ongoing
 	revisions (r)
 	-----------------------*/
-
+	
 	
 	use gdp_releases_cleaned, clear
 	
 	
 		* Generate ongoing revisions for each horizon and sector
 		
-		foreach sector in $sectors {
-			forval i = 2/11 {
-				gen r_`i'_`sector' = `sector'_release_`i' - `sector'_release_`=`i'-1'
-			}
-			
-			* Compute final revision (12th horizon)
-			gen r_12_`sector' = `sector'_most_recent - `sector'_release_11
+		forval i = 2/11 {
+			gen r_`i'_gdp = gdp_release_`i' - gdp_release_`=`i'-1'
 		}
-				
+		
+		
+		* Compute final revision (12th horizon)
+		
+		gen r_12_gdp = gdp_most_recent - gdp_release_11				
 
 	
 	save r_gdp_releases, replace
@@ -189,11 +177,11 @@ Summary of Statistics (Unbiassdness)
 		
 	use gdp_bench_r, clear
 	
-		* Remove the current definitive value (most recent publication) for each target period and sector
+	
+		* Keep ongoing revisions for global GDP only
 		
-		drop *_release_*
-		drop *_most_recent
-		
+		keep vintages_date r_*_gdp
+				
 		
 		* Remove columns for h>12
 		
@@ -253,7 +241,7 @@ Summary of Statistics (Unbiassdness)
 		keep if vintages_date > tm(1992m12) & vintages_date < tm(2023m11)
 		
 	
-	save r_gdp_bench, replace
+	save gdp_bench_r_cleaned, replace
 	
 	
 	
@@ -264,34 +252,36 @@ Summary of Statistics (Unbiassdness)
 	
 	use r_gdp_releases
 	
-		merge 1:1 vintages_date using r_gdp_bench
+		merge 1:1 vintages_date using gdp_bench_r_cleaned
 		
 		drop _merge
 		
-	save r_gdp_releases_bench, replace
+	save gdp_bench_r_releases, replace
+	
 	
 	
 	/*----------------------
-	r: regression on benc
-	revisions
+	r: regression on
+	benchmark revisions
 	________________________
 	Paper and presentation
 	version
 	-----------------------*/
 
 	
-	use r_gdp_releases_bench, clear	
+	use gdp_bench_r_releases, clear	
 		
 	
 		* Create a new frame named `r_bench` to store regression results and summary statistics
 
-		frame create r_bench str32 variable int n str32 coef_1 str32 coef_2 str8 sd str8 p1 str8 p99
-
-	foreach sector in $sectors {
+		frame create r_bench str32 variable int n str32 coef_1 str32 coef_2
+		
+		
+		* Loop through variables r_`i'_gdp where `i' ranges from 2 to 12
 		
 		forval i = 2/12 {
 			
-			capture confirm variable r_`i'_`sector'
+			capture confirm variable r_`i'_gdp
 			
 			if !_rc {
 				
@@ -299,10 +289,10 @@ Summary of Statistics (Unbiassdness)
 					
 					tsset vintages_date
 					
-					quietly count if !missing(r_`i'_`sector')
+					quietly count if !missing(r_`i'_gdp)
 					if r(N) < 5 continue  // Salta si hay menos de 5 observaciones
 					
-					newey r_`i'_`sector' r_`i'_`sector'_dummy, lag(1) force
+					newey r_`i'_gdp r_`i'_gdp_dummy, lag(1) force
 					
 					if _rc == 2001 {
 						di in red "Insufficient observations for r_`i'_`sector'"
@@ -312,11 +302,8 @@ Summary of Statistics (Unbiassdness)
 					matrix M = e(b)
 					matrix P = e(p)
 					
-					summarize r_`i'_`sector', detail
+					summarize r_`i'_gdp, detail
 					local n = r(N)
-					local sd = string(r(sd), "%9.2f")
-					local p1 = string(r(p1), "%9.2f")
-					local p99 = string(r(p99), "%9.2f")
 					
 					local coef_1 = M[1,2]
 					local coef_2 = M[1,1]
@@ -349,30 +336,26 @@ Summary of Statistics (Unbiassdness)
 						local coef_2 = string(`coef_2', "%9.2f")
 					}
 					
-					frame post r_bench ("r_`i'_`sector'") (`n') ("`coef_1'") ("`coef_2'") ("`sd'") ("`p1'") ("`p99'")
+					frame post r_bench ("r_`i'_gdp") (`n') ("`coef_1'") ("`coef_2'")
 				}
 			}
 			
 			else {
-				di in yellow "Variable r_`i'_`sector' does not exist"
+				di in yellow "Variable r_`i'_gdp does not exist"
 			}
 		}
-	}
 
 	frame change r_bench
 
-	list variable n coef_1 coef_2 p1 p99 sd, noobs clean
+	list variable n coef_1 coef_2, noobs clean
 
 	rename variable h
 	rename coef_1 Insesgadez
 	rename coef_2 Dummy
-	rename p1 P1
-	rename p99 P99
-	rename sd SD
 
-	order h n Insesgadez Dummy P1 P99 SD
+	order h n Insesgadez Dummy
 
-	export excel using "$tables_folder/r_bench.xlsx", firstrow(variable) replace
+	export excel using "$tables_folder/gdp_bench_r_unbiassdness.xlsx", firstrow(variable) replace
 					
 	
 	

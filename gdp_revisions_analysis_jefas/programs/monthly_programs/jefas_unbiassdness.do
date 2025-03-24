@@ -316,7 +316,7 @@ Summary of Statistics (Unbiassdness)
 		
 		* Export to excel file
 		
-		export excel using "$tables_folder/gdp_r_stats.xlsx", ///
+		export excel using "$tables_folder/gdp_r_unbiassdness.xlsx", ///
     firstrow(variable) replace
 	
 	
@@ -428,7 +428,7 @@ Summary of Statistics (Unbiassdness)
 		
 		* Export to excel file
 		
-		export excel using "$tables_folder/gdp_e_stats.xlsx", ///
+		export excel using "$tables_folder/gdp_e_unbiassdness.xlsx", ///
     firstrow(variable) replace
 	
 	
@@ -540,7 +540,7 @@ Summary of Statistics (Unbiassdness)
 		
 		* Export to excel file
 		
-		export excel using "$tables_folder/gdp_z_stats.xlsx", ///
+		export excel using "$tables_folder/gdp_z_unbiassdness.xlsx", ///
     firstrow(variable) replace
 					
 	
