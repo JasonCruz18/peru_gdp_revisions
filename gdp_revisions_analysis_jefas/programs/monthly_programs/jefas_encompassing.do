@@ -219,13 +219,10 @@ Encompassing Test
 	
 	use r_e_z_gdp_releases, clear
 		
-		
-		tsset vintages_date
-	
 	
 		* Create a new frame named `r_e_encompassing` to store regression results
 		
-		frame create r_e_encompassing str32 variable int n str32 coef
+		frame create r_e_encompassing str32 variable int n str32 coef_1 str32 coef_2
 		
 		
 		* Loop through variables e_`i'_gdp where `i' ranges from 1 to 11
@@ -255,25 +252,41 @@ Encompassing Test
 					summarize e_`i'_gdp, detail
 					local n = r(N)
 					
-					local coef = M[1, colsof(M)] // constant
+					local coef_1 = M[1, colsof(M)] // constant
+					local coef_2 = M[1, 1] // r_`=`i'+1'_gdp
 					
-					local pvalue = M[2, colsof(M)] // constant p-value
+					local pvalue_1 = M[4, colsof(M)] // constant p-value
+					local pvalue_2 = M[4, 1] // constant p-value
 					
-					if `pvalue' < 0.01 {
-						local coef = string(`coef', "%9.2f") + "***"
+					if `pvalue_1' < 0.01 {
+						local coef_1 = string(`coef_1', "%9.2f") + "***"
 					}
-					else if `pvalue' < 0.05 {
-						local coef = string(`coef', "%9.2f") + "**"
+					else if `pvalue_1' < 0.05 {
+						local coef_1 = string(`coef_1', "%9.2f") + "**"
 					}
-					else if `pvalue' < 0.10 {
-						local coef = string(`coef', "%9.2f") + "*"
+					else if `pvalue_1' < 0.10 {
+						local coef_1 = string(`coef_1', "%9.2f") + "*"
 					}
 					else {
-						local coef = string(`coef', "%9.2f")
+						local coef_1 = string(`coef_1', "%9.2f")
+					}
+					
+					
+					if `pvalue_2' < 0.01 {
+						local coef_2 = string(`coef_2', "%9.2f") + "***"
+					}
+					else if `pvalue_2' < 0.05 {
+						local coef_2 = string(`coef_2', "%9.2f") + "**"
+					}
+					else if `pvalue_2' < 0.10 {
+						local coef_2 = string(`coef_2', "%9.2f") + "*"
+					}
+					else {
+						local coef_2 = string(`coef_2', "%9.2f")
 					}
 	
 					
-					frame post r_e_encompassing ("e_`i'_gdp") (`n') ("`coef'")
+					frame post r_e_encompassing ("e_`i'_gdp") (`n') ("`coef_1'") ("`coef_2'")
 				}
 			}
 			
@@ -284,18 +297,19 @@ Encompassing Test
 
 		frame change r_e_encompassing
 
-		list variable n coef, noobs clean
+		list variable n coef_1 coef_2, noobs clean
 				
 				
 		* Rename vars
 		
 		rename variable h
-		rename coef Beta
+		rename coef_1 Intercepto
+		rename coef_2 Beta
 		
 		
 		* Order vars
 		
-		order h n Beta
+		order h n Intercepto Beta
 	
 		
 		* Export to excel file
