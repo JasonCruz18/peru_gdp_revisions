@@ -34,7 +34,7 @@ Encompassing Test
 	pause on 				// Enables pauses in programs.
 	set varabbrev off 		// Turns off variable abbreviation.
 			
-	//log using jefas_unbiassdness.txt, text replace // Opens a log file and replaces it if it exists.
+	//log using jefas_encompassing.txt, text replace // Opens a log file and replaces it if it exists.
 
 	
 

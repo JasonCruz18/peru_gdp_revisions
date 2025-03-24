@@ -1,5 +1,5 @@
 /********************
-Summary of Statistics (Unbiassdness)
+Mincer–Zarnowitz Regressions
 ***
 
 		Author
@@ -7,9 +7,9 @@ Summary of Statistics (Unbiassdness)
 		Jason Cruz
 		*********************/
 
-		*** Program: jefas_unbiassdness_bench.do
+		*** Program: jefas_min_zar_bench.do
 		** 	First Created: 03/20/25
-		** 	Last Updated:  03/22/25
+		** 	Last Updated:  03/21/25
 			
 	***
 	** Just click on the "Run (do)" button, the code will do the rest for you.
@@ -34,7 +34,7 @@ Summary of Statistics (Unbiassdness)
 	pause on 				// Enables pauses in programs.
 	set varabbrev off 		// Turns off variable abbreviation.
 			
-	//log using jefas_unbiassdness_bench.txt, text replace // Opens a log file and replaces it if it exists.
+	//log using jefas_min_zar_bench.txt, text replace // Opens a log file and replaces it if it exists.
 
 	
 
@@ -72,16 +72,10 @@ Summary of Statistics (Unbiassdness)
 	-----------------------*/
 		
 		
-	odbc load, exec("select * from r_gdp_monthly_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+	odbc load, exec("select * from r_gdp_monthly_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change the dataset loaded from SQL as preferred. 
 		
 	
 	save gdp_releases, replace
-	
-	
-	odbc load, exec("select * from r_sectorial_gdp_monthly_seasonal_dummies") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
-		
-	
-	save gdp_bench_r, replace
 	
 	
 	
@@ -170,192 +164,149 @@ Summary of Statistics (Unbiassdness)
 	
 	
 	/*----------------------
-	On-the-fly data cleaning
-	(GDP bench revisions)
+	Compute prediction
+	errors (e)
 	-----------------------*/
 
-		
-	use gdp_bench_r, clear
+	
+	use r_gdp_releases, clear
 	
 	
-		* Keep ongoing revisions for global GDP only
+		* Generate forecast error for each horizon and sector
 		
-		keep vintages_date r_*_gdp
-				
+		forval i = 1/11 {
+			gen e_`i'_gdp = gdp_most_recent - gdp_release_`i'
+		}
 		
-		* Remove columns for h>12
-		
-		ds r_*_* // Required to use `r(varlist)' below
-		
-		foreach var in `r(varlist)' {
-			// Extraer el número al final del nombre de la variable
-			if regexm("`var'", "r_([0-9]+)_") {
-				local num = regexs(1)  // Usamos regexs(1) para capturar el número
+	
+	save r_e_gdp_releases, replace
+	
+	
 
-				// Verificar si el número es mayor a 12
-				if real("`num'") > 12 {
-					drop `var'
-				}
-			}
+	/*----------------------
+	Compute prediction
+	errors (z)
+	-----------------------*/
+
+	
+	use r_e_gdp_releases, clear
+	
+	
+		* Generate forecast error for each horizon and sector	
+		
+		forval i = 2/11 {
+			gen z_`i'_gdp = gdp_release_`i' - gdp_release_1
 		}
-				
-		
-		* Add the suffix "dummy" in each column
-				
-		foreach var of varlist * {
-			if "`var'" != "vintages_date" {
-				rename `var' `var'_dummy
-			}
-		}
-				
-		
-		* Format all vars from double to int 
-		
-		ds vintages_date, not  // Captura todas las variables excepto vintages_date
-		recast int `r(varlist)', force
-		
-		
-		* Format the date variable
-		
-		replace vintages_date = mofd(dofc(vintages_date))
-		format vintages_date %tm
-		
-		
-		* Set vintages_monthly as first column
-		
-		order vintages_date
-		
-		
-		* Sort by vintages_monthly
-		
-		sort vintages_date
-		
-		
-		*** This is a provisional
-		
-		//drop if vintages_monthly == tm(2000m4) | vintages_monthly == tm(2013m12)
 	
 	
-		* Keep obs in specific date range
+		* Compute final revision (12th horizon)
 		
-		keep if vintages_date > tm(1992m12) & vintages_date < tm(2023m11)
+		gen z_12_gdp = gdp_most_recent - gdp_release_1
 		
 	
-	save gdp_bench_r_cleaned, replace
+	save r_e_z_gdp_releases, replace
+	export delimited using "jefas_gdp_revisions.csv", replace
 	
 	
 	
 	/*----------------------
-	Merge revisions with bench
-	revisions datasets
-	-----------------------*/
-	
-	use r_gdp_releases
-	
-		merge 1:1 vintages_date using gdp_bench_r_cleaned
-		
-		drop _merge
-		
-	save gdp_bench_r_releases, replace
-	
-	
-	
-	/*----------------------
-	r: regression on
-	benchmark revisions
+	y: Mincer–Zarnowitz
 	________________________
 	Paper and presentation
 	version
 	-----------------------*/
 
 	
-	use gdp_bench_r_releases, clear	
+	use r_e_z_gdp_releases, clear
 		
 	
-		* Create a new frame named `r_bench` to store regression results and summary statistics
+		* Create a new frame named `y_min_zar` to store regression results
+		frame create y_min_zar str32 variable int n double constant double coef str32 test_result double pvalue
 
-		frame create r_bench str32 variable int n str32 coef_1 str32 coef_2
-		
-		
-		* Loop through variables r_`i'_gdp where `i' ranges from 2 to 12
-		
-		forval i = 2/12 {
-			
-			capture confirm variable r_`i'_gdp
-			
-			if !_rc {
-				
+		* Loop through variables gdp_release_`i' where `i` ranges from 1 to 11
+		forval i = 1/11 {
+
+			capture confirm variable gdp_release_`i' // Check if the variable exists
+
+			if !_rc { // If the variable exists
+
 				capture {
-					
 					tsset vintages_date
-					
-					quietly count if !missing(r_`i'_gdp)
-					if r(N) < 5 continue  // Salta si hay menos de 5 observaciones
-					
-					newey r_`i'_gdp r_`i'_gdp_dummy, lag(1) force
-					
-					if _rc == 2001 {
-						di in red "Insufficient observations for r_`i'_`sector'"
+
+					* Run regression with Newey-West standard errors
+					newey gdp_most_recent gdp_release_`i', lag(1) force
+
+					if _rc == 2001 { // If regression fails due to insufficient observations
+						di in red "Insufficient observations for gdp_release_`i'"
 						continue
 					}
-					
-					matrix M = e(b)
-					matrix P = e(p)
-					
-					summarize r_`i'_gdp, detail
-					local n = r(N)
-					
-					local coef_1 = M[1,2]
-					local coef_2 = M[1,1]
-					local pvalue_1 = P[1,2]
-					local pvalue_2 = P[1,1]
-					
-					if `pvalue_1' < 0.01 {
-						local coef_1 = string(`coef_1', "%9.2f") + "***"
-					}
-					else if `pvalue_1' < 0.05 {
-						local coef_1 = string(`coef_1', "%9.2f") + "**"
-					}
-					else if `pvalue_1' < 0.10 {
-						local coef_1 = string(`coef_1', "%9.2f") + "*"
+
+					* Extract regression results
+					matrix M = r(table)
+					local constant = M["b", "_cons"]
+					local coef = M["b", "gdp_release_`i'"]
+
+					* Perform the hypothesis test: H0: constant = 0 & coef = 1
+					test (_cons = 0) (gdp_release_`i' = 1)
+
+					if _rc == 0 { // If the test command succeeds
+						local pvalue = r(p)
+
+						* Extract number of observations
+						summarize gdp_most_recent, detail
+						local n = r(N)
+
+						* Determine significance based on the p-value of the joint test
+						local test_result
+						if `pvalue' < 0.01 {
+							local test_result = "***"
+						}
+						else if `pvalue' >= 0.01 & `pvalue' < 0.05 {
+							local test_result = "**"
+						}
+						else if `pvalue' >= 0.05 & `pvalue' < 0.10 {
+							local test_result = "*"
+						}
+						else {
+							local test_result = "Fail to Reject H0"
+						}
+
+						* Post results to the results frame
+						frame post y_min_zar ("gdp_release_`i'") (`n') (`constant') (`coef') ("`test_result'") (`pvalue')
 					}
 					else {
-						local coef_1 = string(`coef_1', "%9.2f")
+						di in red "Test failed for gdp_release_`i'"
 					}
-					
-					if `pvalue_2' < 0.01 {
-						local coef_2 = string(`coef_2', "%9.2f") + "***"
-					}
-					else if `pvalue_2' < 0.05 {
-						local coef_2 = string(`coef_2', "%9.2f") + "**"
-					}
-					else if `pvalue_2' < 0.10 {
-						local coef_2 = string(`coef_2', "%9.2f") + "*"
-					}
-					else {
-						local coef_2 = string(`coef_2', "%9.2f")
-					}
-					
-					frame post r_bench ("r_`i'_gdp") (`n') ("`coef_1'") ("`coef_2'")
 				}
 			}
-			
 			else {
-				di in yellow "Variable r_`i'_gdp does not exist"
+				di in yellow "Variable gdp_release_`i' does not exist"
 			}
 		}
 
-	frame change r_bench
+		* Switch to the `y_min_zar` frame to view the stored results
+		frame change y_min_zar
 
-	list variable n coef_1 coef_2, noobs clean
-
-	rename variable h
-	rename coef_1 Insesgadez
-	rename coef_2 Dummy
-
-	order h n Insesgadez Dummy
-
-	export excel using "$tables_folder/gdp_bench_r_unbiassdness.xlsx", firstrow(variable) replace
+		* List the results without observation numbers and in a clean format
+		list variable n constant coef test_result pvalue, noobs clean
+				
+				
+		* Rename vars
+		
+		rename variable h
+		rename constant Intercepto
+		rename coef Beta
+		
+		
+		* Order vars
+		
+		order h n Intercepto Beta
+	
+		
+		* Export to excel file
+		
+		export excel using "$tables_folder/gdp_releases_min_zar.xlsx", ///
+    firstrow(variable) replace
 					
 	
 	

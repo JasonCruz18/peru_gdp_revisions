@@ -34,7 +34,7 @@ Mincer–Zarnowitz Regressions
 	pause on 				// Enables pauses in programs.
 	set varabbrev off 		// Turns off variable abbreviation.
 			
-	//log using jefas_unbiassdness.txt, text replace // Opens a log file and replaces it if it exists.
+	//log using jefas_min_zar.txt, text replace // Opens a log file and replaces it if it exists.
 
 	
 
