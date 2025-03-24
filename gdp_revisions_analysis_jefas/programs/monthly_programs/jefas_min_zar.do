@@ -225,9 +225,9 @@ Mincer–Zarnowitz Regressions
 		frame create y_min_zar str32 variable int n str32 coef_1 str32 coef_2
 		
 		
-		* Loop through variables gdp_release_`i' where `i' ranges from 2 to 12
+		* Loop through variables gdp_release_`i' where `i' ranges from 1 to 11
 		
-		forval i = 2/12 {
+		forval i = 1/11 {
 			
 			capture confirm variable gdp_release_`i'
 			
