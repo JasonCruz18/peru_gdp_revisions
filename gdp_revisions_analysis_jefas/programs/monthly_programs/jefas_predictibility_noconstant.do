@@ -222,7 +222,7 @@ Encompassing Test
 	
 		* Create a new frame named `r_e_encompassing` to store regression results
 		
-		frame create r_e_encompassing str32 variable int n str32 coef_1
+		frame create r_e_predictibility str32 variable int n str32 coef_1
 		
 		
 		* Loop through variables e_`i'_gdp where `i' ranges from 1 to 11
@@ -235,12 +235,10 @@ Encompassing Test
 				
 				capture {
 					
-					//tsset vintages_date
-					
 					quietly count if !missing(e_`i'_gdp)
 					if r(N) < 5 continue  // Salta si hay menos de 5 observaciones
 					
-					reg e_`i'_gdp r_`=`i'+1'_gdp, noconstant
+					reg e_`i'_gdp r_`i'_gdp, noconstant
 					
 					if _rc == 2001 {
 						di in red "Insufficient observations for e_`i'_gdp"
@@ -252,7 +250,7 @@ Encompassing Test
 					summarize e_`i'_gdp, detail
 					local n = r(N)
 					
-					local coef_1 = M[1, 1] // r_`=`i'+1'_gdp
+					local coef_1 = M[1, 1] // r_`i'_gdp
 					
 					local pvalue_1 = M[4, 1] // constant p-value
 					
@@ -270,7 +268,7 @@ Encompassing Test
 					}
 					
 					
-					frame post r_e_encompassing ("e_`i'_gdp") (`n') ("`coef_1'")
+					frame post r_e_predictibility ("e_`i'_gdp") (`n') ("`coef_1'")
 				}
 			}
 			
@@ -279,7 +277,7 @@ Encompassing Test
 			}
 		}
 
-		frame change r_e_encompassing
+		frame change r_e_predictibility
 
 		list variable n coef_1, noobs clean
 				
@@ -297,7 +295,7 @@ Encompassing Test
 		
 		* Export to excel file
 		
-		export excel using "$tables_folder/gdp_r_e_encompassing_noconstant.xlsx", ///
+		export excel using "$tables_folder/gdp_r_e_predictibility_noconstant.xlsx", ///
     firstrow(variable) replace
 					
 		
