@@ -1,5 +1,5 @@
 /********************
-Encompassing Test
+Encompassing Test (Benchmark)
 ***
 
 		Author
@@ -7,7 +7,7 @@ Encompassing Test
 		Jason Cruz
 		*********************/
 
-		*** Program: jefas_encompassing.do
+		*** Program: jefas_encompassing_bench.do
 		** 	First Created: 03/20/25
 		** 	Last Updated:  03/21/25
 			
@@ -34,7 +34,7 @@ Encompassing Test
 	pause on 				// Enables pauses in programs.
 	set varabbrev off 		// Turns off variable abbreviation.
 			
-	//log using jefas_encompassing.txt, text replace // Opens a log file and replaces it if it exists.
+	//log using jefas_min_zar_bench.txt, text replace // Opens a log file and replaces it if it exists.
 
 	
 
@@ -76,6 +76,12 @@ Encompassing Test
 		
 	
 	save gdp_releases, replace
+	
+	
+	odbc load, exec("select * from r_sectorial_gdp_monthly_seasonal_dummies") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
+		
+	
+	save gdp_bench_r, replace
 	
 	
 	
@@ -182,50 +188,112 @@ Encompassing Test
 	save r_e_gdp_releases, replace
 	
 	
-
+	
 	/*----------------------
-	Compute prediction
-	errors (z)
+	On-the-fly data cleaning
+	(GDP bench revisions)
 	-----------------------*/
 
-	
-	use r_e_gdp_releases, clear
-	
-	
-		* Generate forecast error for each horizon and sector	
 		
-		forval i = 2/11 {
-			gen z_`i'_gdp = gdp_release_`i' - gdp_release_1
+	use gdp_bench_r, clear
+	
+	
+		* Keep ongoing revisions for global GDP only
+		
+		keep vintages_date r_*_gdp
+				
+		
+		* Remove columns for h>12
+		
+		ds r_*_* // Required to use `r(varlist)' below
+		
+		foreach var in `r(varlist)' {
+			// Extraer el número al final del nombre de la variable
+			if regexm("`var'", "r_([0-9]+)_") {
+				local num = regexs(1)  // Usamos regexs(1) para capturar el número
+
+				// Verificar si el número es mayor a 12
+				if real("`num'") > 12 {
+					drop `var'
+				}
+			}
 		}
-	
-	
-		* Compute final revision (12th horizon)
+				
 		
-		gen z_12_gdp = gdp_most_recent - gdp_release_1
+		* Add the suffix "dummy" in each column
+				
+		foreach var of varlist * {
+			if "`var'" != "vintages_date" {
+				rename `var' `var'_dummy
+			}
+		}
+				
+		
+		* Format all vars from double to int 
+		
+		ds vintages_date, not  // Captura todas las variables excepto vintages_date
+		recast int `r(varlist)', force
+		
+		
+		* Format the date variable
+		
+		replace vintages_date = mofd(dofc(vintages_date))
+		format vintages_date %tm
+		
+		
+		* Set vintages_monthly as first column
+		
+		order vintages_date
+		
+		
+		* Sort by vintages_monthly
+		
+		sort vintages_date
+		
+		
+		*** This is a provisional
+		
+		//drop if vintages_monthly == tm(2000m4) | vintages_monthly == tm(2013m12)
+	
+	
+		* Keep obs in specific date range
+		
+		keep if vintages_date > tm(1992m12) & vintages_date < tm(2023m11)
 		
 	
-	save r_e_z_gdp_releases, replace
-	export delimited using "jefas_gdp_revisions.csv", replace
+	save gdp_bench_r_cleaned, replace
 	
 	
 	
 	/*----------------------
-	r & e: Encompassing Test
+	Merge revisions with bench
+	revisions datasets
+	-----------------------*/
+	
+	use r_e_gdp_releases
+	
+		merge 1:1 vintages_date using gdp_bench_r_cleaned
+		
+		drop _merge
+		
+	save gdp_bench_r_e_releases, replace
+	
+	
+	
+	/*----------------------
+	y: Mincer–Zarnowitz
 	________________________
 	Paper and presentation
 	version
 	-----------------------*/
 
 	
-	use r_e_z_gdp_releases, clear
-		
-		
-		tsset vintages_date
+	use gdp_bench_r_e_releases, clear		
 	
-	
-		* Create a new frame named `r_e_encompassing` to store regression results
-		
-		frame create r_e_encompassing str32 variable int n str32 coef
+
+		* Create a new frame named `r_e_encompassing_bench` to store regression results
+
+		frame create r_e_encompassing_bench str32 variable int n str32 coef_1 str32 coef_2 str32 coef_3 str32 coef_4
 		
 		
 		* Loop through variables e_`i'_gdp where `i' ranges from 1 to 11
@@ -243,10 +311,10 @@ Encompassing Test
 					quietly count if !missing(e_`i'_gdp)
 					if r(N) < 5 continue  // Salta si hay menos de 5 observaciones
 					
-					newey e_`i'_gdp r_`=`i'+1'_gdp, lag(1) force
+					newey e_`i'_gdp c.r_`=`i'+1'_gdp##i.r_`=`i'+1'_gdp_dummy, lag(1) force
 					
 					if _rc == 2001 {
-						di in red "Insufficient observations for e_`i'_gdp"
+						di in red "Insufficient observations for gdp_release_`i'"
 						continue
 					}
 					
@@ -255,25 +323,70 @@ Encompassing Test
 					summarize e_`i'_gdp, detail
 					local n = r(N)
 					
-					local coef = M[1, colsof(M)] // constant
+					local coef_1 = M[1,colsof(M)] // constant
+					local coef_2 = M[1,1] // r_`i+1'_gdp
+					local coef_3 = M[1,3] // r_`i+1'_gdp_dummy
+					local coef_4 = M[1,5] // r_`i+1'_gdp*r_`i+1'_gdp_dummy
 					
-					local pvalue = M[2, colsof(M)] // constant p-value
 					
-					if `pvalue' < 0.01 {
-						local coef = string(`coef', "%9.2f") + "***"
+					local pvalue_1 = M[4,colsof(M)] // constant p-value
+					local pvalue_2 = M[4,1]
+					local pvalue_3 = M[4,3]
+					local pvalue_4 = M[4,5]
+					
+					if `pvalue_1' < 0.01 {
+						local coef_1 = string(`coef_1', "%9.2f") + "***"
 					}
-					else if `pvalue' < 0.05 {
-						local coef = string(`coef', "%9.2f") + "**"
+					else if `pvalue_1' < 0.05 {
+						local coef_1 = string(`coef_1', "%9.2f") + "**"
 					}
-					else if `pvalue' < 0.10 {
-						local coef = string(`coef', "%9.2f") + "*"
+					else if `pvalue_1' < 0.10 {
+						local coef_1 = string(`coef_1', "%9.2f") + "*"
 					}
 					else {
-						local coef = string(`coef', "%9.2f")
+						local coef_1 = string(`coef_1', "%9.2f")
 					}
-	
 					
-					frame post r_e_encompassing ("e_`i'_gdp") (`n') ("`coef'")
+					if `pvalue_2' < 0.01 {
+						local coef_2 = string(`coef_2', "%9.2f") + "***"
+					}
+					else if `pvalue_2' < 0.05 {
+						local coef_2 = string(`coef_2', "%9.2f") + "**"
+					}
+					else if `pvalue_2' < 0.10 {
+						local coef_2 = string(`coef_2', "%9.2f") + "*"
+					}
+					else {
+						local coef_2 = string(`coef_2', "%9.2f")
+					}
+					
+					if `pvalue_3' < 0.01 {
+						local coef_3 = string(`coef_3', "%9.2f") + "***"
+					}
+					else if `pvalue_3' < 0.05 {
+						local coef_3 = string(`coef_3', "%9.2f") + "**"
+					}
+					else if `pvalue_3' < 0.10 {
+						local coef_3 = string(`coef_3', "%9.2f") + "*"
+					}
+					else {
+						local coef_3 = string(`coef_3', "%9.2f")
+					}
+					
+					if `pvalue_4' < 0.01 {
+						local coef_4 = string(`coef_4', "%9.2f") + "***"
+					}
+					else if `pvalue_4' < 0.05 {
+						local coef_4 = string(`coef_4', "%9.2f") + "**"
+					}
+					else if `pvalue_4' < 0.10 {
+						local coef_4 = string(`coef_4', "%9.2f") + "*"
+					}
+					else {
+						local coef_4 = string(`coef_4', "%9.2f")
+					}
+					
+					frame post r_e_encompassing_bench ("e_`i'_gdp") (`n') ("`coef_1'") ("`coef_2'") ("`coef_3'") ("`coef_4'")
 				}
 			}
 			
@@ -282,28 +395,36 @@ Encompassing Test
 			}
 		}
 
-		frame change r_e_encompassing
+	frame change r_e_encompassing_bench
 
-		list variable n coef, noobs clean
+	list variable n coef_1 coef_2 coef_3 coef_4, noobs clean
+		
+		
+		* Display the matrix M in the command window
+		
+		//matrix list M
 				
 				
 		* Rename vars
 		
 		rename variable h
-		rename coef Beta
+		rename coef_1 Intercepto
+		rename coef_2 Beta
+		rename coef_3 Dummy
+		rename coef_4 Interacción
 		
 		
 		* Order vars
 		
-		order h n Beta
+		order h n Intercepto Beta Dummy Interacción
 	
 		
 		* Export to excel file
 		
-		export excel using "$tables_folder/gdp_r_e_encompassing.xlsx", ///
+		export excel using "$tables_folder/gdp_r_e_bench_encompassing.xlsx", ///
     firstrow(variable) replace
 					
-		
+	
 	
 	/*----------------------
 	Drop aux data and tables
