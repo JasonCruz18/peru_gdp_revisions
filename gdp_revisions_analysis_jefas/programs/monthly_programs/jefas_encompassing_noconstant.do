@@ -253,7 +253,7 @@ Encompassing Test
 					local n = r(N)
 					
 					local coef_1 = M[1, 1] // r_`=`i'+1'_gdp
-					
+					local se_1 = M[2, 1]
 					local pvalue_1 = M[4, 1] // constant p-value
 					
 					if `pvalue_1' < 0.01 {
@@ -269,6 +269,8 @@ Encompassing Test
 						local coef_1 = string(`coef_1', "%9.2f")
 					}
 					
+					*** Append standard error in parentheses to coef
+					local coef_1 = "`coef_1' (" + string(`se_1', "%9.2f") + ")"
 					
 					frame post r_e_encompassing ("e_`i'_gdp") (`n') ("`coef_1'")
 				}

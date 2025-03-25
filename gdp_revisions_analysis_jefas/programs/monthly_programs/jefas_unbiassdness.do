@@ -258,13 +258,14 @@ Summary of Statistics (Unbiassdness)
 					local p1 = string(r(p1), "%9.2f")  	// 1st percentile
 					local p99 = string(r(p99), "%9.2f") // 99th percentile
 					
-					*** Extract the constant term coefficient and its p-value
-					
+					*** Extract the constant term coefficient, standard error, and p-value
+
 					local coef = M["b", "_cons"]
+					local se = M["se", "_cons"]
 					local pvalue = M["pvalue", "_cons"]
-					
+
 					*** Format the coefficient string with significance stars based on the p-value
-					
+
 					if `pvalue' < 0.01 {
 						local coef = string(`coef', "%9.2f") + "***"
 					}
@@ -277,9 +278,11 @@ Summary of Statistics (Unbiassdness)
 					else {
 						local coef = string(`coef', "%9.2f")
 					}
-					
-					*** Post the variable name, summary statistics, and formatted coefficient to the results frame
-					
+
+					*** Append standard error in parentheses to coef
+					local coef = "`coef' (" + string(`se', "%9.2f") + ")"
+
+					*** Post results including the coefficient with standard error
 					frame post stats_sum_r ("r_`i'_gdp") (`n') ("`coef'") ("`sd'") ("`p1'") ("`p99'")
 				}
 			}
@@ -373,6 +376,7 @@ Summary of Statistics (Unbiassdness)
 					*** Extract the constant term coefficient and its p-value
 					
 					local coef = M["b", "_cons"]
+					local se = M["se", "_cons"]
 					local pvalue = M["pvalue", "_cons"]
 					
 					*** Format the coefficient string with significance stars based on the p-value
@@ -389,6 +393,9 @@ Summary of Statistics (Unbiassdness)
 					else {
 						local coef = string(`coef', "%9.2f")
 					}
+					
+					*** Append standard error in parentheses to coef
+					local coef = "`coef' (" + string(`se', "%9.2f") + ")"
 					
 					*** Post the variable name, summary statistics, and formatted coefficient to the results frame
 					
@@ -485,6 +492,7 @@ Summary of Statistics (Unbiassdness)
 					*** Extract the constant term coefficient and its p-value
 					
 					local coef = M["b", "_cons"]
+					local se = M["se", "_cons"]
 					local pvalue = M["pvalue", "_cons"]
 					
 					*** Format the coefficient string with significance stars based on the p-value
@@ -501,6 +509,9 @@ Summary of Statistics (Unbiassdness)
 					else {
 						local coef = string(`coef', "%9.2f")
 					}
+					
+					*** Append standard error in parentheses to coef
+					local coef = "`coef' (" + string(`se', "%9.2f") + ")"
 					
 					*** Post the variable name, summary statistics, and formatted coefficient to the results frame
 					
