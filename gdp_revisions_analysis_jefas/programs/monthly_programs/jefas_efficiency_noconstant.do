@@ -1,5 +1,5 @@
 /********************
-Mincer–Zarnowitz Regressions
+Encompassing Test
 ***
 
 		Author
@@ -7,7 +7,7 @@ Mincer–Zarnowitz Regressions
 		Jason Cruz
 		*********************/
 
-		*** Program: jefas_min_zar.do
+		*** Program: jefas_efficiency_noconstant_first_sample.do
 		** 	First Created: 03/20/25
 		** 	Last Updated:  03/21/25
 			
@@ -34,7 +34,7 @@ Mincer–Zarnowitz Regressions
 	pause on 				// Enables pauses in programs.
 	set varabbrev off 		// Turns off variable abbreviation.
 			
-	//log using jefas_min_zar.txt, text replace // Opens a log file and replaces it if it exists.
+	//log using jefas_encompassing.txt, text replace // Opens a log file and replaces it if it exists.
 
 	
 
@@ -210,7 +210,7 @@ Mincer–Zarnowitz Regressions
 	
 	
 	/*----------------------
-	y: Mincer–Zarnowitz
+	r & e: Encompassing Test
 	________________________
 	Paper and presentation
 	version
@@ -220,16 +220,16 @@ Mincer–Zarnowitz Regressions
 	use r_e_z_gdp_releases, clear
 
 	
-		* Create a new frame named `y_min_zar` to store regression results
-
-		frame create y_min_zar str32 variable int n str32 coef_1 str32 coef_2
+		* Create a new frame named `r_efficiency` to store regression results
+		
+		frame create r_efficiency str32 variable int n str32 coef_1
 		
 		
-		* Loop through variables gdp_release_`i' where `i' ranges from 1 to 11
+		* Loop through variables r_`i'_gdp where `i' ranges from 2 to 12
 		
-		forval i = 1/11 {
+		forval i = 3/12 {
 			
-			capture confirm variable gdp_release_`i'
+			capture confirm variable r_`i'_gdp
 			
 			if !_rc {
 				
@@ -237,25 +237,26 @@ Mincer–Zarnowitz Regressions
 					
 					tsset vintages_date
 					
-					quietly count if !missing(gdp_release_`i')
-					if r(N) < 5 continue  // Salta si hay menos de 5 observaciones
+					quietly count if !missing(r_`i'_gdp)
+					if r(N) < 5 continue  // Skip if there are less than 5 observations
 					
-					newey e_`i'_gdp gdp_release_`i', lag(1) force
+					newey r_`i'_gdp r_`=`i'-1'_gdp, lag(1) noconstant force
 					
 					if _rc == 2001 {
-						di in red "Insufficient observations for gdp_release_`i'"
+						di in red "Insufficient observations for r_`i'_gdp"
 						continue
 					}
 					
 					matrix M = r(table)
 					
-					summarize gdp_release_`i', detail
+					summarize r_`i'_gdp, detail
 					local n = r(N)
 					
-					local coef_1 = M[1,colsof(M)] // constant
-					local coef_2 = M[1,1] 
-					local pvalue_1 = M[4,colsof(M)] // constant p-value
-					local pvalue_2 = M[4,1]
+					local coef_1 = M[1, 1] // regressor
+					
+					local se_1 = M[2, 1] // regressor
+					
+					local pvalue_1 = M[4, 1] // regressor p-value
 					
 					if `pvalue_1' < 0.01 {
 						local coef_1 = string(`coef_1', "%9.2f") + "***"
@@ -270,51 +271,42 @@ Mincer–Zarnowitz Regressions
 						local coef_1 = string(`coef_1', "%9.2f")
 					}
 					
-					if `pvalue_2' < 0.01 {
-						local coef_2 = string(`coef_2', "%9.2f") + "***"
-					}
-					else if `pvalue_2' < 0.05 {
-						local coef_2 = string(`coef_2', "%9.2f") + "**"
-					}
-					else if `pvalue_2' < 0.10 {
-						local coef_2 = string(`coef_2', "%9.2f") + "*"
-					}
-					else {
-						local coef_2 = string(`coef_2', "%9.2f")
-					}
+	
+					*** Append standard error in parentheses to coef
+					local coef_1 = "`coef_1' (" + string(`se_1', "%9.2f") + ")"
 					
-					frame post y_min_zar ("gdp_release_`i'") (`n') ("`coef_1'") ("`coef_2'")
+					
+					frame post r_efficiency ("r_`i'_gdp") (`n') ("`coef_1'")
 				}
 			}
 			
 			else {
-				di in yellow "Variable gdp_release_`i' does not exist"
+				di in yellow "Variable r_`i'_gdp does not exist"
 			}
 		}
 
-	frame change y_min_zar
+		frame change r_efficiency
 
-	list variable n coef_1 coef_2, noobs clean
+		list variable n coef_1, noobs clean
 				
 				
 		* Rename vars
 		
 		rename variable h
-		rename coef_1 Intercepto
-		rename coef_2 Beta
+		rename coef_1 Beta
 		
 		
 		* Order vars
 		
-		order h n Intercepto Beta
+		order h n Beta
 	
 		
 		* Export to excel file
 		
-		export excel using "$tables_folder/gdp_releases_min_zar.xlsx", ///
+		export excel using "$tables_folder/gdp_r_efficiency_noconstant.xlsx", ///
     firstrow(variable) replace
 					
-	
+		
 	
 	/*----------------------
 	Drop aux data and tables

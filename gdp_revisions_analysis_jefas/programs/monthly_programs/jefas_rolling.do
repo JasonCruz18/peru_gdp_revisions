@@ -131,7 +131,7 @@ Summary of Statistics (Unbiassdness)
 		
 		* Keep obs in specific date range
 		
-		keep if vintages_date > tm(2000m12) & vintages_date < tm(2023m11)
+		keep if vintages_date > tm(2000m12) & vintages_date < tm(2018m11)
 		
 	
 	save gdp_releases_cleaned, replace
@@ -210,8 +210,7 @@ Summary of Statistics (Unbiassdness)
 	
 	
 	/*----------------------
-	r: summary of stats
-	(mean with significance)
+	e: Rolling mean and sd
 	________________________
 	Paper and presentation
 	version
@@ -220,108 +219,24 @@ Summary of Statistics (Unbiassdness)
 	
 	use r_e_z_gdp_releases, clear
 		
+	tsset vintages_date, monthly
 	
-		* Create a new frame named `stats_sum_r` to store regression results and summary statistics
-
-		frame create stats_sum_r str32 variable int n str32 coef str8 sd str8 p1 str8 p99
-		
-
-		* Loop through variables r_`i'_gdp where `i' ranges from 2 to 12
-			
-		forval i = 2/12 {
-			
-			capture confirm variable r_`i'_gdp // Check if the variable r_`i'_gdp exists
-			
-			if !_rc { // If the variable exists (_rc == 0)
-				
-				capture {
-					
-					tsset vintages_date
-				
-					newey r_`i'_gdp, lag(1) force // Regression
-					
-					if _rc == 2001 { // If the regression fails due to insufficient observations
-					
-						di in red "Insufficient observations for r_`i'_`sector'"
-						continue
-					}
-					
-					*** Store regression result matrix
-					
-					matrix M = r(table)
-					
-					*** Calculate detailed summary statistics for the variable
-					
-					summarize r_`i'_gdp, detail
-					local n = r(N)                   	// Number of observations
-					local sd = string(r(sd), "%9.2f")  	// Standard deviation
-					local p1 = string(r(p1), "%9.2f")  	// 1st percentile
-					local p99 = string(r(p99), "%9.2f") // 99th percentile
-					
-					*** Extract the constant term coefficient, standard error, and p-value
-
-					local coef = M["b", "_cons"]
-					local se = M["se", "_cons"]
-					local pvalue = M["pvalue", "_cons"]
-
-					*** Format the coefficient string with significance stars based on the p-value
-
-					if `pvalue' < 0.01 {
-						local coef = string(`coef', "%9.2f") + "***"
-					}
-					else if `pvalue' >= 0.01 & `pvalue' < 0.05 {
-						local coef = string(`coef', "%9.2f") + "**"
-					}
-					else if `pvalue' >= 0.05 & `pvalue' < 0.10 {
-						local coef = string(`coef', "%9.2f") + "*"
-					}
-					else {
-						local coef = string(`coef', "%9.2f")
-					}
-
-					*** Append standard error in parentheses to coef
-					local coef = "`coef' (" + string(`se', "%9.2f") + ")"
-
-					*** Post results including the coefficient with standard error
-					frame post stats_sum_r ("r_`i'_gdp") (`n') ("`coef'") ("`sd'") ("`p1'") ("`p99'")
-				}
-			}
-			
-			else {
-				di in yellow "Variable r_`i'_gdp does not exist" // If the variable does not exist, display a warning message
-			}
-		}
-
-
-		* Switch to the `stats_sum_r` frame to view the stored results
-
-		frame change stats_sum_r
-
-		
-		* List the results without observation numbers and in a clean format
-
-		list variable n coef p1 p99 sd, noobs clean
-		
-		
-		* Rename vars
-		
-		rename variable h
-		rename coef Insesgadez
-		rename p1 P1
-		rename p99 P99
-		rename sd SD
-		
-		
-		* Order vars
-		
-		order h n Insesgadez P1 P99 SD
+	//xtbreak test e_1_gdp gdp_release_1, ///
+	//breakpoints(tm(2000m1)) hypothesis(1)
 	
-		
-		* Export to excel file
-		
-		export excel using "$tables_folder/gdp_r_unbiassdness.xlsx", ///
-    firstrow(variable) replace
 	
+	rolling mean_e1=r(mean) sd_e1=r(sd), window(60) step(1) saving(rolling_results, replace): sum e_1_gdp
+	
+	use rolling_results, clear
+	
+	twoway (line sd_e1 start, sort lcolor(blue))
+	
+	twoway (line mean_e1 start, sort lcolor(red))
+
+	gen post2000 = (vintages_date >= tm(2000m1))
+	ttest e_1_gdp, by(post2000) unequal
+	
+	robvar e_1_gdp, by(post2000)
 	
 	
 	/*----------------------

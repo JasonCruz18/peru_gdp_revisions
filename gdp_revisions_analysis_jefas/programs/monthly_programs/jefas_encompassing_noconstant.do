@@ -131,7 +131,7 @@ Encompassing Test
 		
 		* Keep obs in specific date range
 		
-		keep if vintages_date > tm(1992m12) & vintages_date < tm(2023m11)
+		keep if vintages_date > tm(2000m12) & vintages_date < tm(2023m11)
 		
 	
 	save gdp_releases_cleaned, replace
