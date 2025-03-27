@@ -291,14 +291,6 @@ Encompassing Test (Benchmark)
 	use gdp_bench_r_e_releases, clear		
 	
 
-	tsset vintages_date
-	
-	newey e_1_gdp c.r_2_gdp##i.r_2_gdp_dummy, lag(1) noconstant force
-	
-	matrix M = r(table)
-	
-	matrix list M
-	
 		* Create a new frame named `r_e_encompassing_bench` to store regression results
 
 		frame create r_e_encompassing_bench str32 variable int n str32 coef_1 str32 coef_2 str32 coef_3
@@ -306,7 +298,7 @@ Encompassing Test (Benchmark)
 		
 		* Loop through variables e_`i'_gdp where `i' ranges from 1 to 11
 		
-		forval i = 1/11 {
+		forval i = 2/12 {
 			
 			capture confirm variable e_`i'_gdp
 			
@@ -319,7 +311,7 @@ Encompassing Test (Benchmark)
 					quietly count if !missing(e_`i'_gdp)
 					if r(N) < 5 continue  // Salta si hay menos de 5 observaciones
 					
-					reg e_`i'_gdp c.r_`=`i'+1'_gdp##i.r_`=`i'+1'_gdp_dummy, noconstant
+					reg e_`i'_gdp c.r_`i'_gdp##i.r_`i'_gdp_dummy, noconstant
 					
 					if _rc == 2001 {
 						di in red "Insufficient observations for gdp_release_`i'"
@@ -382,11 +374,12 @@ Encompassing Test (Benchmark)
 					else {
 						local coef_3 = string(`coef_3', "%9.2f")
 					}
-				
+					
 					*** Append standard error in parentheses to coef
 					local coef_1 = "`coef_1' (" + string(`se_1', "%9.2f") + ")"
 					local coef_2 = "`coef_2' (" + string(`se_2', "%9.2f") + ")"
 					local coef_3 = "`coef_3' (" + string(`se_3', "%9.2f") + ")"
+				
 					
 					frame post r_e_encompassing_bench ("e_`i'_gdp") (`n') ("`coef_1'") ("`coef_2'") ("`coef_3'")
 				}
@@ -422,7 +415,7 @@ Encompassing Test (Benchmark)
 		
 		* Export to excel file
 		
-		export excel using "$tables_folder/gdp_r_e_bench_encompassing.xlsx", ///
+		export excel using "$tables_folder/gdp_r_e_bench_predictibility.xlsx", ///
     firstrow(variable) replace
 					
 	
