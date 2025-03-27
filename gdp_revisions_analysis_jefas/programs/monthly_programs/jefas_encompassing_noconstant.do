@@ -240,7 +240,7 @@ Encompassing Test
 					quietly count if !missing(e_`i'_gdp)
 					if r(N) < 5 continue  // Salta si hay menos de 5 observaciones
 					
-					reg e_`i'_gdp r_`=`i'+1'_gdp, noconstant
+					reg e_`i'_gdp r_`=`i'+1'_gdp, robust noconstant
 					
 					if _rc == 2001 {
 						di in red "Insufficient observations for e_`i'_gdp"

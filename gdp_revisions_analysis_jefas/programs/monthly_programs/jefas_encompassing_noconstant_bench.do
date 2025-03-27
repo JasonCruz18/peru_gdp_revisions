@@ -319,7 +319,7 @@ Encompassing Test (Benchmark)
 					quietly count if !missing(e_`i'_gdp)
 					if r(N) < 5 continue  // Salta si hay menos de 5 observaciones
 					
-					reg e_`i'_gdp c.r_`=`i'+1'_gdp##i.r_`=`i'+1'_gdp_dummy, noconstant
+					reg e_`i'_gdp c.r_`=`i'+1'_gdp##i.r_`=`i'+1'_gdp_dummy, robust noconstant
 					
 					if _rc == 2001 {
 						di in red "Insufficient observations for gdp_release_`i'"
@@ -422,7 +422,7 @@ Encompassing Test (Benchmark)
 		
 		* Export to excel file
 		
-		export excel using "$tables_folder/gdp_r_e_bench_encompassing.xlsx", ///
+		export excel using "$tables_folder/gdp_r_e_encompassing_noconstant_bench.xlsx", ///
     firstrow(variable) replace
 					
 	
