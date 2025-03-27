@@ -81,7 +81,7 @@ Mincer–Zarnowitz Regressions
 	odbc load, exec("select * from r_sectorial_gdp_monthly_seasonal_dummies") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
 		
 	
-	save gdp_bench_releases, replace
+	save gdp_bench_r, replace
 	
 	
 	
@@ -137,7 +137,7 @@ Mincer–Zarnowitz Regressions
 		
 		* Keep obs in specific date range
 		
-		keep if vintages_date > tm(1992m12) & vintages_date < tm(2023m11)
+		keep if vintages_date > tm(2000m12) & vintages_date < tm(2023m11)
 		
 	
 	save gdp_releases_cleaned, replace
@@ -170,12 +170,32 @@ Mincer–Zarnowitz Regressions
 	
 	
 	/*----------------------
+	Compute prediction
+	errors (e)
+	-----------------------*/
+
+	
+	use r_gdp_releases, clear
+	
+	
+		* Generate forecast error for each horizon and sector
+		
+		forval i = 1/11 {
+			gen e_`i'_gdp = gdp_most_recent - gdp_release_`i'
+		}
+		
+	
+	save r_e_gdp_releases, replace
+	
+	
+	
+	/*----------------------
 	On-the-fly data cleaning
 	(GDP bench revisions)
 	-----------------------*/
 
 		
-	use gdp_bench_releases, clear
+	use gdp_bench_r, clear
 	
 	
 		* Keep ongoing revisions for global GDP only
@@ -238,10 +258,10 @@ Mincer–Zarnowitz Regressions
 	
 		* Keep obs in specific date range
 		
-		keep if vintages_date > tm(1992m12) & vintages_date < tm(2023m11)
+		keep if vintages_date > tm(2000m12) & vintages_date < tm(2023m11)
 		
 	
-	save gdp_bench_releases_cleaned, replace
+	save gdp_bench_r_cleaned, replace
 	
 	
 	
@@ -250,13 +270,13 @@ Mincer–Zarnowitz Regressions
 	revisions datasets
 	-----------------------*/
 	
-	use r_gdp_releases
+	use r_e_gdp_releases
 	
-		merge 1:1 vintages_date using gdp_bench_releases_cleaned
+		merge 1:1 vintages_date using gdp_bench_r_cleaned
 		
 		drop _merge
 		
-	save gdp_bench_r_releases, replace
+	save gdp_bench_r_e_releases, replace
 	
 	
 	
@@ -268,19 +288,19 @@ Mincer–Zarnowitz Regressions
 	-----------------------*/
 
 	
-	use gdp_bench_r_releases, clear		
-	
+	use gdp_bench_r_e_releases, clear
+
 	
 		* Create a new frame named `y_min_zar_bench` to store regression results
 
 		frame create y_min_zar_bench str32 variable int n str32 coef_1 str32 coef_2 str32 coef_3 str32 coef_4
 		
 		
-		* Loop through variables gdp_release_`i' where `i' ranges from 2 to 12
+		* Loop through variables e_`i'_gdp where `i' ranges from 2 to 12
 		
-		forval i = 2/12 {
+		forval i = 1/11 {
 			
-			capture confirm variable gdp_release_`i'
+			capture confirm variable e_`i'_gdp
 			
 			if !_rc {
 				
@@ -288,10 +308,10 @@ Mincer–Zarnowitz Regressions
 					
 					tsset vintages_date
 					
-					quietly count if !missing(gdp_release_`i')
+					quietly count if !missing(e_`i'_gdp)
 					if r(N) < 5 continue  // Salta si hay menos de 5 observaciones
 					
-					newey gdp_most_recent c.gdp_release_`i'##i.gdp_release_`i'_dummy, lag(1) force
+					newey e_`i'_gdp c.gdp_release_`i'##i.gdp_release_`i'_dummy, lag(1) force
 					
 					if _rc == 2001 {
 						di in red "Insufficient observations for gdp_release_`i'"
@@ -300,7 +320,7 @@ Mincer–Zarnowitz Regressions
 					
 					matrix M = r(table)
 					
-					summarize gdp_release_`i', detail
+					summarize e_`i'_gdp, detail
 					local n = r(N)
 					
 					local coef_1 = M[1,colsof(M)] // constant
@@ -308,11 +328,15 @@ Mincer–Zarnowitz Regressions
 					local coef_3 = M[1,3] // gdp_release_`i'_dummy
 					local coef_4 = M[1,5] // gdp_release_`i'*gdp_release_`i'_dummy
 					
-					
 					local pvalue_1 = M[4,colsof(M)] // constant p-value
 					local pvalue_2 = M[4,1]
 					local pvalue_3 = M[4,3]
 					local pvalue_4 = M[4,5]
+					
+					local se_1 = M[2,colsof(M)] // constant p-value
+					local se_2 = M[2,1]
+					local se_3 = M[2,3]
+					local se_4 = M[2,5]
 					
 					if `pvalue_1' < 0.01 {
 						local coef_1 = string(`coef_1', "%9.2f") + "***"
@@ -366,12 +390,18 @@ Mincer–Zarnowitz Regressions
 						local coef_4 = string(`coef_4', "%9.2f")
 					}
 					
-					frame post y_min_zar_bench ("gdp_release_`i'") (`n') ("`coef_1'") ("`coef_2'") ("`coef_3'") ("`coef_4'")
+					*** Append standard error in parentheses to coef
+					local coef_1 = "`coef_1' (" + string(`se_1', "%9.2f") + ")"
+					local coef_2 = "`coef_2' (" + string(`se_2', "%9.2f") + ")"
+					local coef_3 = "`coef_3' (" + string(`se_3', "%9.2f") + ")"
+					local coef_4 = "`coef_4' (" + string(`se_4', "%9.2f") + ")"
+					
+					frame post y_min_zar_bench ("e_`i'_gdp") (`n') ("`coef_1'") ("`coef_2'") ("`coef_3'") ("`coef_4'")
 				}
 			}
 			
 			else {
-				di in yellow "Variable gdp_release_`i' does not exist"
+				di in yellow "Variable e_`i'_gdp does not exist"
 			}
 		}
 
@@ -401,7 +431,7 @@ Mincer–Zarnowitz Regressions
 		
 		* Export to excel file
 		
-		export excel using "$tables_folder/gdp_bench_releases_min_zar.xlsx", ///
+		export excel using "$tables_folder/mz_bench.xlsx", ///
     firstrow(variable) replace
 					
 	

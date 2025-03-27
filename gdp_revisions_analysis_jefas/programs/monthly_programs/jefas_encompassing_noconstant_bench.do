@@ -258,7 +258,7 @@ Encompassing Test (Benchmark)
 	
 		* Keep obs in specific date range
 		
-		keep if vintages_date > tm(1992m12) & vintages_date < tm(2023m11)
+		keep if vintages_date > tm(2000m12) & vintages_date < tm(2023m11)
 		
 	
 	save gdp_bench_r_cleaned, replace
@@ -422,7 +422,7 @@ Encompassing Test (Benchmark)
 		
 		* Export to excel file
 		
-		export excel using "$tables_folder/gdp_r_e_encompassing_noconstant_bench.xlsx", ///
+		export excel using "$tables_folder/encompassing_noconstant_bench.xlsx", ///
     firstrow(variable) replace
 					
 	
