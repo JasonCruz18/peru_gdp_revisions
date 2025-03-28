@@ -139,37 +139,12 @@ Summary of Statistics (Unbiassdness)
 	
 	
 	/*----------------------
-	Compute ongoing
-	revisions (r)
-	-----------------------*/
-	
-	
-	use gdp_releases_cleaned, clear
-	
-	
-		* Generate ongoing revisions for each horizon and sector
-		
-		forval i = 2/11 {
-			gen r_`i'_gdp = gdp_release_`i' - gdp_release_`=`i'-1'
-		}
-		
-		
-		* Compute final revision (12th horizon)
-		
-		gen r_12_gdp = gdp_most_recent - gdp_release_11				
-
-	
-	save r_gdp_releases, replace
-	
-	
-	
-	/*----------------------
 	Compute prediction
 	errors (e)
 	-----------------------*/
 
 	
-	use r_gdp_releases, clear
+	use gdp_releases_cleaned, clear
 	
 	
 		* Generate forecast error for each horizon and sector
@@ -179,148 +154,7 @@ Summary of Statistics (Unbiassdness)
 		}
 		
 	
-	save r_e_gdp_releases, replace
-	
-	
-
-	/*----------------------
-	Compute prediction
-	errors (z)
-	-----------------------*/
-
-	
-	use r_e_gdp_releases, clear
-	
-	
-		* Generate forecast error for each horizon and sector	
-		
-		forval i = 2/11 {
-			gen z_`i'_gdp = gdp_release_`i' - gdp_release_1
-		}
-	
-	
-		* Compute final revision (12th horizon)
-		
-		gen z_12_gdp = gdp_most_recent - gdp_release_1
-		
-	
-	save r_e_z_gdp_releases, replace
-	export delimited using "jefas_gdp_revisions.csv", replace
-	
-	
-	
-	/*----------------------
-	r: summary of stats
-	(mean with significance)
-	________________________
-	Paper and presentation
-	version
-	-----------------------*/
-
-	
-	use r_e_z_gdp_releases, clear
-		
-	
-		* Create a new frame named `stats_sum_r` to store regression results and summary statistics
-
-		frame create stats_sum_r str32 variable int n str32 coef str8 sd str8 p1 str8 p99
-		
-
-		* Loop through variables r_`i'_gdp where `i' ranges from 2 to 12
-			
-		forval i = 2/12 {
-			
-			capture confirm variable r_`i'_gdp // Check if the variable r_`i'_gdp exists
-			
-			if !_rc { // If the variable exists (_rc == 0)
-				
-				capture {
-					
-					tsset vintages_date
-				
-					newey r_`i'_gdp, lag(1) force // Regression
-					
-					if _rc == 2001 { // If the regression fails due to insufficient observations
-					
-						di in red "Insufficient observations for r_`i'_`sector'"
-						continue
-					}
-					
-					*** Store regression result matrix
-					
-					matrix M = r(table)
-					
-					*** Calculate detailed summary statistics for the variable
-					
-					summarize r_`i'_gdp, detail
-					local n = r(N)                   	// Number of observations
-					local sd = string(r(sd), "%9.2f")  	// Standard deviation
-					local p1 = string(r(p1), "%9.2f")  	// 1st percentile
-					local p99 = string(r(p99), "%9.2f") // 99th percentile
-					
-					*** Extract the constant term coefficient, standard error, and p-value
-
-					local coef = M["b", "_cons"]
-					local se = M["se", "_cons"]
-					local pvalue = M["pvalue", "_cons"]
-
-					*** Format the coefficient string with significance stars based on the p-value
-
-					if `pvalue' < 0.01 {
-						local coef = string(`coef', "%9.2f") + "***"
-					}
-					else if `pvalue' >= 0.01 & `pvalue' < 0.05 {
-						local coef = string(`coef', "%9.2f") + "**"
-					}
-					else if `pvalue' >= 0.05 & `pvalue' < 0.10 {
-						local coef = string(`coef', "%9.2f") + "*"
-					}
-					else {
-						local coef = string(`coef', "%9.2f")
-					}
-
-					*** Append standard error in parentheses to coef
-					local coef = "`coef' (" + string(`se', "%9.2f") + ")"
-
-					*** Post results including the coefficient with standard error
-					frame post stats_sum_r ("r_`i'_gdp") (`n') ("`coef'") ("`sd'") ("`p1'") ("`p99'")
-				}
-			}
-			
-			else {
-				di in yellow "Variable r_`i'_gdp does not exist" // If the variable does not exist, display a warning message
-			}
-		}
-
-
-		* Switch to the `stats_sum_r` frame to view the stored results
-
-		frame change stats_sum_r
-
-		
-		* List the results without observation numbers and in a clean format
-
-		list variable n coef p1 p99 sd, noobs clean
-		
-		
-		* Rename vars
-		
-		rename variable h
-		rename coef Insesgadez
-		rename p1 P1
-		rename p99 P99
-		rename sd SD
-		
-		
-		* Order vars
-		
-		order h n Insesgadez P1 P99 SD
-	
-		
-		* Export to excel file
-		
-		export excel using "$tables_folder/gdp_r_unbiassdness.xlsx", ///
-    firstrow(variable) replace
+	save e_gdp_releases, replace
 	
 	
 	
@@ -333,7 +167,7 @@ Summary of Statistics (Unbiassdness)
 	-----------------------*/
 
 	
-	use r_e_z_gdp_releases, clear
+	use e_gdp_releases, clear
 		
 		
 		* Create a new frame named `stats_sum_e` to store regression results and summary statistics
@@ -438,122 +272,6 @@ Summary of Statistics (Unbiassdness)
 		export excel using "$tables_folder/gdp_e_unbiassdness.xlsx", ///
     firstrow(variable) replace
 	
-	
-	
-	/*----------------------
-	z: summary of stats
-	(mean with significance)
-	________________________
-	Paper and presentation
-	version
-	-----------------------*/
-
-	
-	use r_e_z_gdp_releases, clear
-	
-		
-		* Create a new frame named `stats_sum_z` to store regression results and summary statistics
-
-		frame create stats_sum_z str32 variable int n str32 coef str8 sd str8 p1 str8 p99
-		
-
-		* Loop through variables z_`i'_gdp where `i' ranges from 2 to 12
-			
-		forval i = 2/12 {
-			
-			capture confirm variable z_`i'_gdp // Check if the variable z_`i'_gdp exists
-			
-			if !_rc { // If the variable exists (_rc == 0)
-				
-				capture {
-					
-					tsset vintages_date
-				
-					newey z_`i'_gdp, lag(1) force // Regression
-					
-					if _rc == 2001 { // If the regression fails due to insufficient observations
-					
-						di in red "Insufficient observations for z_`i'_gdp"
-						continue
-					}
-					
-					*** Store regression result matrix
-					
-					matrix M = r(table)
-					
-					*** Calculate detailed summary statistics for the variable
-					
-					summarize z_`i'_gdp, detail
-					local n = r(N)                   	// Number of observations
-					local sd = string(r(sd), "%9.2f")  	// Standard deviation
-					local p1 = string(r(p1), "%9.2f")  	// 1st percentile
-					local p99 = string(r(p99), "%9.2f") // 99th percentile
-					
-					*** Extract the constant term coefficient and its p-value
-					
-					local coef = M["b", "_cons"]
-					local se = M["se", "_cons"]
-					local pvalue = M["pvalue", "_cons"]
-					
-					*** Format the coefficient string with significance stars based on the p-value
-					
-					if `pvalue' < 0.01 {
-						local coef = string(`coef', "%9.2f") + "***"
-					}
-					else if `pvalue' >= 0.01 & `pvalue' < 0.05 {
-						local coef = string(`coef', "%9.2f") + "**"
-					}
-					else if `pvalue' >= 0.05 & `pvalue' < 0.10 {
-						local coef = string(`coef', "%9.2f") + "*"
-					}
-					else {
-						local coef = string(`coef', "%9.2f")
-					}
-					
-					*** Append standard error in parentheses to coef
-					local coef = "`coef' (" + string(`se', "%9.2f") + ")"
-					
-					*** Post the variable name, summary statistics, and formatted coefficient to the results frame
-					
-					frame post stats_sum_z ("z_`i'_gdp") (`n') ("`coef'") ("`sd'") ("`p1'") ("`p99'")
-				}
-			}
-			
-			else {
-				di in yellow "Variable z_`i'_gdp does not exist" // If the variable does not exist, display a warning message
-			}
-		}
-
-
-		* Switch to the `stats_sum_e` frame to view the stored results
-
-		frame change stats_sum_z
-
-		
-		* List the results without observation numbers and in a clean format
-
-		list variable n coef p1 p99 sd, noobs clean
-		
-		
-		* Rename vars
-		
-		rename variable h
-		rename coef Insesgadez
-		rename p1 P1
-		rename p99 P99
-		rename sd SD
-		
-		
-		* Order vars
-		
-		order h n Insesgadez P1 P99 SD
-	
-		
-		* Export to excel file
-		
-		export excel using "$tables_folder/gdp_z_unbiassdness.xlsx", ///
-    firstrow(variable) replace
-					
 	
 	
 	/*----------------------
