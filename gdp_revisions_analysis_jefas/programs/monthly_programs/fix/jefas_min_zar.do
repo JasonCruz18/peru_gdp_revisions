@@ -131,35 +131,10 @@ Mincer–Zarnowitz Regressions
 		
 		* Keep obs in specific date range
 		
-		keep if vintages_date > tm(1992m12) & vintages_date < tm(2023m11)
+		keep if vintages_date > tm(2000m12) & vintages_date < tm(2023m11)
 		
 	
 	save gdp_releases_cleaned, replace
-	
-	
-	
-	/*----------------------
-	Compute ongoing
-	revisions (r)
-	-----------------------*/
-	
-	
-	use gdp_releases_cleaned, clear
-	
-	
-		* Generate ongoing revisions for each horizon and sector
-		
-		forval i = 2/11 {
-			gen r_`i'_gdp = gdp_release_`i' - gdp_release_`=`i'-1'
-		}
-		
-		
-		* Compute final revision (12th horizon)
-		
-		gen r_12_gdp = gdp_most_recent - gdp_release_11				
-
-	
-	save r_gdp_releases, replace
 	
 	
 	
@@ -169,7 +144,7 @@ Mincer–Zarnowitz Regressions
 	-----------------------*/
 
 	
-	use r_gdp_releases, clear
+	use gdp_releases_cleaned, clear
 	
 	
 		* Generate forecast error for each horizon and sector
@@ -179,45 +154,34 @@ Mincer–Zarnowitz Regressions
 		}
 		
 	
-	save r_e_gdp_releases, replace
-	
-	
-
-	/*----------------------
-	Compute prediction
-	errors (z)
-	-----------------------*/
-
-	
-	use r_e_gdp_releases, clear
-	
-	
-		* Generate forecast error for each horizon and sector	
-		
-		forval i = 2/11 {
-			gen z_`i'_gdp = gdp_release_`i' - gdp_release_1
-		}
-	
-	
-		* Compute final revision (12th horizon)
-		
-		gen z_12_gdp = gdp_most_recent - gdp_release_1
-		
-	
-	save r_e_z_gdp_releases, replace
-	export delimited using "jefas_gdp_revisions.csv", replace
+	save e_gdp_releases, replace
 	
 	
 	
 	/*----------------------
-	y: Mincer–Zarnowitz
+	e: Mincer–Zarnowitz
 	________________________
 	Paper and presentation
 	version
 	-----------------------*/
 
 	
-	use r_e_z_gdp_releases, clear
+	use e_gdp_releases, clear
+	
+	
+		* Keep common obs
+
+		** Set common information using regression for model III (H1) to keep if !missing(residuals)
+
+		qui {
+			tsset vintages_date
+			newey e_11_gdp gdp_release_11, lag(1) force
+			predict residuals_aux, resid  // Generate the regression residuals.
+		}
+
+		keep if !missing(residuals_aux)  // Keep only the observations where the residuals are not missing.
+
+		qui drop residuals_aux
 
 	
 		* Create a new frame named `y_min_zar` to store regression results

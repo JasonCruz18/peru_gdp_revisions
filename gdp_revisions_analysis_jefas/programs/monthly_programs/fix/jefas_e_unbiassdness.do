@@ -170,6 +170,21 @@ Summary of Statistics (Unbiassdness)
 	use e_gdp_releases, clear
 		
 		
+		* Keep common obs
+
+		** Set common information using regression for model III (H1) to keep if !missing(residuals)
+
+		qui {
+			tsset vintages_date
+			newey e_11_gdp, lag(1) force // Regression residuals.
+			predict residuals_aux, resid  // Generate the regression residuals.
+		}
+
+		keep if !missing(residuals_aux)  // Keep only the observations where the residuals are not missing.
+
+		qui drop residuals_aux
+		
+		
 		* Create a new frame named `stats_sum_e` to store regression results and summary statistics
 
 		frame create stats_sum_e str32 variable int n str32 coef str8 sd str8 p1 str8 p99
