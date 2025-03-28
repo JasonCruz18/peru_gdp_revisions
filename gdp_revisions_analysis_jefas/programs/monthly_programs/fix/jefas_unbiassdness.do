@@ -72,7 +72,7 @@ Summary of Statistics (Unbiassdness)
 	-----------------------*/
 		
 		
-	odbc load, exec("select * from r_gdp_monthly_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change the dataset loaded from SQL as preferred. 
+	odbc load, exec("select * from e_gdp_monthly_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change the dataset loaded from SQL as preferred. 
 		
 	
 	save gdp_releases, replace
@@ -131,7 +131,7 @@ Summary of Statistics (Unbiassdness)
 		
 		* Keep obs in specific date range
 		
-		keep if vintages_date > tm(2000m12) & vintages_date < tm(2023m11)
+		keep if vintages_date > tm(1992m12) & vintages_date < tm(2023m11)
 		
 	
 	save gdp_releases_cleaned, replace
