@@ -470,7 +470,7 @@ Encompassing Test
 		
 		* Export to excel file
 		
-		export excel using "$tables_folder/gdp_predictibility_bench.xlsx", ///
+		export excel using "$tables_folder/gdp_predictibility_noconstant_bench.xlsx", ///
     firstrow(variable) replace
 					
 	
