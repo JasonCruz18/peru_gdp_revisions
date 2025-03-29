@@ -50,8 +50,8 @@ Master Do-file for Running All JEFAS Scripts
     Define global macros for date filtering
     ------------------------*/
 
-    global start_date tm(2008m12)
-    global end_date tm(2020m1)
+    global start_date tm(2000m12)
+    global end_date tm(2023m11)
 
 
     /*----------------------
