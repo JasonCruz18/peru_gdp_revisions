@@ -421,7 +421,7 @@ Mincer–Zarnowitz Regressions
 		
 		* Export to excel file
 		
-		export excel using "$tables_folder/mz_bench.xlsx", ///
+		export excel using "$tables_folder/gdp_mz_bench.xlsx", ///
     firstrow(variable) replace
 					
 	
