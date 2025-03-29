@@ -1,5 +1,5 @@
 /********************
-Summary of Statistics (Unbiassdness)
+Encompassing Test
 ***
 
 		Author
@@ -7,9 +7,9 @@ Summary of Statistics (Unbiassdness)
 		Jason Cruz
 		*********************/
 
-		*** Program: jefas_e_unbiassdness_bench.do
+		*** Program: jefas_efficiency_first_sample.do
 		** 	First Created: 03/20/25
-		** 	Last Updated:  03/28/25
+		** 	Last Updated:  03/21/25
 			
 	***
 	** Just click on the "Run (do)" button, the code will do the rest for you.
@@ -34,7 +34,7 @@ Summary of Statistics (Unbiassdness)
 	pause on 				// Enables pauses in programs.
 	set varabbrev off 		// Turns off variable abbreviation.
 			
-	//log using jefas_unbiassdness.txt, text replace // Opens a log file and replaces it if it exists.
+	//log using jefas_encompassing.txt, text replace // Opens a log file and replaces it if it exists.
 
 	
 
@@ -53,12 +53,16 @@ Summary of Statistics (Unbiassdness)
 	------------------------*/
 		
 	shell mkdir "output" 			// Creates folder to save outputs.
+	//shell mkdir "output/charts" 	// Creates folder to save charts.
 	shell mkdir "output/tables" 	// Creates folder to save tables.
+	//shell mkdir "output/data" 		// Creates folder to save data.
 		
 	
 	* Set as global vars
 	
+	//global graphs_folder "output/charts"	// Use to export charts.
 	global tables_folder "output/tables"	// Use to export tables.
+	//global data_folder "output/data"		// Use to export .dta.
 	
 		
 		
@@ -162,9 +166,9 @@ Summary of Statistics (Unbiassdness)
 
 	
 	save r_gdp_releases, replace
+		
 	
 	
-
 	/*----------------------
 	On-the-fly data cleaning
 	(GDP bench e)
@@ -281,8 +285,7 @@ Summary of Statistics (Unbiassdness)
 	
 	
 	/*----------------------
-	r: summary of stats
-	(mean with significance)
+	r: Efficiency Test
 	________________________
 	Paper and presentation
 	version
@@ -290,31 +293,31 @@ Summary of Statistics (Unbiassdness)
 
 	
 	use gdp_bench_r_dummies_cleaned, clear
-	
-			
+		
+		
 		* Keep common obs
 
 		** Set common information using regression for model III (H1) to keep if !missing(residuals)
 
 		qui {
 			tsset vintages_date
-			newey r_12_gdp r_12_gdp_dummy, lag(1) force
+			newey r_12_gdp c.r_11_gdp##i.r_11_gdp_dummy, lag(1) force
 			predict residuals_aux, resid  // Generate the regression residuals.
 		}
 
 		keep if !missing(residuals_aux)  // Keep only the observations where the residuals are not missing.
 
 		qui drop residuals_aux
-		
-		
-		* Create a new frame named `r_bench` to store regression results and summary statistics
 
-		frame create r_bench str32 variable int n str32 coef_1 str32 coef_2
+	
+		* Create a new frame named `efficiency_bench` to store regression results
+
+		frame create efficiency_bench str32 variable int n str32 coef_1 str32 coef_2 str32 coef_3 str32 coef_4
 		
 		
 		* Loop through variables r_`i'_gdp where `i' ranges from 2 to 12
 		
-		forval i = 1/11 {
+		forval i = 2/12 {
 			
 			capture confirm variable r_`i'_gdp
 			
@@ -327,10 +330,10 @@ Summary of Statistics (Unbiassdness)
 					quietly count if !missing(r_`i'_gdp)
 					if r(N) < 5 continue  // Salta si hay menos de 5 observaciones
 					
-					newey r_`i'_gdp r_`i'_gdp_dummy, lag(1) force
+					newey r_`i'_gdp c.r_`=`i'-1'_gdp##i.r_`=`i'-1'_gdp_dummy, lag(1) force
 					
 					if _rc == 2001 {
-						di in red "Insufficient observations for e_`i'_`sector'"
+						di in red "Insufficient observations for gdp_release_`i'"
 						continue
 					}
 					
@@ -339,14 +342,20 @@ Summary of Statistics (Unbiassdness)
 					summarize r_`i'_gdp, detail
 					local n = r(N)
 					
-					local coef_1 = M[1,2]
-					local coef_2 = M[1,1]
+					local coef_1 = M[1,colsof(M)] // constant
+					local coef_2 = M[1,1] // gdp_release_`i' 
+					local coef_3 = M[1,3] // gdp_release_`i'_dummy
+					local coef_4 = M[1,5] // gdp_release_`i'*gdp_release_`i'_dummy
 					
-					local pvalue_1 = M[4,2]
+					local pvalue_1 = M[4,colsof(M)] // constant p-value
 					local pvalue_2 = M[4,1]
+					local pvalue_3 = M[4,3]
+					local pvalue_4 = M[4,5]
 					
-					local se_1 = M[2,2]
+					local se_1 = M[2,colsof(M)] // constant p-value
 					local se_2 = M[2,1]
+					local se_3 = M[2,3]
+					local se_4 = M[2,5]
 					
 					if `pvalue_1' < 0.01 {
 						local coef_1 = string(`coef_1', "%9.2f") + "***"
@@ -374,11 +383,39 @@ Summary of Statistics (Unbiassdness)
 						local coef_2 = string(`coef_2', "%9.2f")
 					}
 					
+					if `pvalue_3' < 0.01 {
+						local coef_3 = string(`coef_3', "%9.2f") + "***"
+					}
+					else if `pvalue_3' < 0.05 {
+						local coef_3 = string(`coef_3', "%9.2f") + "**"
+					}
+					else if `pvalue_3' < 0.10 {
+						local coef_3 = string(`coef_3', "%9.2f") + "*"
+					}
+					else {
+						local coef_3 = string(`coef_3', "%9.2f")
+					}
+					
+					if `pvalue_4' < 0.01 {
+						local coef_4 = string(`coef_4', "%9.2f") + "***"
+					}
+					else if `pvalue_4' < 0.05 {
+						local coef_4 = string(`coef_4', "%9.2f") + "**"
+					}
+					else if `pvalue_4' < 0.10 {
+						local coef_4 = string(`coef_4', "%9.2f") + "*"
+					}
+					else {
+						local coef_4 = string(`coef_4', "%9.2f")
+					}
+					
 					*** Append standard error in parentheses to coef
 					local coef_1 = "`coef_1' (" + string(`se_1', "%9.2f") + ")"
 					local coef_2 = "`coef_2' (" + string(`se_2', "%9.2f") + ")"
+					local coef_3 = "`coef_3' (" + string(`se_3', "%9.2f") + ")"
+					local coef_4 = "`coef_4' (" + string(`se_4', "%9.2f") + ")"
 					
-					frame post r_bench ("r_`i'_gdp") (`n') ("`coef_1'") ("`coef_2'")
+					frame post efficiency_bench ("r_`i'_gdp") (`n') ("`coef_1'") ("`coef_2'") ("`coef_3'") ("`coef_4'")
 				}
 			}
 			
@@ -387,17 +424,34 @@ Summary of Statistics (Unbiassdness)
 			}
 		}
 
-	frame change r_bench
+	frame change efficiency_bench
 
-	list variable n coef_1 coef_2, noobs clean
-
-	rename variable h
-	rename coef_1 Insesgadez
-	rename coef_2 Dummy
-
-	order h n Insesgadez Dummy
-
-	export excel using "$tables_folder/gdp_r_unbiassdness_bench.xlsx", firstrow(variable) replace
+	list variable n coef_1 coef_2 coef_3 coef_4, noobs clean
+		
+		
+		* Display the matrix M in the command window
+		
+		//matrix list M
+				
+				
+		* Rename vars
+		
+		rename variable h
+		rename coef_1 Intercepto
+		rename coef_2 Beta
+		rename coef_3 Dummy
+		rename coef_4 Interacción
+		
+		
+		* Order vars
+		
+		order h n Intercepto Beta Dummy Interacción
+	
+		
+		* Export to excel file
+		
+		export excel using "$tables_folder/gdp_efficienccy_bench.xlsx", ///
+    firstrow(variable) replace
 					
 	
 	
