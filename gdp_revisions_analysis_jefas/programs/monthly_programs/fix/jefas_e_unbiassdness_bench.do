@@ -248,7 +248,7 @@ Summary of Statistics (Unbiassdness)
 		* Generate forecast error for each horizon and sector
 		
 		forvalues i = 1/11 {
-			gen e_`i'_gdp_dummy = max(gdp_release_12_dummy, gdp_release_`i'_dummy)
+			gen e_`i'_gdp_dummy = (gdp_release_`i'_dummy + gdp_release_12_dummy == 1)
 		}
 		
 		

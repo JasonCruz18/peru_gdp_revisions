@@ -7,7 +7,7 @@ Encompassing Test
 		Jason Cruz
 		*********************/
 
-		*** Program: jefas_efficiency_noconstant_first_sample.do
+		*** Program: jefas_efficiency_first_sample.do
 		** 	First Created: 03/20/25
 		** 	Last Updated:  03/21/25
 			
@@ -76,12 +76,6 @@ Encompassing Test
 		
 	
 	save gdp_releases, replace
-	
-	
-	odbc load, exec("select * from e_sectorial_gdp_monthly_releases_seasonal_dummies") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change frequency to monthly, quarterly or annual to load dataset from SQL. 
-		
-	
-	save gdp_bench_e, replace
 	
 	
 	
@@ -166,122 +160,7 @@ Encompassing Test
 
 	
 	save r_gdp_releases, replace
-	
-	
-	
-	/*----------------------
-	On-the-fly data cleaning
-	(GDP bench e)
-	-----------------------*/
-
 		
-	use gdp_bench_e, clear
-
-
-		* Keep ongoing revisions for global GDP only
-		
-		keep vintages_date gdp_release_*
-				
-		
-		* Remove columns for h>12
-		
-		ds gdp_release_* // Required to use `r(varlist)' below
-		
-		foreach var in `r(varlist)' {
-			// Extraer el número al final del nombre de la variable
-			if regexm("`var'", "gdp_release_([0-9]+)") {
-				local num = regexs(1)  // Usamos regexs(1) para capturar el número
-
-				// Verificar si el número es mayor a 12
-				if real("`num'") > 12 {
-					drop `var'
-				}
-			}
-		}
-				
-		
-		* Add the suffix "dummy" in each column
-				
-		foreach var of varlist * {
-			if "`var'" != "vintages_date" {
-				rename `var' `var'_dummy
-			}
-		}
-					
-		
-		* Format all vars from double to int 
-		
-		ds vintages_date, not  // Captura todas las variables excepto vintages_date
-		recast int `r(varlist)', force
-		
-		
-		* Format the date variable
-		
-		replace vintages_date = mofd(dofc(vintages_date))
-		format vintages_date %tm
-		
-		
-		* Set vintages_monthly as first column
-		
-		order vintages_date
-		
-		
-		* Sort by vintages_monthly
-		
-		sort vintages_date
-		
-		
-		*** This is a provisional
-		
-		//drop if vintages_monthly == tm(2000m4) | vintages_monthly == tm(2013m12)
-	
-	
-		* Keep obs in specific date range
-		
-		keep if vintages_date > tm(1992m12) & vintages_date < tm(2023m11)
-		
-	
-	save gdp_bench_e_cleaned, replace
-	
-	
-	
-	/*----------------------
-	Compute prediction
-	errors (bench-r)
-	-----------------------*/
-
-	
-	use gdp_bench_e_cleaned, clear
-	
-	
-		* Generate forecast error for each horizon and sector
-		
-		forvalues i = 2/12 {
-			gen r_`i'_gdp_dummy = (gdp_release_`i'_dummy + gdp_release_`=`i'-1'_dummy == 1)
-		}
-		
-		
-		* Rename
-		
-		keep vintages_date r_*_gdp_dummy
-	
-	save gdp_bench_r_dummies, replace
-	
-	
-	
-	/*----------------------
-	Merge revisions with bench
-	revisions datasets
-	-----------------------*/
-	
-	use r_gdp_releases
-	
-		merge 1:1 vintages_date using gdp_bench_r_dummies
-		
-		drop _merge
-		
-	save gdp_bench_r_dummies_cleaned, replace
-	
 	
 	
 	/*----------------------
@@ -292,25 +171,27 @@ Encompassing Test
 	-----------------------*/
 
 	
-	use gdp_bench_r_dummies_cleaned, clear
-	
-	
+	use r_gdp_releases, clear
+		
+		
 		* Keep common obs
 
 		** Set common information using regression for model III (H1) to keep if !missing(residuals)
 
 		qui {
 			tsset vintages_date
-			newey r_12_gdp c.r_11_gdp##i.r_11_gdp_dummy, lag(1) noconstant force
+			newey r_12_gdp r_11_gdp, lag(1) force noconstant
 			predict residuals_aux, resid  // Generate the regression residuals.
 		}
 
 		keep if !missing(residuals_aux)  // Keep only the observations where the residuals are not missing.
 
 		qui drop residuals_aux
-
+		
 	
-		frame create efficiency_bench str32 variable int n str32 coef_1 str32 coef_2 str32 coef_3
+		* Create a new frame named `r_efficiency` to store regression results
+		
+		frame create r_efficiency str32 variable int n str32 coef_1
 		
 		
 		* Loop through variables r_`i'_gdp where `i' ranges from 2 to 12
@@ -326,12 +207,12 @@ Encompassing Test
 					tsset vintages_date
 					
 					quietly count if !missing(r_`i'_gdp)
-					if r(N) < 5 continue  // Salta si hay menos de 5 observaciones
+					if r(N) < 5 continue  // Skip if there are less than 5 observations
 					
-					newey r_`i'_gdp c.r_`=`i'-1'_gdp##i.r_`=`i'-1'_gdp_dummy, lag(1) noconstant force
+					newey r_`i'_gdp r_`=`i'-1'_gdp, lag(1) force noconstant
 					
 					if _rc == 2001 {
-						di in red "Insufficient observations for gdp_release_`i'"
+						di in red "Insufficient observations for r_`i'_gdp"
 						continue
 					}
 					
@@ -340,18 +221,11 @@ Encompassing Test
 					summarize r_`i'_gdp, detail
 					local n = r(N)
 					
-					local coef_1 = M[1,1] // gdp_release_`i' 
-					local coef_2 = M[1,3] // gdp_release_`i'_dummy
-					local coef_3 = M[1,5] // gdp_release_`i'*gdp_release_`i'_dummy
-					
-					local pvalue_1 = M[4,1]
-					local pvalue_2 = M[4,3]
-					local pvalue_3 = M[4,5]
-					
-
-					local se_1 = M[2,1]
-					local se_2 = M[2,3]
-					local se_3 = M[2,5]
+					local coef_1 = M[1, 1] // r_`=`i'-1'_gdp
+				
+					local se_1 = M[2, 1]
+				
+					local pvalue_1 = M[4, 1] // constant p-value
 					
 					if `pvalue_1' < 0.01 {
 						local coef_1 = string(`coef_1', "%9.2f") + "***"
@@ -365,77 +239,43 @@ Encompassing Test
 					else {
 						local coef_1 = string(`coef_1', "%9.2f")
 					}
-					
-					if `pvalue_2' < 0.01 {
-						local coef_2 = string(`coef_2', "%9.2f") + "***"
-					}
-					else if `pvalue_2' < 0.05 {
-						local coef_2 = string(`coef_2', "%9.2f") + "**"
-					}
-					else if `pvalue_2' < 0.10 {
-						local coef_2 = string(`coef_2', "%9.2f") + "*"
-					}
-					else {
-						local coef_2 = string(`coef_2', "%9.2f")
-					}
-					
-					if `pvalue_3' < 0.01 {
-						local coef_3 = string(`coef_3', "%9.2f") + "***"
-					}
-					else if `pvalue_3' < 0.05 {
-						local coef_3 = string(`coef_3', "%9.2f") + "**"
-					}
-					else if `pvalue_3' < 0.10 {
-						local coef_3 = string(`coef_3', "%9.2f") + "*"
-					}
-					else {
-						local coef_3 = string(`coef_3', "%9.2f")
-					}
-					
-					
+						
+	
 					*** Append standard error in parentheses to coef
 					local coef_1 = "`coef_1' (" + string(`se_1', "%9.2f") + ")"
-					local coef_2 = "`coef_2' (" + string(`se_2', "%9.2f") + ")"
-					local coef_3 = "`coef_3' (" + string(`se_3', "%9.2f") + ")"
 					
-					frame post efficiency_bench ("e_`i'_gdp") (`n') ("`coef_1'") ("`coef_2'") ("`coef_3'")
+					
+					frame post r_efficiency ("r_`i'_gdp") (`n') ("`coef_1'")
 				}
 			}
 			
 			else {
-				di in yellow "Variable e_`i'_gdp does not exist"
+				di in yellow "Variable r_`i'_gdp does not exist"
 			}
 		}
 
-	frame change efficiency_bench
+		frame change r_efficiency
 
-	list variable n coef_1 coef_2 coef_3, noobs clean
-		
-		
-		* Display the matrix M in the command window
-		
-		//matrix list M
+		list variable n coef_1, noobs clean
 				
 				
 		* Rename vars
 		
 		rename variable h
 		rename coef_1 Beta
-		rename coef_2 Dummy
-		rename coef_3 Interacción
 		
 		
 		* Order vars
 		
-		order h n Beta Dummy Interacción
+		order h n Beta
 	
 		
 		* Export to excel file
 		
-		export excel using "$tables_folder/gdp_efficiency_noconstant_bench.xlsx", ///
+		export excel using "$tables_folder/gdp_efficiency_noconstant.xlsx", ///
     firstrow(variable) replace
 					
-	
+		
 	
 	/*----------------------
 	Drop aux data and tables
@@ -467,7 +307,5 @@ Encompassing Test
 	//foreach file of local tex_files {
 	//	erase "`file'"
 	//}	
-	
-	
 	
 	

@@ -291,7 +291,7 @@ Encompassing Test
 		
 		* Export to excel file
 		
-		export excel using "$tables_folder/gdp_r_efficiency.xlsx", ///
+		export excel using "$tables_folder/gdp_efficiency.xlsx", ///
     firstrow(variable) replace
 					
 		

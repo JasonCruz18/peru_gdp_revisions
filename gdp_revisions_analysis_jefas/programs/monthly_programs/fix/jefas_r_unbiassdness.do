@@ -229,9 +229,9 @@ Summary of Statistics (Unbiassdness)
 					
 					*** Extract the constant term coefficient, standard error, and p-value
 
-					local coef = M["b", "_cons"]
-					local se = M["se", "_cons"]
-					local pvalue = M["pvalue", "_cons"]
+					local coef = M[1, 1]
+					local se = M[2, 1]
+					local pvalue = M[4, 1]
 
 					*** Format the coefficient string with significance stars based on the p-value
 

@@ -256,8 +256,8 @@ Encompassing Test
 	
 		* Generate forecast error for each horizon and sector
 		
-		forvalues i = 1/11 {
-			gen r_`=`i'+1'_gdp_dummy = max(gdp_release_`=`i'+1'_dummy, gdp_release_`i'_dummy)
+		forvalues i = 2/12 {
+			gen r_`i'_gdp_dummy = (gdp_release_`i'_dummy + gdp_release_`=`i'-1'_dummy == 1)
 		}
 		
 		

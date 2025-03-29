@@ -199,7 +199,7 @@ Encompassing Test
 		** Set common information using regression for model III (H1) to keep if !missing(residuals)
 
 		qui {
-			reg e_11_gdp r_11_gdp, robust noconstant
+			reg e_11_gdp r_11_gdp, noconstant
 			predict residuals_aux, resid  // Generate the regression residuals.
 		}
 
@@ -214,7 +214,7 @@ Encompassing Test
 		
 		* Loop through variables e_`i'_gdp where `i' ranges from 1 to 11
 		
-		forval i = 2/12 {
+		forval i = 2/11 {
 			
 			capture confirm variable e_`i'_gdp
 			
@@ -225,7 +225,7 @@ Encompassing Test
 					quietly count if !missing(e_`i'_gdp)
 					if r(N) < 5 continue  // Salta si hay menos de 5 observaciones
 					
-					reg e_`i'_gdp r_`i'_gdp, robust noconstant
+					reg e_`i'_gdp r_`i'_gdp, noconstant
 					
 					if _rc == 2001 {
 						di in red "Insufficient observations for e_`i'_gdp"
@@ -284,7 +284,7 @@ Encompassing Test
 		
 		* Export to excel file
 		
-		export excel using "$tables_folder/gdp_r_e_predictibility_noconstant.xlsx", ///
+		export excel using "$tables_folder/gdp_predictibility_noconstant.xlsx", ///
     firstrow(variable) replace
 					
 		

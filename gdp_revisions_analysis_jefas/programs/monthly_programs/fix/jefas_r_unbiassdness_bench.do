@@ -314,7 +314,7 @@ Summary of Statistics (Unbiassdness)
 		
 		* Loop through variables r_`i'_gdp where `i' ranges from 2 to 12
 		
-		forval i = 1/11 {
+		forval i = 2/12 {
 			
 			capture confirm variable r_`i'_gdp
 			
