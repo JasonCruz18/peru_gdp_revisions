@@ -182,32 +182,6 @@ Encompassing Test
 	save r_e_gdp_releases, replace
 	
 	
-
-	/*----------------------
-	Compute prediction
-	errors (z)
-	-----------------------*/
-
-	
-	use r_e_gdp_releases, clear
-	
-	
-		* Generate forecast error for each horizon and sector	
-		
-		forval i = 2/11 {
-			gen z_`i'_gdp = gdp_release_`i' - gdp_release_1
-		}
-	
-	
-		* Compute final revision (12th horizon)
-		
-		gen z_12_gdp = gdp_most_recent - gdp_release_1
-		
-	
-	save r_e_z_gdp_releases, replace
-	export delimited using "jefas_gdp_revisions.csv", replace
-	
-	
 	
 	/*----------------------
 	r & e: Encompassing Test
@@ -217,7 +191,20 @@ Encompassing Test
 	-----------------------*/
 
 	
-	use r_e_z_gdp_releases, clear
+	use r_e_gdp_releases, clear
+	
+		* Keep common obs
+
+		** Set common information using regression for model III (H1) to keep if !missing(residuals)
+
+		qui {
+			reg e_11_gdp r_12_gdp, robust noconstant
+			predict residuals_aux, resid  // Generate the regression residuals.
+		}
+
+		keep if !missing(residuals_aux)  // Keep only the observations where the residuals are not missing.
+
+		qui drop residuals_aux
 		
 	
 		* Create a new frame named `r_e_encompassing` to store regression results
@@ -240,7 +227,7 @@ Encompassing Test
 					quietly count if !missing(e_`i'_gdp)
 					if r(N) < 5 continue  // Salta si hay menos de 5 observaciones
 					
-					reg e_`i'_gdp r_`=`i'+1'_gdp, noconstant
+					reg e_`i'_gdp r_`=`i'+1'_gdp, robust noconstant
 					
 					if _rc == 2001 {
 						di in red "Insufficient observations for e_`i'_gdp"

@@ -182,32 +182,6 @@ Encompassing Test
 	save r_e_gdp_releases, replace
 	
 	
-
-	/*----------------------
-	Compute prediction
-	errors (z)
-	-----------------------*/
-
-	
-	use r_e_gdp_releases, clear
-	
-	
-		* Generate forecast error for each horizon and sector	
-		
-		forval i = 2/11 {
-			gen z_`i'_gdp = gdp_release_`i' - gdp_release_1
-		}
-	
-	
-		* Compute final revision (12th horizon)
-		
-		gen z_12_gdp = gdp_most_recent - gdp_release_1
-		
-	
-	save r_e_z_gdp_releases, replace
-	export delimited using "jefas_gdp_revisions.csv", replace
-	
-	
 	
 	/*----------------------
 	r & e: Encompassing Test
@@ -217,8 +191,21 @@ Encompassing Test
 	-----------------------*/
 
 	
-	use r_e_z_gdp_releases, clear
+	use r_e_gdp_releases, clear
 	
+	
+		* Keep common obs
+
+		** Set common information using regression for model III (H1) to keep if !missing(residuals)
+
+		qui {
+			reg e_11_gdp r_11_gdp, robust noconstant
+			predict residuals_aux, resid  // Generate the regression residuals.
+		}
+
+		keep if !missing(residuals_aux)  // Keep only the observations where the residuals are not missing.
+
+		qui drop residuals_aux
 	
 		* Create a new frame named `r_e_encompassing` to store regression results
 		
