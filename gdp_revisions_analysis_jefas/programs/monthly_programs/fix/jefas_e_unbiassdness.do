@@ -244,7 +244,8 @@ Summary of Statistics (Unbiassdness)
 					}
 					
 					*** Append standard error in parentheses to coef
-					local coef = "`coef' (" + string(`se', "%9.2f") + ")"
+					local coef = "`coef'" + char(10) + "(" + string(`se', "%9.2f") + ")"
+
 					
 					*** Post the variable name, summary statistics, and formatted coefficient to the results frame
 					

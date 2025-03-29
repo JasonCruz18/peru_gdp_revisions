@@ -257,7 +257,7 @@ Encompassing Test
 					}
 					
 					*** Append standard error in parentheses to coef
-					local coef_1 = "`coef_1' (" + string(`se_1', "%9.2f") + ")"
+					local coef_1 = "`coef_1'" + char(10) + "(" + string(`se_1', "%9.2f") + ")"
 					
 					frame post r_e_encompassing ("e_`i'_gdp") (`n') ("`coef_1'")
 				}

@@ -370,8 +370,8 @@ Summary of Statistics (Unbiassdness)
 					}
 					
 					*** Append standard error in parentheses to coef
-					local coef_1 = "`coef_1' (" + string(`se_1', "%9.2f") + ")"
-					local coef_2 = "`coef_2' (" + string(`se_2', "%9.2f") + ")"
+					local coef_1 = "`coef_1'" + char(10) + "(" + string(`se_1', "%9.2f") + ")"
+					local coef_2 = "`coef_2'" + char(10) + "(" + string(`se_2', "%9.2f") + ")"
 					
 					frame post e_bench ("e_`i'_gdp") (`n') ("`coef_1'") ("`coef_2'")
 				}

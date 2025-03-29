@@ -249,7 +249,7 @@ Summary of Statistics (Unbiassdness)
 					}
 
 					*** Append standard error in parentheses to coef
-					local coef = "`coef' (" + string(`se', "%9.2f") + ")"
+					local coef = "`coef'" + char(10) + "(" + string(`se', "%9.2f") + ")"
 
 					*** Post results including the coefficient with standard error
 					frame post stats_sum_r ("r_`i'_gdp") (`n') ("`coef'") ("`sd'") ("`p1'") ("`p99'")
