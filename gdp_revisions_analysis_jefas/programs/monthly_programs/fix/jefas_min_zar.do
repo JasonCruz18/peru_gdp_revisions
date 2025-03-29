@@ -220,6 +220,8 @@ Mincer–Zarnowitz Regressions
 					local coef_2 = M[1,1] 
 					local pvalue_1 = M[4,colsof(M)] // constant p-value
 					local pvalue_2 = M[4,1]
+					local se_1 = M[2,colsof(M)]
+					local se_2 = M[2,1]
 					
 					if `pvalue_1' < 0.01 {
 						local coef_1 = string(`coef_1', "%9.2f") + "***"
@@ -246,6 +248,10 @@ Mincer–Zarnowitz Regressions
 					else {
 						local coef_2 = string(`coef_2', "%9.2f")
 					}
+					
+					*** Append standard error in parentheses to coef
+					local coef_1 = "`coef_1' (" + string(`se_1', "%9.2f") + ")"
+					local coef_2 = "`coef_2' (" + string(`se_2', "%9.2f") + ")"
 					
 					frame post y_min_zar ("e_`i'_gdp") (`n') ("`coef_1'") ("`coef_2'")
 				}
