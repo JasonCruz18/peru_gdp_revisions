@@ -6,7 +6,7 @@ Master Do-file for Running All JEFAS Scripts
 		---------------------
 		Jason Cruz
 		*********************/
-
+	
 	*** Program: jefas_master.do 
 	**  First Created: 03/29/25 
 	**  Last Updated:  03/29/25 
@@ -41,32 +41,41 @@ Master Do-file for Running All JEFAS Scripts
 	Defining workspace path
 	------------------------*/
 	
-	di "Please, enter your path for storing the outputs of this dofile in the COMMAND WINDOW and press ENTER."
-	_request(path)
+	di `"Please, enter your path for storing the outputs of this dofile in the COMMAND WINDOW and press ENTER."'  _request(path)
+	
 	cd "$path"
 
 
 	/*----------------------
-	Running all JEFAS do-files
-	------------------------*/
+    Define global macros for date filtering
+    ------------------------*/
 
-	* Set global path for do-files (adjust accordingly)
-	global dofile_path "$path"
+    global start_date tm(2008m12)
+    global end_date tm(2020m1)
 
-	* Execute each do-file in order
-	do "$dofile_path/jefas_e_unbiassdness"
-	do "$dofile_path/jefas_e_unbiassdness_bench"
-	do "$dofile_path/jefas_efficiency"
-	do "$dofile_path/jefas_efficiency_bench"
-	do "$dofile_path/jefas_efficiency_noconstant"
-	do "$dofile_path/jefas_efficiency_noconstant_bench"
-	do "$dofile_path/jefas_encompassing_noconstant"
-	do "$dofile_path/jefas_min_zar"
-	do "$dofile_path/jefas_min_zar_bench"
-	do "$dofile_path/jefas_predictibility_noconstant"
-	do "$dofile_path/jefas_predictibility_noconstant_bench"
-	do "$dofile_path/jefas_r_unbiassdness"
-	do "$dofile_path/jefas_r_unbiassdness_bench"
 
-	di "All JEFAS do-files have been successfully executed."
+    /*----------------------
+    Running all JEFAS do-files
+    ------------------------*/
+
+    * Set global path for do-files (adjust accordingly)
+    global dofile_path "$path"
+
+    * Execute each do-file in order
+    do "jefas_e_unbiassdness"
+    do "jefas_e_unbiassdness_bench"
+    do "jefas_efficiency"
+    do "jefas_efficiency_bench"
+    do "jefas_efficiency_noconstant"
+    do "jefas_efficiency_noconstant_bench"
+    do "jefas_encompassing_noconstant"
+    do "jefas_min_zar"
+    do "jefas_min_zar_bench"
+    do "jefas_predictibility_noconstant"
+    do "jefas_predictibility_noconstant_bench"
+    do "jefas_r_unbiassdness"
+    do "jefas_r_unbiassdness_bench"
+
+    di "All JEFAS do-files have been successfully executed."
+		
 	

@@ -133,7 +133,7 @@ Summary of Statistics (Unbiassdness)
 		
 		* Keep obs in specific date range
 		
-		keep if vintages_date > tm(1992m12) & vintages_date < tm(2023m11)
+		keep if vintages_date > $start_date & vintages_date < $end_date
 		
 	
 	save gdp_releases_cleaned, replace
@@ -234,7 +234,7 @@ Summary of Statistics (Unbiassdness)
 	
 		* Keep obs in specific date range
 		
-		keep if vintages_date > tm(1992m12) & vintages_date < tm(2023m11)
+		keep if vintages_date > $start_date & vintages_date < $end_date
 		
 	
 	save gdp_bench_e_cleaned, replace
