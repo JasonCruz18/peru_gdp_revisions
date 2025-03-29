@@ -72,7 +72,7 @@ Summary of Statistics (Unbiassdness)
 	-----------------------*/
 		
 		
-	odbc load, exec("select * from r_gdp_monthly_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change the dataset loaded from SQL as preferred. 
+	odbc load, exec("select * from e_gdp_monthly_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change the dataset loaded from SQL as preferred. 
 		
 	
 	save gdp_releases, replace
