@@ -276,8 +276,8 @@ Encompassing Test
 	
 		* Generate forecast error for each horizon and sector
 		
-		forvalues i = 1/11 {
-			gen r_`=`i'+1'_gdp_dummy = max(gdp_release_`=`i'+1'_dummy, gdp_release_`i'_dummy)
+		forvalues i = 2/12 {
+			gen r_`i'_gdp_dummy = (gdp_release_`i'_dummy + gdp_release_`=`i'-1'_dummy == 1)
 		}
 		
 		
@@ -332,7 +332,7 @@ Encompassing Test
 	
 		* Create a new frame named `encompassing_bench` to store regression results
 
-		frame create encompassing_bench str32 variable int n str32 coef_1 str32 coef_2 str32 coef_3 str32 coef_4
+		frame create encompassing_bench str32 variable int n str32 coef_1 str32 coef_2 str32 coef_3
 		
 		
 		* Loop through variables e_`i'_gdp where `i' ranges from 2 to 12
@@ -362,20 +362,17 @@ Encompassing Test
 					summarize e_`i'_gdp, detail
 					local n = r(N)
 					
-					local coef_1 = M[1,colsof(M)] // constant
-					local coef_2 = M[1,1] // gdp_release_`i' 
-					local coef_3 = M[1,3] // gdp_release_`i'_dummy
-					local coef_4 = M[1,5] // gdp_release_`i'*gdp_release_`i'_dummy
+					local coef_1 = M[1,1] // gdp_release_`i' 
+					local coef_2 = M[1,3] // gdp_release_`i'_dummy
+					local coef_3 = M[1,5] // gdp_release_`i'*gdp_release_`i'_dummy
 					
-					local pvalue_1 = M[4,colsof(M)] // constant p-value
-					local pvalue_2 = M[4,1]
-					local pvalue_3 = M[4,3]
-					local pvalue_4 = M[4,5]
+					local pvalue_1 = M[4,1]
+					local pvalue_2 = M[4,3]
+					local pvalue_3 = M[4,5]
 					
-					local se_1 = M[2,colsof(M)] // constant p-value
-					local se_2 = M[2,1]
-					local se_3 = M[2,3]
-					local se_4 = M[2,5]
+					local se_1 = M[2,1]
+					local se_2 = M[2,3]
+					local se_3 = M[2,5]
 					
 					if `pvalue_1' < 0.01 {
 						local coef_1 = string(`coef_1', "%9.2f") + "***"
@@ -416,26 +413,14 @@ Encompassing Test
 						local coef_3 = string(`coef_3', "%9.2f")
 					}
 					
-					if `pvalue_4' < 0.01 {
-						local coef_4 = string(`coef_4', "%9.2f") + "***"
-					}
-					else if `pvalue_4' < 0.05 {
-						local coef_4 = string(`coef_4', "%9.2f") + "**"
-					}
-					else if `pvalue_4' < 0.10 {
-						local coef_4 = string(`coef_4', "%9.2f") + "*"
-					}
-					else {
-						local coef_4 = string(`coef_4', "%9.2f")
-					}
 					
 					*** Append standard error in parentheses to coef
 					local coef_1 = "`coef_1' (" + string(`se_1', "%9.2f") + ")"
 					local coef_2 = "`coef_2' (" + string(`se_2', "%9.2f") + ")"
 					local coef_3 = "`coef_3' (" + string(`se_3', "%9.2f") + ")"
-					local coef_4 = "`coef_4' (" + string(`se_4', "%9.2f") + ")"
+
 					
-					frame post encompassing_bench ("e_`i'_gdp") (`n') ("`coef_1'") ("`coef_2'") ("`coef_3'") ("`coef_4'")
+					frame post encompassing_bench ("e_`i'_gdp") (`n') ("`coef_1'") ("`coef_2'") ("`coef_3'")
 				}
 			}
 			
@@ -446,26 +431,20 @@ Encompassing Test
 
 	frame change encompassing_bench
 
-	list variable n coef_1 coef_2 coef_3 coef_4, noobs clean
+	list variable n coef_1 coef_2 coef_3, noobs clean
 		
-		
-		* Display the matrix M in the command window
-		
-		//matrix list M
-				
 				
 		* Rename vars
 		
 		rename variable h
-		rename coef_1 Intercepto
-		rename coef_2 Beta
-		rename coef_3 Dummy
-		rename coef_4 Interacción
+		rename coef_1 Beta
+		rename coef_2 Dummy
+		rename coef_3 Interacción
 		
 		
 		* Order vars
 		
-		order h n Intercepto Beta Dummy Interacción
+		order h n Beta Dummy Interacción
 	
 		
 		* Export to excel file
