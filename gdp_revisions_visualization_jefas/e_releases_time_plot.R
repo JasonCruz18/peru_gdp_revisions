@@ -94,7 +94,7 @@ sectors <- c("gdp")
 
 # vintages_date aAs Date
 
-df$vintages_date <- dmy_hms(df$vintages_date)
+# df$vintages_date <- dmy_hms(df$vintages_date) # for imported csv
 
 # Verificar el resultado
 head(df$vintages_date)
@@ -153,13 +153,13 @@ breaks_dates <- seq(from = as.Date("2001-01-01"),
 time_plot <- ggplot(df_filtered, aes(x = vintages_date)) +
   # Agregar regiones sombreadas con leyenda
   geom_rect(aes(xmin = as.Date("2013-01-01"), xmax = as.Date("2014-01-01"),
-                ymin = -Inf, ymax = Inf, fill = "Cambio de año base"), alpha = 0.45) +
+                ymin = -Inf, ymax = Inf, fill = "Cambio de año base"), alpha = 0.85) +
   geom_rect(aes(xmin = as.Date("2020-03-01"), xmax = as.Date("2021-10-01"),
-                ymin = -Inf, ymax = Inf, fill = "COVID-19"), alpha = 0.45) +
+                ymin = -Inf, ymax = Inf, fill = "COVID-19"), alpha = 0.85) +
   geom_line(aes(y = gdp_most_recent_smooth, color = "Publicación más reciente"), linewidth = 0.5) +
   geom_line(aes(y = gdp_release_1_smooth, color = "Publicación inicial"), linewidth = 0.85) +
   geom_bar(aes(y = e_1_gdp * 2.0, fill = "Error de predicción inicial"), 
-           stat = "identity", alpha = 0.45, color = "black", linewidth = 0.45) +
+           stat = "identity", alpha = 0.45, color = "black", linewidth = 0.35) +
   geom_hline(yintercept = 0, color = "black", linewidth = 0.45) +
   geom_point(aes(y = gdp_most_recent_smooth, color = "Publicación más reciente"), size = 0.85) +
   labs(
@@ -214,5 +214,5 @@ print(time_plot)
 
 
 # Guardar el gráfico
-plot_output_file <- file.path(output_dir, "e_1_gdp_smoothing_2_subsample.png")
+plot_output_file <- file.path(output_dir, "e_releses_time_plot.png")
 ggsave(filename = plot_output_file, plot = time_plot, width = 10, height = 6, dpi = 300, bg = "transparent")
