@@ -222,11 +222,19 @@ Summary of Statistics (Unbiassdness)
 		
 		rolling mean_e1_affected=r(mean) sd_e1_affected=r(sd), window(60) step(1) saving(rolling_results_affected, replace): sum e_1_gdp_affected
 		
-		use rolling_results_affected, clear
+	use rolling_results_affected, clear
 
-			merge 1:1 start end using rolling_results.dta  // Especificar la clave de emparejamiento
+		merge 1:1 start end using rolling_results.dta  // Especificar la clave de emparejamiento
 
-		save rolling_results_by.dta, replace  // Agregar ".dta" y "replace" si es necesario
+		
+		* Drop merge var
+		
+		drop _merge
+		
+	save rolling_results_by.dta, replace  // Agregar ".dta" y "replace" si es necesario
+	export delimited using "rolling_stats_by.csv", replace
+		
+	use rolling_results_by, clear
 
 		
 		//display tm(2008m6)
@@ -241,7 +249,13 @@ Summary of Statistics (Unbiassdness)
 		
 		//, xline(581, lcolor(red) lpattern(dash))
 		
-		twoway (line mean_e1 start, sort lcolor(red))
+		twoway (line mean_e1 start, sort lcolor(red) lwidth(thick)) /// Aumenta grosor de la línea azul
+       (line mean_e1_affected start, sort lcolor(red%50) lpattern(dash) lwidth(medium)), /// Línea roja dashed y con transparencia
+       legend(label(1 "Mean of 1st forecast error") ///
+              label(2 "Mean of 1st forecast error (base year affected)") ///
+              pos(6) ring(1)) /// Coloca la leyenda abajo y fuera del gráfico
+       title("Mean of forecast error") ///
+       xlabel(, grid) ylabel(, grid)
 		
 		
 		
