@@ -89,12 +89,30 @@ dbDisconnect(con)
 # Data Preparation
 #*******************************************************************************
 
+# Asegurar que vintages_date es de tipo Date
+df <- df %>%
+  mutate(vintages_date = as.Date(vintages_date))  # Convertir a Date si es necesario
+
 # Definir las fechas específicas que quieres graficar
-selected_vintages <- as.Date(c("1998-12-01", "1999-01-01", "1999-02-01"))
+selected_vintages <- as.Date(c("1998-12-01", "1999-02-01", "1999-04-01"))
 
 # Filtrar los datos
 df_filtered <- df %>%
   filter(vintages_date %in% selected_vintages)
+
+# Crear etiquetas amigables para la leyenda
+df_filtered <- df_filtered %>%
+  mutate(vintage_label = case_when(
+    vintages_date == as.Date("1998-12-01") ~ "1998m12",
+    vintages_date == as.Date("1999-02-01") ~ "1999m02",
+    vintages_date == as.Date("1999-04-01") ~ "1999m4",
+    TRUE ~ as.character(vintages_date)  # En caso de otros valores no especificados
+  ))
+
+# Definir formas específicas para cada línea
+shape_values <- c("1998m12" = 16,  # Círculo (point)
+                  "1999m02" = 15,   # Cuadrado (square)
+                  "1999m04" = 17)   # Triángulo (triangle)
 
 
 
@@ -102,13 +120,48 @@ df_filtered <- df %>%
 # Visualization
 #*******************************************************************************
 
-ggplot(df_filtered, aes(x = horizon, y = gdp_release, color = as.factor(vintages_date))) +
-  geom_line(size = 1) +
-  geom_point(size = 2) +  # Agregar puntos para mayor visibilidad
-  scale_color_manual(values = c("blue", "red", "green")) +  # Personaliza los colores
-  labs(title = "Evolución de GDP Release por Horizon",
-       x = "Horizon",
-       y = "GDP Release",
-       color = "Vintage Date") +
-  theme_minimal()
+# Graficar con símbolos diferentes
+horizon_plot <- ggplot(df_filtered, aes(x = horizon, y = gdp_release, color = vintage_label, shape = vintage_label)) +
+  geom_line(linewidth = 1.2) +  # Grosor de línea
+  geom_point(size = 4.0) +  # Tamaño de los puntos con forma específica
+  #geom_hline(yintercept = 0, color = "black", linewidth = 0.45) +  # Línea horizontal en 0
+  scale_x_continuous(breaks = 1:12) +  # Mostrar enteros de 1 a 12 en el eje X
+  scale_color_manual(values = c("#0079FF", "#00DFA2", "#FF0060")) +  # Colores personalizados
+  scale_shape_manual(values = shape_values) +  # Aplicar formas personalizadas
+  labs(
+    x = NULL,
+    y = "GDP releases",
+    title = NULL,
+    color = NULL,
+    shape = NULL  # Ocultar título de la leyenda de formas
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.major = element_line(color = "#F5F5F5", linewidth = 0.8),
+    panel.grid.minor.x = element_line(color = "#F5F5F5", linewidth = 0.8),
+    panel.grid.minor.y = element_blank(),
+    axis.text = element_text(color = "black", size = 16),
+    axis.text.x = element_text(color = "black", angle = 0, hjust = 0.5, vjust = 0.5),
+    axis.text.y = element_text(color = "black", angle = 0, hjust = 0.5),
+    axis.ticks = element_line(color = "black"),
+    axis.ticks.length = unit(0.1, "inches"),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 16, color = "black"),
+    plot.title = element_blank(),
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.text = element_text(size = 16, color = "black"),
+    legend.background = element_rect(fill = "white", color = "black", linewidth = 0.45),
+    axis.line = element_line(color = "black", linewidth = 0.45),
+    panel.border = element_rect(color = "black", linewidth = 0.45, fill = NA),
+    plot.margin = margin(9, 5, 9, 4)
+  )
+
+# Mostrar el gráfico
+horizon_plot
+
+
+# Guardar el gráfico
+plot_output_file <- file.path(output_dir, "releses_horizon_plot_7.png")
+ggsave(filename = plot_output_file, plot = horizon_plot, width = 10, height = 6, dpi = 300, bg = "transparent")
 
