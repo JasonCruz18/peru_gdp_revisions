@@ -72,7 +72,7 @@ Summary of Statistics (Unbiassdness)
 	-----------------------*/
 		
 		
-	odbc load, exec("select * from e_gdp_monthly_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change the dataset loaded from SQL as preferred. 
+	odbc load, exec("select * from e_gdp_monthly_releases_affected") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change the dataset loaded from SQL as preferred. 
 		
 	
 	save gdp_releases, replace
@@ -217,14 +217,29 @@ Summary of Statistics (Unbiassdness)
 	use r_e_z_gdp_releases, clear
 	
 		tsset vintages_date, monthly
-		rolling mean_e1=r(mean) sd_e1=r(sd), window(60) step(1) saving(rolling_results, replace): sum e_1_gdp
 		
-		use rolling_results, clear
+		rename e_1_gdp e_1_gdp_affected
 		
-		display tm(2008m6)
+		rolling mean_e1_affected=r(mean) sd_e1_affected=r(sd), window(60) step(1) saving(rolling_results_affected, replace): sum e_1_gdp_affected
 		
-		twoway (line sd_e1 start, sort lcolor(blue)) ///
-       , xline(581, lcolor(red) lpattern(dash))
+		use rolling_results_affected, clear
+
+			merge 1:1 start end using rolling_results.dta  // Especificar la clave de emparejamiento
+
+		save rolling_results_by.dta, replace  // Agregar ".dta" y "replace" si es necesario
+
+		
+		//display tm(2008m6)
+		
+		twoway (line sd_e1 start, sort lcolor(blue) lwidth(thick)) /// Aumenta grosor de la línea azul
+       (line sd_e1_affected start, sort lcolor(red%50) lpattern(dash) lwidth(medium)), /// Línea roja dashed y con transparencia
+       legend(label(1 "SD of 1st forecast error") ///
+              label(2 "SD of 1st forecast error (base year affected)") ///
+              pos(6) ring(1)) /// Coloca la leyenda abajo y fuera del gráfico
+       title("SD of forecast error") ///
+       xlabel(, grid) ylabel(, grid)
+		
+		//, xline(581, lcolor(red) lpattern(dash))
 		
 		twoway (line mean_e1 start, sort lcolor(red))
 		
