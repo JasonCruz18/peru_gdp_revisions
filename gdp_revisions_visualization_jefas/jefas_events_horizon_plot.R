@@ -94,7 +94,7 @@ df <- df %>%
   mutate(vintages_date = as.Date(vintages_date))  # Convertir a Date si es necesario
 
 # Definir las fechas específicas que quieres graficar
-selected_vintages <- as.Date(c("1998-12-01", "1999-02-01", "1999-04-01"))
+selected_vintages <- as.Date(c("1998-12-01", "1999-01-01", "1999-02-01"))
 
 # Filtrar los datos
 df_filtered <- df %>%
@@ -104,15 +104,15 @@ df_filtered <- df %>%
 df_filtered <- df_filtered %>%
   mutate(vintage_label = case_when(
     vintages_date == as.Date("1998-12-01") ~ "1998m12",
+    vintages_date == as.Date("1999-01-01") ~ "1999m01",
     vintages_date == as.Date("1999-02-01") ~ "1999m02",
-    vintages_date == as.Date("1999-04-01") ~ "1999m4",
     TRUE ~ as.character(vintages_date)  # En caso de otros valores no especificados
   ))
 
 # Definir formas específicas para cada línea
 shape_values <- c("1998m12" = 16,  # Círculo (point)
-                  "1999m02" = 15,   # Cuadrado (square)
-                  "1999m04" = 17)   # Triángulo (triangle)
+                  "1999m01" = 15,   # Cuadrado (square)
+                  "1999m02" = 17)   # Triángulo (triangle)
 
 
 
