@@ -1,220 +1,138 @@
 #*******************************************************************************
-# Boxplots: Forecast Errors and Revisions by horizon (pooled by events)
+# Boxplots: Forecast Errors by Horizon by Pooling Fixed-Event Forecasts
 #*******************************************************************************
 
 #-------------------------------------------------------------------------------
 # Author: Jason Cruz
 #...............................................................................
-# Program: m_boxplot_jefas.R
-# + First Created: 03/21/25
-# + Last Updated: 03/22/25
+# Program: boxplot_m.R
+# + First Created: 11/10/24
+# + Last Updated: 12/15/24
 #-------------------------------------------------------------------------------
-
-
 
 #*******************************************************************************
 # Libraries
 #*******************************************************************************
 
-# Load required packages
-library(RPostgres)    # For connecting to PostgreSQL databases
-library(ggplot2)      # For data visualization
-library(lubridate)    # For date handling and manipulation
-library(svglite)      # For creating SVG graphics
-library(dplyr)        # For data manipulation and transformation
-library(tidyr)        # For reshaping data
-library(sandwich)     # For robust standard errors
-library(lmtest)       # For hypothesis testing
-library(scales)       # For formatting numbers
-library(tcltk)        # For folder selection dialog
-
-
+library(RPostgres)
+library(ggplot2)
+library(lubridate)
+library(svglite)
+library(dplyr)
+library(tidyr)
+library(sandwich)
+library(lmtest)
+library(scales)
+library(tcltk)
 
 #*******************************************************************************
 # Initial Setup
 #*******************************************************************************
 
-# Use a dialog box to select the folder
 if (requireNamespace("rstudioapi", quietly = TRUE)) {
-  # Check if rstudioapi is available for folder selection
-  user_path <- rstudioapi::selectDirectory() # Open directory selection dialog
+  user_path <- rstudioapi::selectDirectory()
   if (!is.null(user_path)) {
-    setwd(user_path)  # Set the working directory to the selected folder
+    setwd(user_path)
     cat("The working directory has been set to:", getwd(), "\n")
   } else {
-    cat("No folder was selected.\n")  # If no folder was selected
+    cat("No folder was selected.\n")
   }
 } else {
-  cat("Install the 'rstudioapi' package to use this functionality.\n")  # If rstudioapi is not installed
+  cat("Install the 'rstudioapi' package to use this functionality.\n")
 }
 
-# Define output directories
-output_dir <- file.path(user_path, "charts")  # Main output directory
-
-# Create output directories if they do not exist
+output_dir <- file.path(user_path, "charts")
 if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
-
 cat("Directories created successfully in:", user_path, "\n")
-
-
 
 #*******************************************************************************
 # Database Connection
 #*******************************************************************************
 
-# Retrieve database credentials from environment variables
-user <- Sys.getenv("CIUP_SQL_USER")  # PostgreSQL username
-password <- Sys.getenv("CIUP_SQL_PASS")  # PostgreSQL password
-host <- Sys.getenv("CIUP_SQL_HOST")  # Host of the PostgreSQL server
-port <- 5432  # Default PostgreSQL port
-database <- "gdp_revisions_datasets"  # Database name
+user <- Sys.getenv("CIUP_SQL_USER")
+password <- Sys.getenv("CIUP_SQL_PASS")
+host <- Sys.getenv("CIUP_SQL_HOST")
+port <- 5432
+database <- "gdp_revisions_datasets"
 
-# Connect to PostgreSQL database
-con <- dbConnect(RPostgres::Postgres(),
-                 dbname = database,
-                 host = host,
-                 port = port,
-                 user = user,
-                 password = password)
+con <- dbConnect(RPostgres::Postgres(), dbname = database, host = host, port = port, user = user, password = password)
 
-# Fetch data from the first table
-query_1 <- "SELECT * FROM e_sectorial_gdp_monthly_panel"
-df_1 <- dbGetQuery(con, query_1)
+df <- dbGetQuery(con, "SELECT * FROM jefas_gdp_revisions_panel")
 
-# Fetch data from the second table
-query_2 <- "SELECT * FROM r_sectorial_gdp_monthly_panel"
-df_2 <- dbGetQuery(con, query_2)
-
-# Close the database connection
 dbDisconnect(con)
-
-
-
-#*******************************************************************************
-# Data Merging
-#*******************************************************************************
-
-# Merge the two datasets loaded from PostgreSQL using a full join
-merged_df <- df_1 %>%
-  full_join(df_2, by = c("vintages_date", "horizon"))  # Replace with actual common column names
-
-# Sort merged_df by "vintages_date" and "horizon"
-merged_df <- merged_df %>%
-  arrange(vintages_date, horizon)
-
-cat("Datasets merged successfully. Rows in merged data frame:", nrow(merged_df), "\n")
-
-
 
 #*******************************************************************************
 # Data Preparation
 #*******************************************************************************
 
-# Define the sectors to iterate over for plotting
-sectors <- c("gdp", "agriculture", "fishing", "mining", "manufacturing", 
-             "electricity", "construction", "commerce", "services")
+sectors <- c("gdp")
 
-# Filter data to remove rows with missing values in key columns
-merged_df <- merged_df %>% 
-  filter(!is.na(horizon) & !is.na(vintages_date))
+merged_df <- df %>% 
+  filter(!is.na(horizon) & !is.na(vintages_date) & horizon >= 1 & horizon < 12)
 
-# Filter data by horizon values (>1 & <11) for relevant analysis
-merged_df <- merged_df %>% filter(horizon > 1 & horizon < 11)
+merged_df <- merged_df %>%
+  filter(vintages_date > as.Date("2000-12-31") & vintages_date < as.Date("2023-11-01"))
 
-# Convert 'horizon' to a factor for categorical analysis in the plots
-merged_df$horizon <- as.factor(merged_df$horizon)
-
-
+merged_df$horizon <- factor(merged_df$horizon, levels = as.character(1:11))
 
 #*******************************************************************************
 # Plotting Function
 #*******************************************************************************
 
-# Function to create boxplots for e and r variables
 generate_boxplot <- function(data, variable, color, legend_position, sector, output_dir) {
-  # Path to save the plot
   output_file <- file.path(output_dir, paste0(variable, "_boxplot_", sector, "_m", ".png"))
-  
-  # Open PNG device to save the plot with specified size and resolution
   png(filename = output_file, width = 10, height = 6, units = "in", res = 300)
+  par(bg = "transparent", mar = c(2.0, 2.55, 1.2, 0.2))
   
-  # Set the background to transparent
-  par(bg = "transparent", mar = c(2.0, 2.55, 1.2, 0.2)) # mar = c(bottom, left, top, right)
-  
-  # Create the boxplot with custom y-axis labels always showing one decimal
   boxplot(
-    formula = as.formula(paste0(variable, "_", sector, " ~ horizon")), 
+    formula = as.formula(paste0(sector, "_", variable, " ~ horizon")), 
     data = data, 
     outline = FALSE,
     xlab = NA,
     ylab = NA,
     col = color,
-    border = "#292929",  # Color for the border of the boxes
-    lwd = 3.0,           # Box contour thickness
-    cex.axis = 2.2,      # Axis font size
-    cex.lab = 2.2,       # Label font size
-    xaxt = "n",          # Suppress default x-axis to add custom ticks
-    yaxt = "n"           # Suppress default y-axis to add custom ticks
+    border = "#292929",
+    lwd = 3.0,
+    cex.axis = 2.2,
+    cex.lab = 2.2,
+    xaxt = "n",
+    yaxt = "n"
   )
   
-  # Custom x-axis labels (2, 3, ..., 10)
-  axis(1, at = seq_along(levels(data$horizon)), labels = 2:10, cex.axis = 2.2)
+  # Ajuste de etiquetas de eje X desde 1
+  axis(1, at = seq_along(levels(data$horizon)), labels = levels(data$horizon), cex.axis = 2.2)
   
-  # Add y-axis with default ticks and formatted labels (1 decimal place)
-  y_ticks <- axTicks(2)  # Get default tick positions for y-axis
-  axis(2, at = y_ticks, labels = sprintf("%.1f", y_ticks), cex.axis = 2.2, las=0)
-  
-  # Add a box around the plot
+  y_ticks <- axTicks(2)
+  axis(1, at = seq_along(levels(data$horizon)), labels = levels(data$horizon), cex.axis = 2.2)
   box(lwd = 2.5)
   
-  # Calculate group means for each horizon
-  means <- tapply(data[[paste0(variable, "_", sector)]], data$horizon, mean, na.rm = TRUE)
+  # Calcular y agregar medias
+  means <- sapply(levels(data$horizon), function(h) mean(data[data$horizon == h, paste0(sector, "_", variable)], na.rm = TRUE))
+  points(seq_along(means), means, col = color, pch = 21, cex = 3.5, bg = "black", lwd = 2.0)
   
-  # Add points for the means with a black border for the diamonds
-  points(
-    x = 1:length(means), 
-    y = means, 
-    col = color,         # Border color of points
-    pch = 21,            # Shape of points (diamonds)
-    cex = 3.5,           # Point size
-    bg = "black",        # Fill color with 50% transparency
-    lwd = 2.0
-  )
+  # Agregar leyenda
+  legend(legend_position, legend = "Media", col = color, pch = 21, pt.cex = 3.5, cex = 2.5,
+         pt.bg = "black", text.col = "black", horiz = TRUE, bty = "n", pt.lwd = 2.0)
   
-  # Add a legend for the mean
-  legend(legend_position,
-         legend = "Media", 
-         col = color,
-         pch = 21,            # Shape of points (diamonds)
-         pt.cex = 3.5,        # Point size
-         cex = 2.5,
-         pt.bg = "black",     # Fill color with 50% transparency
-         text.col = "black",  # Text color for the legend
-         horiz = TRUE,        # Horizontal legend layout
-         bty = "n",           # No box around the legend
-         pt.lwd = 2.0         # Contour thickness of points in the legend
-  )
-  
-  # Close PNG device to save the plot
   dev.off()
 }
-
-
 
 #*******************************************************************************
 # Generate Plots for e and r for All Sectors
 #*******************************************************************************
 
-# Loop through each sector and generate boxplots for e and r variables
 for (sector in sectors) {
+  df_filtered_e <- merged_df %>% 
+    filter(!is.na(.data[[paste0(sector, "_e")]]))  # Mantiene horizon = 1 en gdp_e
   
-  cat("Generating plot for sector:", sector, "\n")
+  df_filtered_r <- merged_df %>% 
+    filter(!is.na(.data[[paste0(sector, "_r")]]))  # Puede no incluir horizon = 1
   
-  # Filter data for the current sector
-  df_filtered <- merged_df %>% 
-    filter(!is.na(.data[[paste0("e_", sector)]]) & !is.na(.data[[paste0("r_", sector)]]))
+  cat("Generating plots for sector:", sector, "\n")
   
-  # Generate plots for r (legend at bottomleft) and e (legend at bottomright)
-  generate_boxplot(df_filtered, "r", "#0079FF", "bottomleft", sector, output_dir)  # Plot for r
-  generate_boxplot(df_filtered, "e", "#FF0060", "bottomright", sector, output_dir)  # Plot for e
+  generate_boxplot(df_filtered_r, "r", "#0079FF", "bottomleft", sector, output_dir)
+  generate_boxplot(df_filtered_e, "e", "#FF0060", "bottomright", sector, output_dir)
 }
+
+cat("All plots have been generated successfully in:", output_dir, "\n")
+
