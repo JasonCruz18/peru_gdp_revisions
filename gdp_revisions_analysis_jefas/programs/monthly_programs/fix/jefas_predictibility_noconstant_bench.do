@@ -137,7 +137,7 @@ Encompassing Test
 		
 		* Keep obs in specific date range
 		
-		keep if vintages_date > $start_date & vintages_date < $end_date
+		keep if vintages_date > tm(2000m12) & vintages_date < tm(2023m11)
 		
 	
 	save gdp_releases_cleaned, replace
@@ -258,7 +258,7 @@ Encompassing Test
 	
 		* Keep obs in specific date range
 		
-		keep if vintages_date > $start_date & vintages_date < $end_date
+		keep if vintages_date > tm(2000m12) & vintages_date < tm(2023m11)
 		
 	
 	save gdp_bench_e_cleaned, replace
@@ -321,7 +321,8 @@ Encompassing Test
 		** Set common information using regression for model III (H1) to keep if !missing(residuals)
 
 		qui {
-			reg e_11_gdp c.r_11_gdp##i.r_11_gdp_dummy, noconstant
+			tsset vintages_date, monthly
+			newey e_11_gdp c.r_11_gdp##i.r_11_gdp_dummy, lag(1) noconstant force
 			predict residuals_aux, resid  // Generate the regression residuals.
 		}
 
@@ -350,7 +351,7 @@ Encompassing Test
 					quietly count if !missing(e_`i'_gdp)
 					if r(N) < 5 continue  // Salta si hay menos de 5 observaciones
 					
-					reg e_`i'_gdp c.r_`i'_gdp##i.r_`i'_gdp_dummy, noconstant
+					newey e_`i'_gdp c.r_`i'_gdp##i.r_`i'_gdp_dummy, lag(1) noconstant force
 					
 					if _rc == 2001 {
 						di in red "Insufficient observations for gdp_release_`i'"
@@ -449,7 +450,7 @@ Encompassing Test
 		
 		* Export to excel file
 		
-		export excel using "$tables_folder/gdp_predictibility_noconstant_bench.xlsx", ///
+		export excel using "$tables_folder/gdp_predictibility_noconstant_bench_newey.xlsx", ///
     firstrow(variable) replace
 					
 	
