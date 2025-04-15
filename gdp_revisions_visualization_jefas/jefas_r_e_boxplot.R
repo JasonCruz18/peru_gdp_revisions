@@ -101,7 +101,7 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, out
   
   # Rejilla vertical menor (minor X)
   x_minor_ticks <- seq(x_min, x_max, by = 0.5)
-  abline(v = x_minor_ticks, col = "#F5F5F5", lwd = 1.4, lty = 1)
+  abline(v = x_minor_ticks, col = "#F5F5F5", lwd = 1.6, lty = 1)
   
   # Dibujar boxplot encima de rejilla
   bplt <- boxplot(
