@@ -244,8 +244,6 @@ plot <- ggplot() +
 
 print(plot)
 
-
-
 # Guardar
 ggsave(filename = file.path(output_dir, "gdp_revisions_by_horizon_events.png"), plot = plot, width = 12, height = 8)
 
