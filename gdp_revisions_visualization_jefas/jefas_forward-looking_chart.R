@@ -168,9 +168,9 @@ plot <- ggplot() +
   
   # Regiones sombreadas
   geom_rect(aes(xmin = as.Date("2013-01-01"), xmax = as.Date("2014-01-01"),
-                ymin = -Inf, ymax = Inf, fill = "2007 base year"), alpha = 0.75) +
+                ymin = -Inf, ymax = Inf, fill = "2007 base year"), alpha = 0.65) +
   geom_rect(aes(xmin = as.Date("2020-03-01"), xmax = as.Date("2021-10-01"),
-                ymin = -Inf, ymax = Inf, fill = "COVID-19"), alpha = 0.75) +
+                ymin = -Inf, ymax = Inf, fill = "COVID-19"), alpha = 0.65) +
   
   # Línea principal: 1st release suavizado (línea negra)
   geom_line(
