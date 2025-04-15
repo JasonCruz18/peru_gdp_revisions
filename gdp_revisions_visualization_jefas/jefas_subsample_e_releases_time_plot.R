@@ -144,20 +144,36 @@ date_label_format <- function(date) {
   paste0(format(date, "%Y"))
 }
 
-# Generate a sequence of dates for the first month of each year
-breaks_dates <- seq(from = as.Date("1993-01-01"), 
-                    to = as.Date("2023-10-31"), 
-                    by = "2 years")
 
 # Create the graph
 time_plot <- ggplot(df_filtered, aes(x = vintages_date)) +
-  # Agregar regiones sombreadas con leyenda
-  geom_rect(aes(xmin = as.Date("2013-01-01"), xmax = as.Date("2014-01-01"),
-                ymin = -Inf, ymax = Inf, fill = "2007 base year"), alpha = 0.65) +
-  geom_rect(aes(xmin = as.Date("2020-03-01"), xmax = as.Date("2021-10-01"),
-                ymin = -Inf, ymax = Inf, fill = "COVID-19"), alpha = 0.65) +
-  #geom_rect(aes(xmin = as.Date("1999-05-01"), xmax = as.Date("2000-05-01"),
-  #              ymin = -Inf, ymax = Inf, fill = "Cambio de año base"), alpha = 0.85) +
+
+  # Rectángulos de periodo de referencia con data explícita
+  geom_rect(
+    data = data.frame(
+      xmin = as.Date("2013-01-01"),
+      xmax = as.Date("2014-01-01"),
+      ymin = -Inf,
+      ymax = Inf,
+      fill_label = "2007 base year"
+    ),
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, fill = fill_label),
+    inherit.aes = FALSE,
+    alpha = 0.65
+  ) +
+  geom_rect(
+    data = data.frame(
+      xmin = as.Date("2020-03-01"),
+      xmax = as.Date("2021-10-01"),
+      ymin = -Inf,
+      ymax = Inf,
+      fill_label = "COVID-19"
+    ),
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, fill = fill_label),
+    inherit.aes = FALSE,
+    alpha = 0.65
+  ) +
+  
   geom_line(aes(y = gdp_most_recent_smooth, color = "Last release"), linewidth = 0.5) +
   geom_line(aes(y = gdp_release_1_smooth, color = "1st release"), linewidth = 0.85) +
   geom_bar(aes(y = e_1_gdp * 2.0, fill = "1st nowcast error"), 
@@ -205,11 +221,12 @@ time_plot <- ggplot(df_filtered, aes(x = vintages_date)) +
                         labels = scales::number_format(accuracy = 0.1))
   ) +
   scale_x_date(
-    breaks = breaks_dates,
-    labels = date_label_format,
+    breaks = seq(as.Date("2001-01-01"), as.Date("2023-01-01"), by = "2 years"),
+    date_labels = "%Y",
+    limits = c(as.Date("2001-01-01"), as.Date("2023-01-01")),
     expand = c(0.02, 0.02)
   ) +
-  coord_cartesian(ylim = c(-10, 15), clip = "off")  # Restrict Y-axis range
+  coord_cartesian(ylim = c(-3.0, 11.3), clip = "off")  # Restrict Y-axis range
 
 # Mostrar el gráfico
 print(time_plot)
