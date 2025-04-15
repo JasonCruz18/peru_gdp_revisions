@@ -15,13 +15,8 @@
 #*******************************************************************************
 
 library(RPostgres)
-library(ggplot2)
-library(lubridate)
-library(svglite)
 library(dplyr)
 library(tidyr)
-library(sandwich)
-library(lmtest)
 library(scales)
 library(tcltk)
 
@@ -82,40 +77,70 @@ merged_df$horizon <- factor(merged_df$horizon, levels = as.character(1:11))
 generate_boxplot <- function(data, variable, color, legend_position, sector, output_dir) {
   output_file <- file.path(output_dir, paste0(variable, "_boxplot_", sector, "_m", ".png"))
   png(filename = output_file, width = 10, height = 6, units = "in", res = 300)
-  par(bg = "transparent", mar = c(2.0, 2.55, 1.2, 0.2))
+  par(bg = "transparent", mar = c(4, 5, 4, 2))  # Margen ajustado
   
-  boxplot(
-    formula = as.formula(paste0(sector, "_", variable, " ~ horizon")), 
-    data = data, 
-    outline = FALSE,
-    xlab = NA,
-    ylab = NA,
-    col = color,
-    border = "#292929",
-    lwd = 3.0,
-    cex.axis = 2.2,
-    cex.lab = 2.2,
-    xaxt = "n",
-    yaxt = "n"
+  # Preparar fórmula y datos
+  formula_str <- as.formula(paste0(sector, "_", variable, " ~ horizon"))
+  bplt <- boxplot(
+    formula = formula_str,
+    data = data,
+    plot = FALSE
   )
   
-  # Ajuste de etiquetas de eje X desde 1
-  axis(1, at = seq_along(levels(data$horizon)), labels = levels(data$horizon), cex.axis = 2.2)
+  # Calcular rangos y respiro lateral
+  x_min <- min(bplt$group) - 0.35
+  x_max <- max(bplt$group) + 0.35
   
-  y_ticks <- axTicks(2)
-  axis(1, at = seq_along(levels(data$horizon)), labels = levels(data$horizon), cex.axis = 2.2)
-  box(lwd = 2.5)
+  # Crear gráfico vacío con rejilla de fondo
+  plot(1, type = "n", xlim = c(x_min, x_max), ylim = range(bplt$stats, na.rm = TRUE),
+       xaxt = "n", yaxt = "n", xlab = "", ylab = "", bty = "n")
   
-  # Calcular y agregar medias
+  # Rejilla horizontal (major Y)
+  y_ticks <- pretty(range(bplt$stats, na.rm = TRUE))
+  abline(h = y_ticks, col = "#F5F5F5", lwd = 1.6, lty = 1)
+  
+  # Rejilla vertical menor (minor X)
+  x_minor_ticks <- seq(x_min, x_max, by = 0.5)
+  abline(v = x_minor_ticks, col = "#F5F5F5", lwd = 1.4, lty = 1)
+  
+  # Dibujar boxplot encima de rejilla
+  bplt <- boxplot(
+    formula = formula_str,
+    data = data,
+    outline = FALSE,
+    xlab = NULL,
+    ylab = NULL,
+    col = color,
+    border = "black",
+    lwd = 1.6,
+    cex.axis = 1.5,
+    cex.lab = 1.5,
+    xaxt = "n",
+    yaxt = "n",
+    add = TRUE
+  )
+  
+  # Eje X personalizado
+  axis(1, at = seq_along(bplt$names), labels = bplt$names, cex.axis = 1.5)
+  
+  # Eje Y horizontal
+  axis(2, cex.axis = 1.5, las = 1)
+  
+  # Agregar medias
   means <- sapply(levels(data$horizon), function(h) mean(data[data$horizon == h, paste0(sector, "_", variable)], na.rm = TRUE))
-  points(seq_along(means), means, col = color, pch = 21, cex = 3.5, bg = "black", lwd = 2.0)
+  points(seq_along(means), means, col = color, pch = 21, cex = 2.5, bg = "#292929", lwd = 2.0)
   
-  # Agregar leyenda
-  legend(legend_position, legend = "Media", col = color, pch = 21, pt.cex = 3.5, cex = 2.5,
-         pt.bg = "black", text.col = "black", horiz = TRUE, bty = "n", pt.lwd = 2.0)
+  # Leyenda
+  legend(legend_position, legend = "Media", col = color, pch = 21, pt.cex = 2.5, cex = 1.5,
+         pt.bg = "#292929", text.col = "#292929", horiz = TRUE, bty = "n", pt.lwd = 2.0)
+  
+  # Borde del gráfico
+  box(lwd = 1.5)
   
   dev.off()
 }
+
+
 
 #*******************************************************************************
 # Generate Plots for e and r for All Sectors
@@ -131,8 +156,9 @@ for (sector in sectors) {
   cat("Generating plots for sector:", sector, "\n")
   
   generate_boxplot(df_filtered_r, "r", "#0079FF", "bottomleft", sector, output_dir)
-  generate_boxplot(df_filtered_e, "e", "#FF0060", "bottomright", sector, output_dir)
+  generate_boxplot(df_filtered_e, "e", "#F5F5F5", "bottomright", sector, output_dir)
 }
 
 cat("All plots have been generated successfully in:", output_dir, "\n")
+
 
