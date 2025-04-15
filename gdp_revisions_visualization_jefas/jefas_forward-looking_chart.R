@@ -77,7 +77,7 @@ con <- dbConnect(RPostgres::Postgres(),
                  password = password)
 
 # Fetch data for the selected sector
-query <- "SELECT * FROM jefas_gdp_revisions_panel"
+query <- "SELECT * FROM jefas_gdp_revisions_base_year_panel"
 df <- dbGetQuery(con, query)
 
 # Close database connection
@@ -86,100 +86,167 @@ dbDisconnect(con)
 
 
 #*******************************************************************************
-# Data Preparation
+# 1. Suavizado de la serie gdp_release
 #*******************************************************************************
 
-# Convertir a tipos adecuados
+# Suavizado ponderado (ventana: t-2 a t+2)
+df <- df %>%
+  mutate(
+    gdp_release_smooth = (
+      lag(gdp_release, 2) +
+        2 * lag(gdp_release, 1) +
+        4 * gdp_release +
+        2 * lead(gdp_release, 1) +
+        lead(gdp_release, 2)
+    ) / 10
+  )
+
+#*******************************************************************************
+# 2. Preparación de datos
+#*******************************************************************************
+
+# Conversión de tipos
 df <- df %>%
   mutate(
     vintages_date = as.Date(vintages_date),
     horizon = as.numeric(horizon)
   )
 
-# Filtrar solo los marzos y calcular la fecha de publicación del release
-df_filtered <- df %>%
-  filter(month(vintages_date) == 3) %>%
+# Remover valores anómalos del período COVID y 2007 base year
+df <- df %>%
+  mutate(
+    gdp_release = ifelse(
+      vintages_date >= as.Date("2020-03-01") & vintages_date <= as.Date("2021-10-01"),
+      NaN, gdp_release
+    ),
+    gdp_release_smooth = ifelse(
+      vintages_date >= as.Date("2020-03-01") & vintages_date <= as.Date("2021-10-01"),
+      NaN, gdp_release_smooth
+    )
+  )
+
+# Filtrar solo meses clave: enero, abril, julio, octubre (desde 1993)
+df_filtered_with_smooth <- df %>%
+  filter(
+    lubridate::month(vintages_date) %in% c(1, 4, 7, 10),
+    vintages_date >= as.Date("2001-01-01"),
+    vintages_date <= as.Date("2023-10-31")
+  ) %>%
   mutate(
     release_date = vintages_date + months(horizon - 1),
     target_year = year(vintages_date)
   )
 
+# Subconjunto para h = 1 (primer release de cada vintage)
+df_h1 <- df %>%
+  filter(horizon == 1) %>%
+  mutate(
+    release_date = vintages_date + months(horizon - 1)
+  )
 
 #*******************************************************************************
-# Plot: GDP Revisions by Horizon for March Events (con línea h=1 destacada)
+# 3. Ajuste vertical de líneas originales para alinear con valor suavizado
+#*******************************************************************************
+
+# Calcular el valor de ajuste para alinear el primer punto de cada línea azul
+adjustment_df <- df_filtered_with_smooth %>%
+  group_by(vintages_date) %>%
+  filter(row_number() == 1) %>%
+  mutate(adjustment = gdp_release_smooth - gdp_release) %>%
+  select(vintages_date, adjustment)
+
+# Aplicar ajuste a toda la serie de cada vintage
+df_adjusted <- df_filtered_with_smooth %>%
+  left_join(adjustment_df, by = "vintages_date") %>%
+  mutate(gdp_release_adjusted = gdp_release + adjustment)
+
+#*******************************************************************************
+# 4. Visualización: Revisiones del PBI por horizonte (release 1–12)
 #*******************************************************************************
 
 plot <- ggplot() +
-  # Todas las líneas: eventos (con transparencia y color uniforme)
-  geom_line(
-    data = df_filtered,
-    aes(x = release_date, y = gdp_release, group = vintages_date, color = "Event year (March)"),
-    linewidth = 1.2,  # Grosor de línea similar al gráfico de referencia
-    alpha = 0.5
-  ) +
   
-  # Línea especial para h = 1 (primer release)
-  geom_line(
-    data = subset(df_filtered, horizon == 1),
-    aes(x = release_date, y = gdp_release, color = "1st release"),  # Etiqueta para la leyenda
-    linewidth = 1.8,  # Grosor de línea similar al gráfico de referencia
-    alpha = 1  # Aumentar opacidad para que sea más visible
-  ) +
+  # Regiones sombreadas
+  geom_rect(aes(xmin = as.Date("2013-01-01"), xmax = as.Date("2014-01-01"),
+                ymin = -Inf, ymax = Inf, fill = "2007 base year"), alpha = 0.85) +
+  geom_rect(aes(xmin = as.Date("2020-03-01"), xmax = as.Date("2021-10-01"),
+                ymin = -Inf, ymax = Inf, fill = "COVID-19"), alpha = 0.85) +
   
-  # Puntos para los eventos
+  # Línea principal: 1st release suavizado (línea negra)
+  geom_line(
+    data = df_h1,
+    aes(x = release_date, y = gdp_release_smooth, color = "1st release"),
+    linewidth = 0.5
+  ) +
   geom_point(
-    data = df_filtered,
-    aes(x = release_date, y = gdp_release, group = vintages_date, color = "Event year (March)"),
-    size = 1.6,  # Tamaño de los puntos como en el gráfico de referencia
-    alpha = 0.8
+    data = df_h1,
+    aes(x = release_date, y = gdp_release_smooth, color = "1st release"),
+    size = 0.85
   ) +
   
-  # Títulos y ejes
-  labs(
-    title = "GDP Revisions by Horizon (Release 1–12)",
-    subtitle = "Target GDP: every March between 1993 and 2023",
-    x = "Release date",  # Etiqueta del eje X
-    y = "GDP growth rate (%)"
+  # Línea secundaria: valores ajustados
+  geom_line(
+    data = df_adjusted,
+    aes(x = release_date, y = gdp_release_adjusted, group = vintages_date,
+        color = "Ongoing releases"),
+    linewidth = 0.85,
+    alpha = 0.75
   ) +
+  
+  labs(
+    x = NULL,
+    y = "GDP Releases",
+    title = NULL,
+    color = NULL,
+    fill = NULL
+  ) +
+  
   scale_x_date(
-    date_labels = "%Y",  # Solo mostrar el año
-    date_breaks = "2 year", 
-    limits = c(min(df_filtered$release_date), max(df_filtered$release_date))  # Establecer límites explícitos
+    breaks = seq(as.Date("2001-01-01"), as.Date("2025-01-01"), by = "2 years"),
+    date_labels = "%Y",
+    limits = c(as.Date("2001-01-01"), as.Date("2025-01-01")),
+    expand = c(0.02, 0.02)
   ) +
   scale_y_continuous(
-    limits = c(min(df_filtered$gdp_release, na.rm = TRUE), max(df_filtered$gdp_release, na.rm = TRUE))  # Establecer límites del eje y
+    breaks = scales::pretty_breaks(n = 5),
+    labels = scales::number_format(accuracy = 0.1)
   ) +
+  
   scale_color_manual(
-    values = c("1st release" = "#292929", "Event year (March)" = "#0079FF")  # Colores personalizados
+    values = c("1st release" = "#292929", "Ongoing releases" = "#0079FF")
   ) +
-  theme_minimal(base_size = 14) +
+  scale_fill_manual(
+    values = c("COVID-19" = "#F6FA70", "2007 base year" = "#00DFA2")
+  ) +
+  
+  theme_minimal() +
   theme(
-    panel.grid.major = element_line(color = "#F5F5F5", linewidth = 0.8),  # Rejillas de fondo
+    panel.grid.major = element_line(color = "#F5F5F5", linewidth = 0.8),
     panel.grid.minor.x = element_line(color = "#F5F5F5", linewidth = 0.8),
-    panel.grid.minor.y = element_blank(),  # Eliminar la rejilla menor en el eje Y
-    axis.text = element_text(color = "black", size = 16),  # Tamaño de texto en ejes
-    axis.text.x = element_text(color = "black", angle = 0, hjust = 0.5, vjust = 0.5),  # Texto horizontal en eje X
-    axis.text.y = element_text(color = "black", size = 16),  # Tamaño de texto en eje Y
+    panel.grid.minor.y = element_blank(),
+    axis.text = element_text(color = "black", size = 16),
+    axis.text.x = element_text(color = "black", angle = 0, hjust = 0.5, vjust = 0.5),
+    axis.text.y = element_text(color = "black", angle = 0, hjust = 0.5),
     axis.ticks = element_line(color = "black"),
     axis.ticks.length = unit(0.1, "inches"),
-    axis.title.x = element_text(size = 16, color = "black"),  # Etiqueta del eje X
-    axis.title.y = element_text(size = 16, color = "black"),  # Título del eje Y
-    plot.title = element_text(face = "bold"),  # Título en negrita
-    plot.subtitle = element_text(size = 14, color = "black"),  # Subtítulo con color y tamaño
-    legend.position = "top",  # Posición de la leyenda
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 16, color = "black"),
+    plot.title = element_blank(),
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.text = element_text(size = 16, color = "black"),
+    legend.background = element_rect(fill = "white", color = "black", linewidth = 0.45),
     axis.line = element_line(color = "black", linewidth = 0.45),
-    panel.border = element_rect(color = "black", linewidth = 0.45, fill = NA),  # Borde del gráfico
-    plot.margin = margin(9, 5, 9, 4)  # Márgenes
+    panel.border = element_rect(color = "black", linewidth = 0.45, fill = NA),
+    plot.margin = margin(9, 5, 9, 4)
   ) +
-  guides(color = guide_legend(title = "Legend"))  # Título para la leyenda
+  coord_cartesian(ylim = c(-3.0, 12.3), clip = "off")
 
-# Mostrar
 print(plot)
 
 
 
-
 # Guardar
-ggsave(filename = file.path(output_dir, "gdp_revisions_by_horizon_events.png"), plot = plot, width = 12, height = 8)
+ggsave(filename = file.path(output_dir, "gdp_revisions_by_horizon_events_11.png"), plot = plot, width = 12, height = 8)
 
 
