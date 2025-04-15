@@ -83,8 +83,6 @@ df <- dbGetQuery(con, query)
 # Close database connection
 dbDisconnect(con)
 
-
-
 #*******************************************************************************
 # 1. Suavizado de la serie gdp_release
 #*******************************************************************************
@@ -105,14 +103,12 @@ df <- df %>%
 # 2. Preparación de datos
 #*******************************************************************************
 
-# Conversión de tipos
 df <- df %>%
   mutate(
     vintages_date = as.Date(vintages_date),
     horizon = as.numeric(horizon)
   )
 
-# Remover valores anómalos del período COVID y 2007 base year
 df <- df %>%
   mutate(
     gdp_release = ifelse(
@@ -125,7 +121,6 @@ df <- df %>%
     )
   )
 
-# Filtrar solo meses clave: enero, abril, julio, octubre (desde 1993)
 df_filtered_with_smooth <- df %>%
   filter(
     lubridate::month(vintages_date) %in% c(1, 4, 7, 10),
@@ -137,7 +132,6 @@ df_filtered_with_smooth <- df %>%
     target_year = year(vintages_date)
   )
 
-# Subconjunto para h = 1 (primer release de cada vintage)
 df_h1 <- df %>%
   filter(horizon == 1) %>%
   mutate(
@@ -148,17 +142,24 @@ df_h1 <- df %>%
 # 3. Ajuste vertical de líneas originales para alinear con valor suavizado
 #*******************************************************************************
 
-# Calcular el valor de ajuste para alinear el primer punto de cada línea azul
 adjustment_df <- df_filtered_with_smooth %>%
   group_by(vintages_date) %>%
   filter(row_number() == 1) %>%
   mutate(adjustment = gdp_release_smooth - gdp_release) %>%
   select(vintages_date, adjustment)
 
-# Aplicar ajuste a toda la serie de cada vintage
 df_adjusted <- df_filtered_with_smooth %>%
   left_join(adjustment_df, by = "vintages_date") %>%
   mutate(gdp_release_adjusted = gdp_release + adjustment)
+
+#*******************************************************************************
+# NUEVO: Extraer últimos puntos para cada línea roja
+#*******************************************************************************
+
+df_adjusted_last_points <- df_adjusted %>%
+  group_by(vintages_date) %>%
+  filter(release_date == max(release_date)) %>%
+  ungroup()
 
 #*******************************************************************************
 # 4. Visualización: Revisiones del PBI por horizonte (release 1–12)
@@ -181,7 +182,11 @@ plot <- ggplot() +
   geom_point(
     data = df_h1,
     aes(x = release_date, y = gdp_release_smooth, color = "1st release"),
-    size = 0.85
+    shape = 21,          # círculo con borde
+    size = 0.85,            # tamaño visual del punto
+    stroke = 1.2,          # grosor del borde
+    fill = NA,           # sin relleno
+    color = "#3366FF"    # borde del color de las líneas
   ) +
   
   # Línea secundaria: valores ajustados
@@ -191,6 +196,15 @@ plot <- ggplot() +
         color = "Ongoing releases"),
     linewidth = 0.85,
     alpha = 0.70
+  ) +
+  
+  # NUEVO: Puntos finales huecos para cada línea roja
+  geom_point(
+    data = df_adjusted_last_points,
+    aes(x = release_date, y = gdp_release_adjusted),
+    shape = 15,          # círculo con borde
+    size = 2.0,
+    color = "#E6004C"    # borde del color de las líneas
   ) +
   
   labs(
@@ -244,7 +258,7 @@ plot <- ggplot() +
 
 print(plot)
 
+
 # Guardar
 ggsave(filename = file.path(output_dir, "gdp_revisions_by_horizon_events.png"), plot = plot, width = 12, height = 8)
-
 

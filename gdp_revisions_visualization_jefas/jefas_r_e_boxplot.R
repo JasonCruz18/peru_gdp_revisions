@@ -105,7 +105,7 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, out
   abline(v = x_minor_ticks, col = "#F5F5F5", lwd = 1.6, lty = 1)
   
   # Dibujar boxplots con transparencia
-  col_alpha <- adjustcolor(color, alpha.f = 0.65)
+  col_alpha <- adjustcolor(color, alpha.f = 0.70)
   bplt <- boxplot(
     formula = formula_str,
     data = data,
@@ -130,14 +130,14 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, out
   
   # Agregar medias
   means <- sapply(levels(data$horizon), function(h) mean(data[data$horizon == h, paste0(sector, "_", variable)], na.rm = TRUE))
-  points(seq_along(means), means, col = color, pch = 21, cex = 2.5, bg = "black", lwd = 2.0)
+  points(seq_along(means), means, col = color, pch = 21, cex = 2.5, bg = "#292929", lwd = 2.0)
   
   # Borde del gráfico
   box(lwd = 1.5)
   
   # Leyenda más abajo (inset más grande)
   legend("bottom", inset = c(0, -0.22), legend = "Media", col = color,
-         pch = 21, pt.cex = 2.5, cex = 1.5, pt.bg = "black",
+         pch = 21, pt.cex = 2.5, cex = 1.5, pt.bg = "#292929",
          text.col = "black", horiz = TRUE, bty = "o", pt.lwd = 2.0, box.lwd = 1.5, xpd = TRUE)
   
   dev.off()
@@ -159,7 +159,7 @@ for (sector in sectors) {
   
   cat("Generating plots for sector:", sector, "\n")
   
-  generate_boxplot(df_filtered_r, "r", "#0079FF", "bottomleft", sector, output_dir)
+  generate_boxplot(df_filtered_r, "r", "#F5F5F5", "bottomleft", sector, output_dir)
   generate_boxplot(df_filtered_e, "e", "#F5F5F5", "bottomright", sector, output_dir)
 }
 
