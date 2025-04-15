@@ -159,7 +159,7 @@ time_plot <- ggplot(df_filtered, aes(x = vintages_date)) +
     ),
     aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, fill = fill_label),
     inherit.aes = FALSE,
-    alpha = 0.65
+    alpha = 0.70
   ) +
   geom_rect(
     data = data.frame(
@@ -171,7 +171,7 @@ time_plot <- ggplot(df_filtered, aes(x = vintages_date)) +
     ),
     aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, fill = fill_label),
     inherit.aes = FALSE,
-    alpha = 0.65
+    alpha = 0.70
   ) +
   
   geom_line(aes(y = gdp_most_recent_smooth, color = "Last release"), linewidth = 0.5) +
@@ -208,8 +208,8 @@ time_plot <- ggplot(df_filtered, aes(x = vintages_date)) +
     panel.border = element_rect(color = "black", linewidth = 0.45, fill = NA),
     plot.margin = margin(9, 5, 9, 4)
   ) +
-  scale_color_manual(values = c("1st release" = "#0079FF", 
-                                "Last release" = "#FF0060")) +  
+  scale_color_manual(values = c("1st release" = "#3366FF", 
+                                "Last release" = "#E6004C")) +  
   scale_fill_manual(values = c("1st nowcast error" = "#F5F5F5", 
                                "2007 base year" = "#00DFA2", 
                                "COVID-19" = "#F6FA70")) +  
@@ -235,3 +235,4 @@ print(time_plot)
 # Guardar el gráfico
 plot_output_file <- file.path(output_dir, "e_releses_time_plot_by_subsample.png")
 ggsave(filename = plot_output_file, plot = time_plot, width = 10, height = 6, dpi = 300, bg = "transparent")
+
