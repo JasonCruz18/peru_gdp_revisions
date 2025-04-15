@@ -168,9 +168,9 @@ plot <- ggplot() +
   
   # Regiones sombreadas
   geom_rect(aes(xmin = as.Date("2013-01-01"), xmax = as.Date("2014-01-01"),
-                ymin = -Inf, ymax = Inf, fill = "2007 base year"), alpha = 0.85) +
+                ymin = -Inf, ymax = Inf, fill = "2007 base year"), alpha = 0.75) +
   geom_rect(aes(xmin = as.Date("2020-03-01"), xmax = as.Date("2021-10-01"),
-                ymin = -Inf, ymax = Inf, fill = "COVID-19"), alpha = 0.85) +
+                ymin = -Inf, ymax = Inf, fill = "COVID-19"), alpha = 0.75) +
   
   # Línea principal: 1st release suavizado (línea negra)
   geom_line(
@@ -247,6 +247,6 @@ print(plot)
 
 
 # Guardar
-ggsave(filename = file.path(output_dir, "gdp_revisions_by_horizon_events_11.png"), plot = plot, width = 12, height = 8)
+ggsave(filename = file.path(output_dir, "gdp_revisions_by_horizon_events.png"), plot = plot, width = 12, height = 8)
 
 

@@ -131,7 +131,7 @@ df <- df %>%
 
 
 # Filter the dataframe for the desired date range
-df_filtered <- df[df$vintages_date >= as.Date("1993-01-01") & df$vintages_date <= as.Date("2023-10-31"), ]
+df_filtered <- df[df$vintages_date >= as.Date("2001-01-01") & df$vintages_date <= as.Date("2023-10-31"), ]
 
 
 
@@ -153,20 +153,20 @@ breaks_dates <- seq(from = as.Date("1993-01-01"),
 time_plot <- ggplot(df_filtered, aes(x = vintages_date)) +
   # Agregar regiones sombreadas con leyenda
   geom_rect(aes(xmin = as.Date("2013-01-01"), xmax = as.Date("2014-01-01"),
-                ymin = -Inf, ymax = Inf, fill = "Cambio de año base"), alpha = 0.85) +
-  geom_rect(aes(xmin = as.Date("1999-05-01"), xmax = as.Date("2000-05-01"),
-                ymin = -Inf, ymax = Inf, fill = "Cambio de año base"), alpha = 0.85) +
+                ymin = -Inf, ymax = Inf, fill = "2007 base year"), alpha = 0.75) +
   geom_rect(aes(xmin = as.Date("2020-03-01"), xmax = as.Date("2021-10-01"),
-                ymin = -Inf, ymax = Inf, fill = "COVID-19"), alpha = 0.85) +
-  geom_line(aes(y = gdp_most_recent_smooth, color = "Publicación más reciente"), linewidth = 0.5) +
-  geom_line(aes(y = gdp_release_1_smooth, color = "Publicación inicial"), linewidth = 0.85) +
-  geom_bar(aes(y = e_1_gdp * 2.0, fill = "Error de predicción inicial"), 
+                ymin = -Inf, ymax = Inf, fill = "COVID-19"), alpha = 0.75) +
+  #geom_rect(aes(xmin = as.Date("1999-05-01"), xmax = as.Date("2000-05-01"),
+  #              ymin = -Inf, ymax = Inf, fill = "Cambio de año base"), alpha = 0.85) +
+  geom_line(aes(y = gdp_most_recent_smooth, color = "Final Value"), linewidth = 0.5) +
+  geom_line(aes(y = gdp_release_1_smooth, color = "1st release"), linewidth = 0.85) +
+  geom_bar(aes(y = e_1_gdp * 2.0, fill = "1st nowcast error"), 
            stat = "identity", alpha = 0.45, color = "black", linewidth = 0.35) +
   geom_hline(yintercept = 0, color = "black", linewidth = 0.45) +
-  geom_point(aes(y = gdp_most_recent_smooth, color = "Publicación más reciente"), size = 0.85) +
+  geom_point(aes(y = gdp_most_recent_smooth, color = "Final Value"), size = 0.85) +
   labs(
     x = NULL,
-    y = "Publicaciones del PIB",
+    y = "GDP Releases",
     title = NULL,
     color = NULL,
     fill = NULL
@@ -192,16 +192,16 @@ time_plot <- ggplot(df_filtered, aes(x = vintages_date)) +
     panel.border = element_rect(color = "black", linewidth = 0.45, fill = NA),
     plot.margin = margin(9, 5, 9, 4)
   ) +
-  scale_color_manual(values = c("Publicación inicial" = "#0079FF", 
-                                "Publicación más reciente" = "#FF0060")) +  
-  scale_fill_manual(values = c("Error de predicción inicial" = "#F5F5F5", 
-                               "Cambio de año base" = "#00DFA2", 
+  scale_color_manual(values = c("1st release" = "#0079FF", 
+                                "Final Value" = "#FF0060")) +  
+  scale_fill_manual(values = c("1st nowcast error" = "#F5F5F5", 
+                               "2007 base year" = "#00DFA2", 
                                "COVID-19" = "#F6FA70")) +  
   scale_y_continuous(
     breaks = scales::pretty_breaks(n = 5),
     labels = scales::number_format(accuracy = 0.1),
     sec.axis = sec_axis(~ . / 2.0, 
-                        name = "Error de predicción inicial (escalado)", 
+                        name = "1st nowcast error (scaled)", 
                         labels = scales::number_format(accuracy = 0.1))
   ) +
   scale_x_date(
