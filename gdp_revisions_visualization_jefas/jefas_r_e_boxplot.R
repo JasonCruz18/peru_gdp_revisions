@@ -78,7 +78,7 @@ merged_df$horizon <- factor(merged_df$horizon, levels = as.character(1:11))
 generate_boxplot <- function(data, variable, color, legend_position, sector, output_dir) {
   output_file <- file.path(output_dir, paste0(variable, "_boxplot_", sector, "_m", ".png"))
   png(filename = output_file, width = 10, height = 7, units = "in", res = 300)  # +1 inch vertical para leyenda
-  par(bg = "white", mar = c(5.2, 3.0, 0.5, 0.5))  # (abajo, izq, arriba, der) más espacio abajo para leyenda
+  par(bg = "white", mar = c(5.1, 3.0, 0.5, 0.5))  # (abajo, izq, arriba, der) más espacio abajo para leyenda
   
   # Preparar fórmula y datos
   formula_str <- as.formula(paste0(sector, "_", variable, " ~ horizon"))
@@ -105,7 +105,7 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, out
   abline(v = x_minor_ticks, col = "#F5F5F5", lwd = 1.6, lty = 1)
   
   # Dibujar boxplots con transparencia
-  col_alpha <- adjustcolor(color, alpha.f = 1)
+  col_alpha <- adjustcolor(color, alpha.f = 0.45)
   bplt <- boxplot(
     formula = formula_str,
     data = data,
@@ -161,7 +161,7 @@ for (sector in sectors) {
   cat("Generating plots for sector:", sector, "\n")
   
   generate_boxplot(df_filtered_r, "r", "#F5F5F5", "bottomleft", sector, output_dir)
-  generate_boxplot(df_filtered_e, "e", "#E6004C", "bottomright", sector, output_dir)
+  generate_boxplot(df_filtered_e, "e", "#F5F5F5", "bottomright", sector, output_dir)
 }
 
 cat("All plots have been generated successfully in:", output_dir, "\n")
