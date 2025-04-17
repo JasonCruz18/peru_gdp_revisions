@@ -216,7 +216,7 @@ plot <- ggplot() +
     values = c("1st release" = "#3366FF", "Ongoing releases" = "#E6004C")
   ) +
   scale_fill_manual(
-    values = c("COVID-19" = "#F6FA70", "2007 base year" = "#00DFA2")
+    values = c("COVID-19" = "#FFF183", "2007 base year" = "#00DFA2")
   ) +
   
   theme_minimal() +
@@ -245,6 +245,6 @@ plot <- ggplot() +
 print(plot)
 
 # Guardar
-ggsave(filename = file.path(output_dir, "gdp_revisions_by_horizon_events.png"), plot = plot, width = 12, height = 8)
+ggsave(filename = file.path(output_dir, "gdp_revisions_by_horizon_events.png"), plot = plot, width = 12, height = 8, dpi = 300, bg = "white")
 
 

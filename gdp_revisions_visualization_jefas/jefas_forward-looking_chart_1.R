@@ -28,8 +28,6 @@ library(sandwich)     # Robust standard errors
 library(lmtest)       # Hypothesis testing
 library(scales)       # Format number
 
-
-
 #*******************************************************************************
 # Initial Setup
 #*******************************************************************************
@@ -123,7 +121,7 @@ df <- df %>%
 
 df_filtered_with_smooth <- df %>%
   filter(
-    lubridate::month(vintages_date) %in% c(1, 4, 7, 10),
+    lubridate::month(vintages_date) %in% c(2, 4, 6, 8, 10, 12),
     vintages_date >= as.Date("2001-01-01"),
     vintages_date <= as.Date("2023-10-31")
   ) %>%
@@ -161,9 +159,11 @@ df_adjusted_last_points <- df_adjusted %>%
   filter(release_date == max(release_date)) %>%
   ungroup()
 
+
 #*******************************************************************************
 # 4. Visualización: Revisiones del PBI por horizonte (release 1–12)
 #*******************************************************************************
+
 
 plot <- ggplot() +
   
@@ -184,9 +184,8 @@ plot <- ggplot() +
     aes(x = release_date, y = gdp_release_smooth, color = "1st release"),
     shape = 21,          # círculo con borde
     size = 0.85,            # tamaño visual del punto
-    stroke = 1.2,          # grosor del borde
-    fill = NA,           # sin relleno
-    color = "#3366FF"    # borde del color de las líneas
+    stroke = 0.85,          # grosor del borde
+    fill = NA
   ) +
   
   # Línea secundaria: valores ajustados
@@ -201,15 +200,14 @@ plot <- ggplot() +
   # NUEVO: Puntos finales huecos para cada línea roja
   geom_point(
     data = df_adjusted_last_points,
-    aes(x = release_date, y = gdp_release_adjusted),
-    shape = 15,          # círculo con borde
-    size = 2.0,
-    color = "#E6004C"    # borde del color de las líneas
+    aes(x = release_date, y = gdp_release_adjusted, color = "Last release"),
+    shape = 15,          
+    size = 1.70
   ) +
   
   labs(
     x = NULL,
-    y = "GDP Releases",
+    y = NULL,
     title = NULL,
     color = NULL,
     fill = NULL
@@ -227,10 +225,18 @@ plot <- ggplot() +
   ) +
   
   scale_color_manual(
-    values = c("1st release" = "#3366FF", "Ongoing releases" = "#E6004C")
+    values = c("1st release" = "#3366FF", "Ongoing releases" = "#E6004C", "Last release" = "#E6004C"),
+    breaks = c("1st release", "Ongoing releases", "Last release")  # Explicitly setting legend order
   ) +
+  
   scale_fill_manual(
-    values = c("COVID-19" = "#F6FA70", "2007 base year" = "#00DFA2")
+    values = c("COVID-19" = "#FFF183", "2007 base year" = "#00DFA2")
+  ) +
+  
+  # Adjusting legend order
+  guides(
+    color = guide_legend(order = 1),  # First legend for line colors
+    fill = guide_legend(order = 2)    # Second legend for fill colors
   ) +
   
   theme_minimal() +
@@ -260,5 +266,5 @@ print(plot)
 
 
 # Guardar
-ggsave(filename = file.path(output_dir, "gdp_revisions_by_horizon_events.png"), plot = plot, width = 12, height = 8)
+ggsave(filename = file.path(output_dir, "gdp_revisions_by_horizon_events_1.png"), plot = plot, width = 12, height = 8, bg = "white")
 

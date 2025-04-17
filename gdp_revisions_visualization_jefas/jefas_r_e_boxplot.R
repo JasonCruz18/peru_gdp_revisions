@@ -63,10 +63,10 @@ dbDisconnect(con)
 sectors <- c("gdp")
 
 merged_df <- df %>% 
-  filter(!is.na(horizon) & !is.na(vintages_date) & horizon >= 1 & horizon < 12)
+  filter(!is.na(horizon) & !is.na(vintages_date) & horizon >= 1 & horizon < 11)
 
 merged_df <- merged_df %>%
-  filter(vintages_date > as.Date("2000-12-31") & vintages_date < as.Date("2023-11-01"))
+  filter(vintages_date > as.Date("1992-12-31") & vintages_date < as.Date("2023-11-01"))
 
 merged_df$horizon <- factor(merged_df$horizon, levels = as.character(1:11))
 
@@ -76,9 +76,9 @@ merged_df$horizon <- factor(merged_df$horizon, levels = as.character(1:11))
 
 
 generate_boxplot <- function(data, variable, color, legend_position, sector, output_dir) {
-  output_file <- file.path(output_dir, paste0(variable, "_boxplot_", sector, "_m", ".png"))
+  output_file <- file.path(output_dir, paste0(variable, "_boxplot_", sector, "_m_1", ".png"))
   png(filename = output_file, width = 10, height = 7, units = "in", res = 300)  # +1 inch vertical para leyenda
-  par(bg = "transparent", mar = c(5.8, 5, 4, 2))  # más espacio abajo para leyenda
+  par(bg = "white", mar = c(6.5, 3.3, 0.5, 0.5))  # (abajo, izq, arriba, der) más espacio abajo para leyenda
   
   # Preparar fórmula y datos
   formula_str <- as.formula(paste0(sector, "_", variable, " ~ horizon"))
@@ -105,7 +105,7 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, out
   abline(v = x_minor_ticks, col = "#F5F5F5", lwd = 1.6, lty = 1)
   
   # Dibujar boxplots con transparencia
-  col_alpha <- adjustcolor(color, alpha.f = 0.70)
+  col_alpha <- adjustcolor(color, alpha.f = 1)
   bplt <- boxplot(
     formula = formula_str,
     data = data,
@@ -136,9 +136,10 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, out
   box(lwd = 1.5)
   
   # Leyenda más abajo (inset más grande)
-  legend("bottom", inset = c(0, -0.22), legend = "Media", col = color,
-         pch = 21, pt.cex = 2.5, cex = 1.5, pt.bg = "#292929",
-         text.col = "black", horiz = TRUE, bty = "o", pt.lwd = 2.0, box.lwd = 1.5, xpd = TRUE)
+  legend("bottom", inset = c(0, -0.16.5), legend = "Median", col = color,
+         pch = 21, pt.cex = 2.2, cex = 1.3, pt.bg = "#292929",
+         text.col = "black", horiz = TRUE, bty = "o", pt.lwd = 2.0,
+         box.lwd = 1.5, xpd = TRUE, x.intersp = 0.6, y.intersp = 0.55)
   
   dev.off()
 }
@@ -160,9 +161,9 @@ for (sector in sectors) {
   cat("Generating plots for sector:", sector, "\n")
   
   generate_boxplot(df_filtered_r, "r", "#F5F5F5", "bottomleft", sector, output_dir)
-  generate_boxplot(df_filtered_e, "e", "#F5F5F5", "bottomright", sector, output_dir)
+  generate_boxplot(df_filtered_e, "e", "#E6004C", "bottomright", sector, output_dir)
 }
 
 cat("All plots have been generated successfully in:", output_dir, "\n")
-
+    
 
