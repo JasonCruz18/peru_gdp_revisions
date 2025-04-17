@@ -76,9 +76,9 @@ merged_df$horizon <- factor(merged_df$horizon, levels = as.character(1:11))
 
 
 generate_boxplot <- function(data, variable, color, legend_position, sector, output_dir) {
-  output_file <- file.path(output_dir, paste0(variable, "_boxplot_", sector, "_m_1", ".png"))
+  output_file <- file.path(output_dir, paste0(variable, "_boxplot_", sector, "_m", ".png"))
   png(filename = output_file, width = 10, height = 7, units = "in", res = 300)  # +1 inch vertical para leyenda
-  par(bg = "white", mar = c(6.5, 3.3, 0.5, 0.5))  # (abajo, izq, arriba, der) más espacio abajo para leyenda
+  par(bg = "white", mar = c(5.2, 3.0, 0.5, 0.5))  # (abajo, izq, arriba, der) más espacio abajo para leyenda
   
   # Preparar fórmula y datos
   formula_str <- as.formula(paste0(sector, "_", variable, " ~ horizon"))
@@ -123,10 +123,10 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, out
   )
   
   # Eje X
-  axis(1, at = seq_along(bplt$names), labels = bplt$names, cex.axis = 1.5)
+  axis(1, at = seq_along(bplt$names), labels = bplt$names, cex.axis = 1.25)
   
   # Eje Y horizontal
-  axis(2, cex.axis = 1.5, las = 1)
+  axis(2, cex.axis = 1.25, las = 1)
   
   # Agregar medias
   means <- sapply(levels(data$horizon), function(h) mean(data[data$horizon == h, paste0(sector, "_", variable)], na.rm = TRUE))
@@ -136,10 +136,10 @@ generate_boxplot <- function(data, variable, color, legend_position, sector, out
   box(lwd = 1.5)
   
   # Leyenda más abajo (inset más grande)
-  legend("bottom", inset = c(0, -0.16.5), legend = "Median", col = color,
-         pch = 21, pt.cex = 2.2, cex = 1.3, pt.bg = "#292929",
+  legend("bottom", inset = c(0, -0.155), legend = "Media", col = color,
+         pch = 21, pt.cex = 2.3, cex = 1.25, pt.bg = "#292929",
          text.col = "black", horiz = TRUE, bty = "o", pt.lwd = 2.0,
-         box.lwd = 1.5, xpd = TRUE, x.intersp = 0.6, y.intersp = 0.55)
+         box.lwd = 1.5, xpd = TRUE, x.intersp = 0.6, y.intersp = 0.4)
   
   dev.off()
 }
