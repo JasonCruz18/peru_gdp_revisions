@@ -94,7 +94,7 @@ df <- df %>%
   mutate(vintages_date = as.Date(vintages_date))  # Convertir a Date si es necesario
 
 # Definir las fechas específicas que quieres graficar
-selected_vintages <- as.Date(c("1998-12-01", "1999-01-01", "1999-02-01"))
+selected_vintages <- as.Date(c("2022-07-01", "2022-08-01", "2022-09-01"))
 
 # Filtrar los datos
 df_filtered <- df %>%
@@ -103,16 +103,16 @@ df_filtered <- df %>%
 # Crear etiquetas amigables para la leyenda
 df_filtered <- df_filtered %>%
   mutate(vintage_label = case_when(
-    vintages_date == as.Date("1998-12-01") ~ "1998m12",
-    vintages_date == as.Date("1999-01-01") ~ "1999m01",
-    vintages_date == as.Date("1999-02-01") ~ "1999m02",
+    vintages_date == as.Date("2022-07-01") ~ "2022m07",
+    vintages_date == as.Date("2022-08-01") ~ "2022m08",
+    vintages_date == as.Date("2022-09-01") ~ "2022m09",
     TRUE ~ as.character(vintages_date)  # En caso de otros valores no especificados
   ))
 
 # Definir formas específicas para cada línea
-shape_values <- c("1998m12" = 16,  # Círculo (point)
-                  "1999m01" = 15,   # Cuadrado (square)
-                  "1999m02" = 17)   # Triángulo (triangle)
+shape_values <- c("2022m07" = 16,  # Círculo (point)
+                  "2022m08" = 15,   # Cuadrado (square)
+                  "2022m09" = 17)   # Triángulo (triangle)
 
 
 
@@ -126,11 +126,11 @@ horizon_plot <- ggplot(df_filtered, aes(x = horizon, y = gdp_release, color = vi
   geom_point(size = 4.0) +  # Tamaño de los puntos con forma específica
   #geom_hline(yintercept = 0, color = "black", linewidth = 0.45) +  # Línea horizontal en 0
   scale_x_continuous(breaks = 1:12) +  # Mostrar enteros de 1 a 12 en el eje X
-  scale_color_manual(values = c("#0079FF", "#00DFA2", "#FF0060")) +  # Colores personalizados
+  scale_color_manual(values = c("#3366FF", "#00DFA2", "#E6004C")) +  # Colores personalizados
   scale_shape_manual(values = shape_values) +  # Aplicar formas personalizadas
   labs(
     x = NULL,
-    y = "GDP releases",
+    y = NULL,
     title = NULL,
     color = NULL,
     shape = NULL  # Ocultar título de la leyenda de formas
@@ -162,6 +162,6 @@ horizon_plot
 
 
 # Guardar el gráfico
-plot_output_file <- file.path(output_dir, "releses_horizon_plot_7.png")
-ggsave(filename = plot_output_file, plot = horizon_plot, width = 10, height = 6, dpi = 300, bg = "transparent")
+plot_output_file <- file.path(output_dir, "releses_horizon_plot.png")
+ggsave(filename = plot_output_file, plot = horizon_plot, width = 10, height = 6, dpi = 300, bg = "white")
 
