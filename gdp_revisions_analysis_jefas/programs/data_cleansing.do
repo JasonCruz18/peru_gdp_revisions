@@ -250,38 +250,36 @@ foreach suffix in e r {
 foreach suffix in e r {
 	use `suffix'_gdp_revisions_ts, clear	
 	
-	* Create a temporary identifier
-	gen id = _n
-	
-	* Gen provisional vars
-	gen r_1_gdp = .
-	gen r_1_gdp_dummy = .
-	gen e_12_gdp = .
-	
-	* Rename current vars names to have suitable names for reshaping data
-	forval i = 1/12 {
-		rename gdp_release_`i' release`i'
-		rename r_`i'_gdp r`i'
-		rename r_`i'_gdp_dummy bench_r`i'
-		rename e_`i'_gdp e`i'
-	}
-	
-	* Reshape to long panel format
-	reshape long release r bench_r e , i(id) j(horizon)
+		* Create a temporary identifier
+		gen id = _n
+		
+		* Gen provisional vars
+		gen r_1_gdp = .
+		gen r_1_gdp_dummy = .
+		gen e_12_gdp = .
+		
+		* Rename current vars names to have suitable names for reshaping data
+		forval i = 1/12 {
+			rename gdp_release_`i' release`i'
+			rename r_`i'_gdp r`i'
+			rename r_`i'_gdp_dummy bench_r`i'
+			rename e_`i'_gdp e`i'
+		}
+		
+		* Reshape to long panel format
+		reshape long release r bench_r e , i(id) j(horizon)
 
-	* Drop temporary id
-	drop id
+		* Drop temporary id
+		drop id
 
-	* order, sort and label new vars
-	order vintages_date horizon
-	sort vintages_date horizon
-	label variable release "GDP Release"
-	label variable r "Revision"
-	label variable bench_r "Benchmark Revision"
-	label variable e "Error"
+		* order, sort and label new vars
+		order vintages_date horizon
+		sort vintages_date horizon
+		label variable release "GDP Release"
+		label variable r "Revision"
+		label variable bench_r "Benchmark Revision"
+		label variable e "Error"
 
-	xtset vintages_date horizon
-	
 	save `suffix'_gdp_revisions_panel, replace
 }	
 	
