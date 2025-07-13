@@ -238,7 +238,7 @@ foreach suffix in e r {
 		merge 1:1 vintages_date using gdp_bench_`suffix'
 		drop _merge
 
-	save time_series_merged_`suffix', replace
+	save `suffix'_gdp_revisions_ts, replace
 }
 
 
@@ -248,7 +248,7 @@ foreach suffix in e r {
 	-----------------------*/
 
 foreach suffix in e r {
-	use time_series_merged_`suffix', clear	
+	use `suffix'_gdp_revisions_ts, clear	
 	
 	* Create a temporary identifier
 	gen id = _n
@@ -281,10 +281,8 @@ foreach suffix in e r {
 	label variable e "Error"
 
 	xtset vintages_date horizon
+	
+	save `suffix'_gdp_revisions_panel, replace
 }	
-	
-	
-	
-
 	
 	
