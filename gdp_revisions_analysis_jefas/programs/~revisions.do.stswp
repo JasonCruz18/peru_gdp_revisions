@@ -68,8 +68,7 @@ Revisions Regressions
 			
 
 	/*----------------------
-	On-the-fly data cleaning
-	(GDP releases)
+	Time Series Analysis
 	-----------------------*/
 
 
@@ -80,14 +79,10 @@ Revisions Regressions
 		* Lag of the the revisions		
 		tsset vintages_date, monthly
 				
-		foreach i of numlist 2/12 {
-			gen r_`i'_gdp_lag = L1.r_`i'_gdp
-		}
-				
 		* Set common information using regression for the model with the least observations to keep if !missing(residuals)
 		qui {
 			tsset vintages_date
-			newey r_12_gdp r_12_gdp_lag, lag(6) force
+			newey r_12_gdp L1.r_12_gdp, lag(6) force
 			predict residuals_aux, resid  // Generate the regression residuals.
 		}
 		keep if !missing(residuals_aux)  // Keep only the observations where the residuals are not missing.
@@ -104,7 +99,7 @@ Revisions Regressions
 			capture confirm variable r_`i'_gdp
 			
 			if !_rc {				
-				replace r_lag_t = r_`i'_gdp_lag
+				replace r_lag_t = L1.r_`i'_gdp
 				replace r_lag_h = r_`=`i'-1'_gdp
 				replace r_lag_h_dummy = r_`=`i'-1'_gdp_dummy
 						
@@ -135,7 +130,7 @@ Revisions Regressions
 	cd "$output_tables"
 
 		* Resultados
-		esttab r_bias_* using revisions.txt, se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps	scalar(N) replace				
+		esttab r_bias_* using revisions.txt, se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) replace				
 		esttab r_auto_* using revisions.txt, order(_cons r_lag_t) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 		esttab r_cros_* using revisions.txt, order(_cons r_lag_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 		esttab r_omni_* using revisions.txt, order(_cons r_lag_h r_lag_t) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
@@ -157,6 +152,13 @@ Revisions Regressions
 		estout r_omni_* using revisions.xls, order(_cons r_lag_h r_lag_t) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
 		noisily estout r_bench_omni_* using revisions.xls, drop(0.*) order(_cons r_lag_h r_lag_t) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
 
+		
+		
+	/*----------------------
+	Pooled Analysis
+	-----------------------*/
+	
+	
 	cd "$path"
 	cd "$input_data"
 
@@ -165,82 +167,49 @@ Revisions Regressions
 		* Lag of the the revisions		
 		xtset vintages_date horizon
 				
-		foreach i of numlist 2/12 {
-			gen r_lag = L1.r
-		}
-				
-		* Set common information using regression for the model with the least observations to keep if !missing(residuals)
-		qui {
-			tsset vintages_date
-			newey r_12_gdp r_12_gdp_lag, lag(6) force
-			predict residuals_aux, resid  // Generate the regression residuals.
-		}
-		keep if !missing(residuals_aux)  // Keep only the observations where the residuals are not missing.
-		qui drop residuals_aux
-				
 		* Loop through variables r_`i'_gdp where `i' ranges from 3 to 12
-		gen r_lag_t  = .
-		gen r_lag_h  = .
-		gen r_lag_h_dummy = .
-		gen r_1_gdp = .
-		gen r_1_gdp_dummy = .
-				
-		forval i = 2/12 {			
-			capture confirm variable r_`i'_gdp
+		
+		capture {			
+			quietly count if !missing(r)
+			if r(N) < 5 continue  // Skip if there are less than 5 observations
+					
+			xtreg r L1.r L2.r, fe vce(cluster vintages_date)
+			eststo r_omni_pooled_fe
 			
-			if !_rc {				
-				replace r_lag_t = r_`i'_gdp_lag
-				replace r_lag_h = r_`=`i'-1'_gdp
-				replace r_lag_h_dummy = r_`=`i'-1'_gdp_dummy
-						
-				capture {			
-					quietly count if !missing(r_`i'_gdp)
-					if r(N) < 5 continue  // Skip if there are less than 5 observations
-							
-					newey r_`i'_gdp, lag(6) force					
-					eststo r_bias_`i'
-					
-					newey r_`i'_gdp r_lag_t, lag(6) force	
-					eststo r_auto_`i'
+			xtreg r L1.r L2.r, re vce(cluster vintages_date)
+			eststo r_omni_pooled_re
 			
-					newey r_`i'_gdp r_lag_h, lag(6) force	
-					eststo r_cros_`i'
-					
-					newey r_`i'_gdp r_lag_h r_lag_t, lag(6) force	
-					eststo r_omni_`i'
-					
-					newey r_`i'_gdp r_lag_t c.r_lag_h##i.r_lag_h_dummy, lag(6) force	
-					eststo r_bench_omni_`i'
-				}				
-			}			
+			xtreg r c.L1.r##L1.bench_r c.L2.r##L2.bench_r, fe vce(cluster vintages_date)
+			eststo r_bench_omni_pooled_fe
+			
+			xtreg r c.L1.r##L1.bench_r c.L2.r##L2.bench_r, re vce(cluster vintages_date)
+			eststo r_bench_omni_pooled_re
+			
 		}
-
+		
 
 	cd "$path"
 	cd "$output_tables"
 
 		* Resultados
-		esttab r_bias_* using revisions.txt, se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps	scalar(N) replace				
-		esttab r_auto_* using revisions.txt, order(_cons r_lag_t) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
-		esttab r_cros_* using revisions.txt, order(_cons r_lag_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
-		esttab r_omni_* using revisions.txt, order(_cons r_lag_h r_lag_t) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
-		noisily esttab r_bench_omni_* using revisions.txt, drop(0.*) order(_cons r_lag_h r_lag_t) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) append
+		esttab r_omni_pooled_fe using revisions_pooled.txt, order(_cons L.r L2.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) replace
+		esttab r_omni_pooled_re using revisions_pooled.txt, order(_cons L.r L2.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
+		esttab r_bench_omni_pooled_fe using revisions_pooled.txt, drop(0b*) order(_cons L.r L2.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
+		noisily esttab r_bench_omni_pooled_re using revisions_pooled.txt,drop(0b*) order(_cons L.r L2.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) append
 
 		* Resultados en pantalla 
-		noisily {
-		esttab r_bias_*, se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps	scalar(N) 				
-		esttab r_auto_*, order(_cons r_lag_t) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
-		esttab r_cros_*, order(_cons r_lag_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
-		esttab r_omni_*, order(_cons r_lag_h r_lag_t) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) 
-		esttab r_bench_omni_*, drop(0.*) order(_cons r_lag_h r_lag_t) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) 
+		noisily { 
+		esttab r_omni_pooled_fe, order(_cons L.r L2.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) 
+		esttab r_omni_pooled_re, order(_cons L.r L2.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) 
+		esttab r_bench_omni_pooled_fe, drop(0b*) order(_cons L.r L2.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) 
+		esttab r_bench_omni_pooled_re, drop(0b*) order(_cons L.r L2.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) 
 		}
 
 		* Resultados
-		estout r_bias_* using revisions.xls, cells(b(fmt(4)) t(fmt(4) abs))	stats(N) replace				
-		estout r_auto_* using revisions.xls, order(_cons r_lag_t) cells(b(fmt(4)) t(fmt(4) abs))	stats(N) append
-		estout r_cros_* using revisions.xls, order(_cons r_lag_h) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
-		estout r_omni_* using revisions.xls, order(_cons r_lag_h r_lag_t) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
-		noisily estout r_bench_omni_* using revisions.xls, drop(0.*) order(_cons r_lag_h r_lag_t) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
+		estout r_omni_pooled_fe using revisions_pooled.xls, order(_cons L.r L2.r) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) replace
+		estout r_omni_pooled_re using revisions_pooled.xls, order(_cons L.r L2.r) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
+		estout r_bench_omni_pooled_fe using revisions_pooled.xls, drop(0b*) order(_cons L.r L2.r) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
+		noisily estout r_bench_omni_pooled_re using revisions_pooled.xls,drop(0b*) order(_cons L.r L2.r) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
 
 	cd "$path"
 
