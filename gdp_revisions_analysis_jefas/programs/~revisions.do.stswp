@@ -132,6 +132,7 @@ Revisions Regressions
 		}			
 	}
 
+	newey r_4_gdp r_4_gdp_lag c.r_3_gdp##i.r_3_gdp_dummy, lag(6) force	
 	
 	cd "$path"
 	cd "$output_tables"
