@@ -18,7 +18,7 @@ Revisions Regressions
 	
 
 	/*----------------------
-	Initial script configuration
+	Initial do-file setting
 	-----------------------*/
 
 	cls 					// Clears the screen.
@@ -87,81 +87,7 @@ Revisions Regressions
 	-----------------------*/
 
 	
-	cd "$input_data"	
-	use gdp_releases, clear
-
-		if 1 == 1 {	
-				
-				* Remove the current definitive value (most recent release) for each target period and sector		
-				drop *_most_recent		
-				
-				* Remove columns for h>12		
-				ds *_release_*
-				
-				foreach var in `r(varlist)' {
-					if regexm("`var'", "([0-9]+)$") { // Extract the number at the end of the variable name
-						local num = regexs(1)  // We use regexs(1) to capture the number
-
-						if real("`num'") > 12 { // Check if "num" is greater than 12
-							drop `var'
-						}
-					}
-				}				
-						
-				* Redefine the 12th release as the definitive value of GDP growth
-				rename gdp_release_12 gdp_most_recent
-			
-				* Format the date variable
-				replace vintages_date = mofd(dofc(vintages_date))
-				format vintages_date %tm
-				
-				* Set vintages_date as first column		
-				order vintages_date
-						
-				* Sort by vintages_date		
-				sort vintages_date
-				
-				* Keep obs in specific date range		
-				keep if vintages_date > tm(2000m12) & vintages_date < tm(2023m11)		
-			
-			save gdp_releases_cleaned, replace
-		}
-		
-		
-		
-	/*----------------------
-	Compute ongoing
-	revisions (r)
-	-----------------------*/
-		
-		
-	if 1 == 1 {	
-	use gdp_releases_cleaned, clear
-		
-		* Generate ongoing revisions for each horizon and sector
-		forval i = 2/11 {
-			gen r_`i'_gdp = gdp_release_`i' - gdp_release_`=`i'-1'
-		}
-			
-		* Compute final revision (12th horizon)
-		gen r_12_gdp = gdp_most_recent - gdp_release_11				
-
-		
-		save r_gdp_releases, replace
-			
-		forval i = 1/11 {
-			gen e_`i'_gdp = gdp_most_recent - gdp_release_`i'
-		}
-			
-		save r_e_gdp_releases, replace
-		
-	}
-	
-	
-	
-	**********************************	
-		
-		
+	cd "$input_data"		
 	use r_e_gdp_releases, clear
 	
 			
