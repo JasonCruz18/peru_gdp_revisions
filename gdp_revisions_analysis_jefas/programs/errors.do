@@ -2,18 +2,18 @@
 Revisions Regressions
 ***
 
-		Author
-		---------------------
-		D & J
-		*********************/
+	Author
+	---------------------
+	D & J
+	*********************/
 
-		*** Program: errors.do
-		** 	First Created: 07/11/25
-		** 	Last Updated:  07/12/25
-			
-	***
-	** Just click on the "Run (do)" button, the code will do the rest for you.
-	***
+	*** Program: errors.do
+	** 	First Created: 07/11/25
+	** 	Last Updated:  07/12/25
+		
+***
+** Just click on the "Run (do)" button, the code will do the rest for you.
+***
 	
 	
 	
@@ -69,21 +69,16 @@ Revisions Regressions
 	
 
 	/*----------------------
-	On-the-fly data cleaning
-	(GDP releases)
+	Time Series Analysis
 	-----------------------*/
 
 
 	cd "$input_data"	
-	use time_series_merged_e, clear
+	use e_gdp_revisions_ts, clear
 
 			
 		* Lag of the the revisions		
 		tsset vintages_date, monthly
-			
-		foreach i of numlist 2/12 {
-		gen r_`i'_gdp_lag = L1.r_`i'_gdp
-		}
 			
 		* Keep common observations
 		** Set common information using regression for the model with the least observations to keep if !missing(residuals)
@@ -183,6 +178,67 @@ Revisions Regressions
 	estout e_omni* using errors.xls, order(_cons y_h r_h) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
 	estout e_bench_omni* using errors.xls, drop(0.*) order(_cons y_h r_h r_lag) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
 	noisily estout e_fore_* using errors.xls, order(_cons y_h r_h r_lag e_lag) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
+
+	cd "$path"
+	
+	
+	
+	/*----------------------
+	Pooled Analysis
+	-----------------------*/
+	
+	
+	cd "$path"
+	cd "$input_data"
+
+	use e_gdp_revisions_panel, clear
+
+		* Lag of the the revisions		
+		xtset vintages_date horizon
+				
+		* Loop through variables r_`i'_gdp where `i' ranges from 3 to 12
+		
+		capture {			
+			quietly count if !missing(r)
+			if r(N) < 5 continue  // Skip if there are less than 5 observations
+					
+			xtreg e r L1.r, fe vce(cluster vintages_date)
+			eststo e_omni_pooled_fe
+			
+			xtreg e r L1.r, re vce(cluster vintages_date)
+			eststo e_omni_pooled_re
+			
+			xtreg e c.r##bench_r c.L1.r##i.L1.bench_r, fe vce(cluster vintages_date)
+			eststo e_bench_omni_pooled_fe
+			
+			xtreg e c.r##bench_r c.L1.r##i.L1.bench_r, re vce(cluster vintages_date)
+			eststo e_bench_omni_pooled_re
+			
+		}
+		
+		
+	cd "$path"
+	cd "$output_tables"
+
+		* Resultados
+		esttab e_omni_pooled_fe using errors_pooled.txt, order(_cons r L.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) replace
+		esttab e_omni_pooled_re using errors_pooled.txt, order(_cons r L.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
+		esttab e_bench_omni_pooled_fe using errors_pooled.txt, drop(0*) order(_cons r L.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
+		noisily esttab e_bench_omni_pooled_re using errors_pooled.txt,drop(0*) order(_cons L.r L2.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) append
+
+		* Resultados en pantalla 
+		noisily { 
+		esttab e_omni_pooled_fe, order(_cons r L.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) 
+		esttab e_omni_pooled_re, order(_cons r L.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) 
+		esttab e_bench_omni_pooled_fe, drop(0*) order(_cons r L.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) 
+		esttab e_bench_omni_pooled_re, drop(0*) order(_cons r L.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) 
+		}
+
+		* Resultados
+		estout e_omni_pooled_fe using errors_pooled.xls, order(_cons r L.r) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) replace
+		estout e_omni_pooled_re using errors_pooled.xls, order(_cons r L.r) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
+		estout e_bench_omni_pooled_fe using errors_pooled.xls, drop(0b*) order(_cons r L.r) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
+		noisily estout e_bench_omni_pooled_re using errors_pooled.xls,drop(0b*) order(_cons r L.r) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
 
 	cd "$path"
 	
