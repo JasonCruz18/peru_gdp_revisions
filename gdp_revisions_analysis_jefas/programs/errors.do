@@ -75,16 +75,12 @@ Revisions Regressions
 
 	cd "$input_data"	
 	use e_gdp_revisions_ts, clear
-
-			
-		* Lag of the the revisions		
-		tsset vintages_date, monthly
 			
 		* Keep common observations
 		** Set common information using regression for the model with the least observations to keep if !missing(residuals)
 		qui {
-		tsset vintages_date, monthly
-		newey e_11_gdp gdp_release_11, lag(6) force
+		tsset target_period, monthly
+		newey e_11 y_11, lag(6) force
 		predict residuals_aux, resid  // Generate the regression residuals.
 		}
 		keep if !missing(residuals_aux)  // Keep only the observations where the residuals are not missing.
@@ -94,54 +90,57 @@ Revisions Regressions
 		
 		gen y_h    = .
 		gen r_h    = .
-		gen r_h_dummy = .
+		gen bench_r_h = .
 		gen r_lag = .
-		gen r_1_gdp = .
-		gen r_1_gdp_dummy = .
+		gen r_1 = .
+		gen bench_r_1 = .
 		gen e_lag  = .
 
 			
-		forval i = 1/11 {			
-		capture confirm variable r_`i'_gdp
+		forval h = 1/11 {			
+		capture confirm variable r_`h'
 
 		if !_rc {
-			replace y_h   = gdp_release_`i'
-			replace r_h   = r_`i'_gdp
-			replace r_h_dummy = r_`i'_gdp_dummy
-			replace r_lag = L1.r_`i'_gdp
-			replace e_lag = L1.e_`i'_gdp
+			replace y_h   = y_`h'
+			replace r_h   = r_`h'
+			replace bench_r_h = bench_r_`h'
+			replace r_lag = L1.r_`h'
+			replace e_lag = L1.e_`h'
 					
 			capture {			
-				quietly count if !missing(e_`i'_gdp)
+				quietly count if !missing(e_`h')
 				if r(N) < 5 continue  // Skip if there are less than 5 observations
+				
+				* Set time-variable
+				tsset target_period, monthly
 						
 				* Unbiasedness		
-				newey e_`i'_gdp, lag(6) force					
-				eststo e_bias_`i'
+				newey e_`h', lag(6) force					
+				eststo e_bias_`h'
 				
 				* Mincer-Zarnowitz
-				newey e_`i'_gdp y_h, lag(6) force	
-				eststo e_mz_`i'
+				newey e_`h' y_h, lag(6) force	
+				eststo e_mz_`h'
 
 				* Encompassing
-				newey e_`i'_gdp r_h, lag(6) force	
-				eststo e_enco_`i'
+				newey e_`h' r_h, lag(6) force	
+				eststo e_enco_`h'
 				
 				* Augmented Mincer-Zarnowitz
-				newey e_`i'_gdp y_h r_h, lag(6) force	
-				eststo e_amz_`i'	
+				newey e_`h' y_h r_h, lag(6) force	
+				eststo e_amz_`h'	
 				
 				* Omnibus
-				newey e_`i'_gdp y_h r_h r_lag, lag(6) force	
-				eststo e_omni_`i'
+				newey e_`h' y_h r_h r_lag, lag(6) force	
+				eststo e_omni_`h'
 				
 				* Omnibus with benchmark revisions
-				newey e_`i'_gdp y_h r_lag c.r_h##i.r_h_dummy, lag(6) force	
-				eststo e_bench_omni_`i'
+				newey e_`h' y_h r_lag c.r_h##i.bench_r_h, lag(6) force	
+				eststo e_bench_omni_`h'
 				
 				* Forecasting
-				newey e_`i'_gdp y_h r_h r_lag e_lag, lag(6) force	
-				eststo e_fore_`i'
+				newey e_`h' y_h r_h r_lag e_lag, lag(6) force	
+				eststo e_fore_`h'
 			}				
 		}			
 		}
@@ -194,7 +193,7 @@ Revisions Regressions
 	use e_gdp_revisions_panel, clear
 
 		* Lag of the the revisions		
-		xtset vintages_date horizon
+		xtset target_period horizon
 				
 		* Loop through variables r_`i'_gdp where `i' ranges from 3 to 12
 		
@@ -202,16 +201,16 @@ Revisions Regressions
 			quietly count if !missing(r)
 			if r(N) < 5 continue  // Skip if there are less than 5 observations
 					
-			xtreg e r L1.r, fe vce(cluster vintages_date)
+			xtreg e r L1.r, fe vce(cluster target_period)
 			eststo e_omni_pooled_fe
 			
-			xtreg e r L1.r, re vce(cluster vintages_date)
+			xtreg e r L1.r, re vce(cluster target_period)
 			eststo e_omni_pooled_re
 			
-			xtreg e c.r##bench_r c.L1.r##i.L1.bench_r, fe vce(cluster vintages_date)
+			xtreg e c.r##bench_r c.L1.r##i.L1.bench_r, fe vce(cluster target_period)
 			eststo e_bench_omni_pooled_fe
 			
-			xtreg e c.r##bench_r c.L1.r##i.L1.bench_r, re vce(cluster vintages_date)
+			xtreg e c.r##bench_r c.L1.r##i.L1.bench_r, re vce(cluster target_period)
 			eststo e_bench_omni_pooled_re
 			
 		}

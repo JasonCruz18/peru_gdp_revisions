@@ -2,18 +2,18 @@
 Data Clean-up
 ***
 
-		Author(s)
-		---------------------
-		D & J
-		*********************/
+	Author(s)
+	---------------------
+	D & J
+	*********************/
 
-		*** Program: data_cleansing.do
-		** 	First Created: 07/11/25
-		** 	Last Updated:  07/12/25
-			
-	***
-	** Just click on the "Run (do)" button, the code will do the rest for you.
-	***
+	*** Program: data_cleansing.do
+	** 	First Created: 07/11/25
+	** 	Last Updated:  07/12/25
+		
+***
+** Just click on the "Run (do)" button, the code will do the rest for you.
+***
 	
 	
 
@@ -42,9 +42,9 @@ Data Clean-up
 	Defining workspace path
 	------------------------*/
 		
-		di `"Please, enter your path for storing the outputs of this dofile in the COMMAND WINDOW and press ENTER."'  _request(path)
-		
-		cd "$path"
+	di `"Please, enter your path for storing the outputs of this dofile in the COMMAND WINDOW and press ENTER."'  _request(path)
+	
+	cd "$path"
 			
 			
 			
@@ -70,6 +70,7 @@ Data Clean-up
 	cd "$input_data"
 			
 			
+			
 	/*----------------------
 	Import ODBC dataset and
 	save temp
@@ -83,28 +84,25 @@ Data Clean-up
 	
 	odbc load, exec("select * from e_gdp_monthly_releases_seasonal_dummies") dsn("gdp_revisions_datasets") lowercase sqlshow clear // seasonal dummies specified for errors. 
 		
-	save gdp_bench_releases_e, replace
+	save e_gdp_bench_releases, replace
 	
 	
 	odbc load, exec("select * from r_gdp_monthly_releases_seasonal_dummies") dsn("gdp_revisions_datasets") lowercase sqlshow clear // seasonal dummies specified for revisions. 
 		
-	save gdp_bench_releases_r, replace
+	save r_gdp_bench_releases, replace
 	
 	
 	
 	/*----------------------
 	On-the-fly data cleaning
-	(GDP releases)
 	-----------------------*/
 
 	
 	use gdp_releases, clear
 
-	if 1 == 1 {	
-		
 		* Remove the current definitive value (most recent release) for each target period and sector		
 		drop *_most_recent		
-		
+	
 		* Remove columns for h > 12		
 		ds *_release_*
 		
@@ -116,112 +114,152 @@ Data Clean-up
 					drop `var'
 				}
 			}
-		}				
-				
-		* Format the date variable
-		replace vintages_date = mofd(dofc(vintages_date))
-		format vintages_date %tm
+		}	
+	
+		* Rename vars
+		rename vintages_date target_period
 		
-		* Set vintages_date as first column		
-		order vintages_date
+		forvalue h = 1/12 {
+			rename gdp_release_`h' y_`h' 
+		}	 
 				
-		* Sort by vintages_date		
-		sort vintages_date
+		* Label vars
+		label variable target_period "Monthly Targed Period"
+		
+		forvalue h = 1/12{
+			label variable y_`h' "`h'-th GDP Release"
+		}
+		
+		* Format the date variable
+		replace target_period = mofd(dofc(target_period))
+		format target_period %tm
+		
+		* Order and	sort by vintages_date
+		order target_period		
+		sort target_period
 		
 		* Keep obs in specific date range		
-		keep if vintages_date > tm(2000m12) & vintages_date < tm(2023m11)	
-	
-	save gdp_releases_cleaned, replace
-	}
-	
-	
-	
-	/*----------------------
-	Compute revisions (r)
-	and errors (e)
-	-----------------------*/
-	
-	if 1 == 1 {	
-	use gdp_releases_cleaned, clear
+		keep if target_period > tm(2000m12) & target_period < tm(2023m11)	
+
 		
+		
+		/*......................
+		Compute revisions (r)
+		and errors (e)
+		........................*/
+			
 		* Generate revisions for each horizon
-		forval i = 2/12 {
-			gen r_`i'_gdp = gdp_release_`i' - gdp_release_`=`i'-1'
+		forval h = 2/12 {
+			gen r_`h' = y_`h' - y_`=`h'-1'
 		}
-			
+		
 		* Generate errors for each horizon
-		forval i = 1/11 {
-			gen e_`i'_gdp = gdp_release_12 - gdp_release_`i'
+		forval h = 1/11 {
+			gen e_`h' = y_12 - y_`h' // Assumed y_12 as the true
 		}
-			
-	save gdp_releases_r_e, replace	
-	}
+
+		* Label revisions
+		forvalue h = 2/12{
+			label variable r_`h' "`=`h'-1'-th GDP Revision"
+		}
+		
+		forvalue h = 1/11{
+			label variable e_`h' "`h'-th GDP Error"
+		}
+		
+		
+	save gdp_releases_cleaned, replace
 	
 	
 	
 	/*----------------------
 	Clean benchmark data and
-	compute logic-based indicators
-	(for both errors and revisions)
+	compute logic-based
+	revisions dummies
 	-----------------------*/
+	
+	
+	foreach logic in e r {
 
-foreach suffix in e r {
-
-	// Step 1: Clean benchmark seasonal dummies dataset
-
-	use gdp_bench_releases_`suffix', clear
-
-		* Keep only GDP release variables
-		keep vintages_date gdp_release_*
-				
-		* Drop horizons h > 12
-		ds gdp_release_*
+	use `logic'_gdp_bench_releases, clear
+	
+		* Remove the current definitive value (most recent release) for each target period and sector		
+		drop *_most_recent		
+	
+		* Remove columns for h > 12		
+		ds *_release_*
+		
 		foreach var in `r(varlist)' {
-			if regexm("`var'", "gdp_release_([0-9]+)") {
-				local num = regexs(1)
-				if real("`num'") > 12 {
+			if regexm("`var'", "([0-9]+)$") { // Extract the number at the end of the variable name
+				local num = regexs(1)  // Capture the number
+
+				if real("`num'") > 12 { // Drop if number > 12
 					drop `var'
 				}
 			}
+		}	
+	
+		* Rename vars
+		rename vintages_date target_period
+		
+		forvalue h = 1/12 {
+			rename gdp_release_`h' y_`h' 
 		}
-
+			
 		* Add the suffix "dummy" in each column
 		foreach var of varlist * {
-			if "`var'" != "vintages_date" {
-				rename `var' `var'_dummy
+			if "`var'" != "target_period" {
+				rename `var' bench_`var'
 			}
 		}
 		
 		* Convert variables from double to int (except vintages_date)
-		ds vintages_date, not
+		ds target_period, not
 		recast int `r(varlist)', force
-
-		* Format and sort time variable
-		replace vintages_date = mofd(dofc(vintages_date))
-		format vintages_date %tm
-		order vintages_date
-		sort vintages_date
-
-		* Keep obs in specific date range
-		keep if vintages_date > tm(2000m12) & vintages_date < tm(2023m11)
-
-	save gdp_bench_releases_cleaned_`suffix', replace
-
-
-	// Step 2: Compute revision logic indicator (r_i = 1 if one revision occurred)
-
-	use gdp_bench_releases_cleaned_`suffix', clear
-
-		* Generate dummy revisions for horizons 2 to 12
-		forvalues i = 2/12 {
-			gen r_`i'_gdp_dummy = (gdp_release_`i'_dummy + gdp_release_`=`i'-1'_dummy == 1)
+		
+		* Label vars
+		label variable target_period "Monthly Targed Period"
+		
+		forvalue h = 1/12{
+			label variable bench_y_`h' "`h'-th GDP Benchmark Release"
 		}
 
-		* Keep only indicators and date
-		keep vintages_date r_*_gdp_dummy
+		* Format the date variable
+		replace target_period = mofd(dofc(target_period))
+		format target_period %tm
+		
+		* Order and	sort by vintages_date
+		order target_period
+		sort target_period
 
-	save gdp_bench_`suffix', replace
-}
+		* Keep obs in specific date range
+		keep if target_period > tm(2000m12) & target_period < tm(2023m11)
+			
+		
+			
+		/*......................
+		Compute revision dummy logic
+		(bench_r_h = 1 if one bench
+		revision occurred)
+		........................*/
+		
+		* Generate benchmark revisions for horizons 2 to 12
+		forvalues h = 2/12 {
+			gen bench_r_`h' = (bench_y_`h' + bench_y_`=`h'-1' == 1)
+		}
+		
+		* Label benchmark revisions
+		forvalue h = 2/12{
+			label variable bench_r_`h' "`=`h'-1'-th Benchmark GDP Revision"
+		}
+		
+		* Keep only bench revisions and target period
+		keep target_period bench_r_*
+
+		
+	save `logic'_gdp_bench_releases_cleaned, replace
+		
+	}
 	
 	
 	
@@ -232,55 +270,61 @@ foreach suffix in e r {
 	errors)
 	-----------------------*/
 	
-foreach suffix in e r {
-	use gdp_releases_r_e, clear
+	
+	foreach logic in e r {
+	
+	use gdp_releases_cleaned, clear
 
-		merge 1:1 vintages_date using gdp_bench_`suffix'
+		merge 1:1 target_period using `logic'_gdp_bench_releases_cleaned
 		drop _merge
 
-	save `suffix'_gdp_revisions_ts, replace
-}
+	save `logic'_gdp_revisions_ts, replace
+	
+	}
 
-
+	
 
 	/*----------------------
 	Build panel data
 	-----------------------*/
 
-foreach suffix in e r {
-	use `suffix'_gdp_revisions_ts, clear	
+	
+	foreach logic in e r {
+	
+	use `logic'_gdp_revisions_ts, clear	
 	
 		* Create a temporary identifier
 		gen id = _n
 		
-		* Gen provisional vars
-		gen r_1_gdp = .
-		gen r_1_gdp_dummy = .
-		gen e_12_gdp = .
+		* Generate aux vars for having complete iteration logic	
+		gen r_1 = . 		// does not really exist
+		gen bench_r_1 = . 	// does not really exist
+		gen e_12 = .		// does not really exist
 		
 		* Rename current vars names to have suitable names for reshaping data
-		forval i = 1/12 {
-			rename gdp_release_`i' release`i'
-			rename r_`i'_gdp r`i'
-			rename r_`i'_gdp_dummy bench_r`i'
-			rename e_`i'_gdp e`i'
+		forval h = 1/12 {
+			rename y_`h' y`h'
+			rename r_`h' r`h'
+			rename bench_r_`h' bench_r`h'
+			rename e_`h' e`h'
 		}
 		
 		* Reshape to long panel format
-		reshape long release r bench_r e , i(id) j(horizon)
-
-		* Drop temporary id
+		reshape long y r bench_r e , i(id) j(horizon)
+		
+		* Drop temporary id and aux var
 		drop id
 
-		* order, sort and label new vars
-		order vintages_date horizon
-		sort vintages_date horizon
-		label variable release "GDP Release"
-		label variable r "Revision"
-		label variable bench_r "Benchmark Revision"
-		label variable e "Error"
+		* Order, sort and label new vars
+		order target_period horizon
+		sort target_period horizon
+		label variable y "GDP Release"
+		label variable r "GDP Revision"
+		label variable bench_r "GDP Benchmark Revision"
+		label variable e "GDP Error"
 
-	save `suffix'_gdp_revisions_panel, replace
-}	
+		
+	save `logic'_gdp_revisions_panel, replace
 	
-	
+	}	
+
