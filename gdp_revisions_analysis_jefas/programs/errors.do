@@ -75,6 +75,8 @@ Revisions Regressions
 
 	cd "$input_data"	
 	use e_gdp_revisions_ts, clear
+	
+	drop if target_period > tm(2020m2) & target_period < tm(2021m11)
 			
 		* Keep common observations
 		** Set common information using regression for the model with the least observations to keep if !missing(residuals)
