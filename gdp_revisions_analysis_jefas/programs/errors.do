@@ -164,8 +164,12 @@ Errors Regressions
 
 			eststo e_fore_`f'
 			predict e_hat_`f' if e(sample), xb
+			
+			gen y_hat_`f' = y_`f' + e_hat_`f'
 		}
-
+		
+		
+	save "gdp_revisions_hat_ts", replace
 
 	cd "$path"
 	cd "$output_tables"
