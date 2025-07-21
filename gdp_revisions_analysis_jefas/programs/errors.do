@@ -139,14 +139,33 @@ Errors Regressions
 				* Omnibus with benchmark revisions
 				newey e_`h' y_h r_lag c.r_h##i.bench_r_h, lag(6) force	
 				eststo e_bench_omni_`h'
-				
-				* Forecasting
-				newey e_`h' y_h r_h r_lag e_lag, lag(6) force	
-				eststo e_fore_`h'
 			}				
 		}			
 		}
 		
+		
+		* Forecasting (compacta, fuera del bucle principal)
+		forval f = 1/11 {
+			replace y_h        = y_`f'
+			replace r_h        = r_`f'
+			replace bench_r_h  = bench_r_`f'
+			replace r_lag      = L1.r_`f'
+			replace e_lag      = L1.e_`f'
+
+			if `f' == 1 {
+				newey e_`f' y_h e_lag, lag(6) force
+			}
+			else if `f' == 2 {
+				newey e_`f' r_h y_h e_lag, lag(6) force
+			}
+			else {
+				newey e_`f' y_h r_h r_lag e_lag, lag(6) force
+			}
+
+			eststo e_fore_`f'
+			predict e_hat_`f' if e(sample), xb
+		}
+
 
 	cd "$path"
 	cd "$output_tables"
@@ -158,7 +177,7 @@ Errors Regressions
 	esttab e_amz* using errors.txt, order(_cons y_h r_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 	esttab e_omni_* using errors.txt, order(_cons y_h r_h r_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 	esttab e_bench_omni_* using errors.txt, drop(0.*) order(_cons y_h r_h r_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
-	noisily esttab e_fore_* using errors.txt, order(_cons y_h r_h r_lag e_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
+	noisily esttab e_fore_* using errors.txt, order(_cons) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 
 	* Resultados en pantalla 
 	noisily {
@@ -168,7 +187,7 @@ Errors Regressions
 	esttab e_amz_*, order(_cons y_h r_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N)  
 	esttab e_omni_* , order(_cons y_h r_h r_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
 	esttab e_bench_omni_* , drop(0.*) order(_cons y_h r_h r_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
-	esttab e_fore_* , order(_cons y_h r_h r_lag e_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
+	esttab e_fore_* , order(_cons) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
 	}
 
 	* Resultados
@@ -178,7 +197,7 @@ Errors Regressions
 	estout e_amz* using errors.xls, order(_cons y_h r_h) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
 	estout e_omni* using errors.xls, order(_cons y_h r_h) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
 	estout e_bench_omni* using errors.xls, drop(0.*) order(_cons y_h r_h r_lag) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
-	noisily estout e_fore_* using errors.xls, order(_cons y_h r_h r_lag e_lag) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
+	noisily estout e_fore_* using errors.xls, order(_cons) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
 
 	cd "$path"
 	
