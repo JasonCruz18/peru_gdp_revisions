@@ -167,7 +167,8 @@ Data Clean-up
 			label variable e_`h' "`h'-th GDP Error"
 		}
 		
-		
+	
+	drop if target_period > tm(2020m2) & target_period < tm(2021m11) // Drop COVID-19 obs
 	save gdp_releases_cleaned, replace
 	
 	
@@ -257,6 +258,8 @@ Data Clean-up
 		keep target_period bench_y_* bench_r_*
 
 		
+	
+	drop if target_period > tm(2020m2) & target_period < tm(2021m11) // Drop COVID-19 obs	
 	save `logic'_gdp_bench_releases_cleaned, replace
 		
 	}
