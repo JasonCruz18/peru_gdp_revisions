@@ -90,6 +90,7 @@ Revisions Regressions
 		gen r_lag_t  = .
 		gen r_lag_h  = .
 		gen bench_r_lag_h = .
+		gen bench_r_lag_t = .
 		gen r_1 = .
 		gen bench_r_1 = .
 				
@@ -100,6 +101,7 @@ Revisions Regressions
 				replace r_lag_t = L1.r_`h'
 				replace r_lag_h = r_`=`h'-1'
 				replace bench_r_lag_h = bench_r_`=`h'-1'
+				replace bench_r_lag_t = L1.bench_r_`h'
 						
 				capture {			
 					quietly count if !missing(r_`h')
@@ -120,12 +122,15 @@ Revisions Regressions
 					newey r_`h' r_lag_h r_lag_t, lag(6) force	
 					eststo r_omni_`h'
 					
-					newey r_`h' r_lag_t c.r_lag_h##i.bench_r_lag_h, lag(6) force	
+					newey r_`h' c.r_lag_t##i.bench_r_lag_t c.r_lag_h##i.bench_r_lag_h, lag(6) force
 					eststo r_bench_omni_`h'
 				}				
 			}			
 		}
 
+		
+		
+		newey r_4 c.L1.r_4##i.L1.bench_r_4 c.r_3##i.bench_r_3, lag(6) force
 
 	cd "$path"
 	cd "$output_tables"

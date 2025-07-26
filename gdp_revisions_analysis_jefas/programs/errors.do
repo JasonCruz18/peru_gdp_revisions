@@ -92,7 +92,9 @@ Errors Regressions
 		
 		gen y_h    = .
 		gen r_h    = .
+		gen bench_y_h = .
 		gen bench_r_h = .
+		gen bench_r_lag = .
 		gen r_lag = .
 		gen r_1 = .
 		gen bench_r_1 = .
@@ -105,8 +107,10 @@ Errors Regressions
 		if !_rc {
 			replace y_h   = y_`h'
 			replace r_h   = r_`h'
+			replace bench_y_h = bench_y_`h'
 			replace bench_r_h = bench_r_`h'
 			replace r_lag = L1.r_`h'
+			replace bench_r_lag = L1.bench_r_`h'
 			replace e_lag = L1.e_`h'
 					
 			capture {			
@@ -137,11 +141,13 @@ Errors Regressions
 				eststo e_omni_`h'
 				
 				* Omnibus with benchmark revisions
-				newey e_`h' y_h r_lag c.r_h##i.bench_r_h, lag(6) force	
+				newey e_`h' c.y_h##i.bench_y_h c.r_h##i.bench_r_h c.r_lag##i.bench_r_lag, lag(6) force	
 				eststo e_bench_omni_`h'
 			}				
 		}			
 		}
+		
+		newey e_3 c.y_3##i.bench_y_3 c.r_3##i.bench_r_3 c.L1.r_3##i.L1.bench_r_3, lag(6) force	
 		
 		
 		* Forecasting (compacta, fuera del bucle principal)

@@ -254,7 +254,7 @@ Data Clean-up
 		}
 		
 		* Keep only bench revisions and target period
-		keep target_period bench_r_*
+		keep target_period bench_y_* bench_r_*
 
 		
 	save `logic'_gdp_bench_releases_cleaned, replace
