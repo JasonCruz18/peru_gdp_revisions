@@ -540,7 +540,7 @@ def filter_df_by_indices(df, records):
 #  Generate releases dataset (firs, second, ..., most recent)
 #________________________________________________________________
 
-def create_releases(df, sector):
+def create_releases(df, sector, sentinel=-999999):
     # Filter columns of type float
     float_columns = df.select_dtypes(include=[np.float64]).columns
 
@@ -565,6 +565,9 @@ def create_releases(df, sector):
         lambda row: [x for x in row if not pd.isna(x)][-1] if len([x for x in row if not pd.isna(x)]) > 0 else np.nan,
         axis=1
     )
+    
+    # Replace sentinel with np.nan to finalize cleanup
+    result_df.replace(sentinel, np.nan, inplace=True)
     
     return result_df
 
@@ -752,26 +755,23 @@ def z_create_dic_base_year(df):
 
 # Function to Remove Observations Affected by Base Year Indices
 #________________________________________________________________
-def remove_base_year_affected_obs(dic_base_year, df):
+def remove_base_year_affected_obs(dic_base_year, df, sentinel=-999999):
     """
-    Remove observations from the DataFrame that are affected by the base year indices specified in the dictionary.
-    Values at the specified indices in each column are replaced with NaN if they are not already NaN.
-    
+    Temporarily replace observations affected by the base year with a sentinel value to preserve float type.
+
     Parameters:
     - dic_base_year: Dictionary where each key is a column name and each value is a set of indices to be updated.
-    - df: DataFrame from which the specified observations will be removed.
-    
+    - df: DataFrame from which the specified observations will be temporarily masked.
+    - sentinel: Value used to mask affected observations (default -999999).
+
     Returns:
-    - A DataFrame with specified observations replaced by NaN.
+    - A DataFrame with affected observations replaced by the sentinel.
     """
-    
-    # Iterate over the dictionary
     for col, indices in dic_base_year.items():
-        # Check if the column exists in the dataframe
         if col in df.columns:
-            # Replace the values at the specified indices with NaN if they are not already NaN
-            df.loc[list(indices), col] = df.loc[list(indices), col].apply(lambda x: np.nan if pd.notnull(x) else x)
-    
+            df.loc[list(indices), col] = df.loc[list(indices), col].apply(
+                lambda x: sentinel if pd.notnull(x) else x
+            )
     return df
 
 # Function to Replace Observations with Base Year Dummies
