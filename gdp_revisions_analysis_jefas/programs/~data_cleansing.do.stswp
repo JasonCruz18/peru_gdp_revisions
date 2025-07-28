@@ -259,7 +259,8 @@ Data Clean-up
 		
 		* Generate benchmark revisions for horizons 2 to 12
 		forvalues h = 2/12 {
-			gen bench_r_`h' = (bench_y_`h' + bench_y_`=`h'-1' == 1)
+			gen bench_r_`h' = .
+			replace bench_r_`h' = (bench_y_`h' + bench_y_`=`h'-1' == 1) if !missing(bench_y_`h') & !missing(bench_y_`=`h'-1')
 		}
 		
 		* Label benchmark revisions
@@ -299,7 +300,7 @@ Data Clean-up
 		drop _merge
 
 		
-	save `logic'_gdp_revisions_ts, replace
+	save `suffix'_gdp_revisions_ts, replace
 	
 	}
 
