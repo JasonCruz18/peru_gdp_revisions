@@ -80,7 +80,7 @@ Errors Regressions
 		** Set common information using regression for the model with the least observations to keep if !missing(residuals)
 		qui {
 		tsset target_period, monthly
-		newey e_11 y_11, lag(6) force
+		newey e_1 y_1, lag(6) force
 		predict residuals_aux, resid  // Generate the regression residuals.
 		}
 		keep if !missing(residuals_aux)  // Keep only the observations where the residuals are not missing.
