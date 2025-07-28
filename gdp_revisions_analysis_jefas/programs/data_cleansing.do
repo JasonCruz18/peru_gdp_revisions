@@ -177,9 +177,7 @@ Data Clean-up
 		* Dropping aberrant COVID releases (way too large/short growth rates)
 		gen covid_outlier = inlist(target_period, tm(2020m4), tm(2020m5), tm(2021m4), tm(2021m5))
 
-		foreach h of numlist 1/12 {
-			replace y_`h' = . if covid_outlier == 1
-		}
+		keep if covid_outlier == 0
 
 	
 	save `suffix'_gdp_releases_cleaned, replace
@@ -274,9 +272,7 @@ Data Clean-up
 		* Dropping aberrant COVID releases (way too large/short growth rates)
 		gen covid_outlier = inlist(target_period, tm(2020m4), tm(2020m5), tm(2021m4), tm(2021m5))
 
-		foreach h of numlist 1/12 {
-			replace bench_y_`h' = . if covid_outlier == 1
-		}
+		keep if covid_outlier == 0
 		
 		
 	save `logic'_gdp_bench_releases_cleaned, replace
