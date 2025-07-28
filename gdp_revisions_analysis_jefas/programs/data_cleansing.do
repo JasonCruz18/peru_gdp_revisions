@@ -104,7 +104,7 @@ Data Clean-up
 	and errors (e)
 	-----------------------*/
 	
-	foreach logic in e r {
+	foreach suffix in e r {
 	
 	use `suffix'_gdp_releases, clear
 
@@ -290,16 +290,16 @@ Data Clean-up
 	(releases, r and e)
 	-----------------------*/
 	
-	foreach logic in e r {
+	foreach suffix in e r {
 	
-	use `logic'_gdp_releases_cleaned, clear
+	use `suffix'_gdp_releases_cleaned, clear
 	
 
-		merge 1:1 target_period using `logic'_gdp_bench_releases_cleaned
+		merge 1:1 target_period using `suffix'_gdp_bench_releases_cleaned
 		drop _merge
 
 		
-	save `logic'_gdp_revisions_ts, replace
+	save `suffix'_gdp_revisions_ts, replace
 	
 	}
 
