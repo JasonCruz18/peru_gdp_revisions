@@ -215,7 +215,7 @@ Errors Regressions
 	Pooled Analysis
 	-----------------------*/
 	
-	
+/*	
 	cd "$path"
 	cd "$input_data"
 
@@ -270,4 +270,5 @@ Errors Regressions
 
 	cd "$path"
 	
-	
+*/	
+

@@ -162,7 +162,7 @@ Revisions Regressions
 	Pooled Analysis
 	-----------------------*/
 	
-	
+/*	
 	cd "$path"
 	cd "$input_data"
 
@@ -216,5 +216,7 @@ Revisions Regressions
 		noisily estout r_bench_omni_pooled_re using revisions_pooled.xls,drop(0b*) order(_cons L.r L2.r) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
 
 	cd "$path"
+
+*/
 
 	
