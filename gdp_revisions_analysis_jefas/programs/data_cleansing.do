@@ -306,7 +306,8 @@ Data Clean-up
 	Build panel data
 	(just in case)
 	-----------------------*/
-
+	
+	/*
 	foreach logic in e r {
 	
 	use `logic'_gdp_revisions_ts, clear	
@@ -347,3 +348,6 @@ Data Clean-up
 	
 	}	
 
+	*/
+	
+	
