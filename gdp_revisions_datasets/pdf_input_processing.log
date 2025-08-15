@@ -1,0 +1,159 @@
+2025-08-15 01:05:01,790 - INFO - Starting processing folder: 2013
+2025-08-15 01:05:01,878 - INFO - Processing PDF: ns-01-2013.pdf
+2025-08-15 01:05:02,614 - INFO - Processing PDF: ns-02-2013.pdf
+2025-08-15 01:05:03,325 - INFO - Processing PDF: ns-03-2013.pdf
+2025-08-15 01:05:04,138 - INFO - Processing PDF: ns-04-2013.pdf
+2025-08-15 01:05:04,613 - INFO - Processing PDF: ns-05-2013.pdf
+2025-08-15 01:05:05,133 - INFO - Processing PDF: ns-06-2013.pdf
+2025-08-15 01:05:05,907 - INFO - Processing PDF: ns-07-2013.pdf
+2025-08-15 01:05:06,548 - INFO - Processing PDF: ns-08-2013.pdf
+2025-08-15 01:05:07,255 - INFO - Processing PDF: ns-09-2013.pdf
+2025-08-15 01:05:07,932 - INFO - Processing PDF: ns-10-2013.pdf
+2025-08-15 01:05:08,651 - INFO - Processing PDF: ns-11-2013.pdf
+2025-08-15 01:05:09,349 - INFO - Processing PDF: ns-12-2013.pdf
+2025-08-15 01:05:10,487 - INFO - Processing PDF: ns-13-2013.pdf
+2025-08-15 01:05:11,316 - INFO - Processing PDF: ns-14-2013.pdf
+2025-08-15 01:05:12,201 - INFO - Processing PDF: ns-15-2013.pdf
+2025-08-15 01:05:13,040 - INFO - Processing PDF: ns-16-2013.pdf
+2025-08-15 01:05:13,909 - INFO - Processing PDF: ns-17-2013.pdf
+2025-08-15 01:05:14,694 - INFO - Processing PDF: ns-18-2013.pdf
+2025-08-15 01:05:15,559 - INFO - Processing PDF: ns-19-2013.pdf
+2025-08-15 01:05:16,325 - INFO - Processing PDF: ns-20-2013.pdf
+2025-08-15 01:05:16,987 - INFO - Processing PDF: ns-21-2013.pdf
+2025-08-15 01:05:17,680 - INFO - Processing PDF: ns-22-2013.pdf
+2025-08-15 01:05:18,374 - INFO - Processing PDF: ns-23-2013.pdf
+2025-08-15 01:05:19,121 - INFO - Processing PDF: ns-24-2013.pdf
+2025-08-15 01:05:19,821 - INFO - Processing PDF: ns-25-2013.pdf
+2025-08-15 01:05:20,663 - INFO - Processing PDF: ns-26-2013.pdf
+2025-08-15 01:05:21,397 - INFO - Processing PDF: ns-27-2013.pdf
+2025-08-15 01:05:22,275 - INFO - Processing PDF: ns-28-2013.pdf
+2025-08-15 01:05:23,153 - INFO - Processing PDF: ns-29-2013.pdf
+2025-08-15 01:05:24,012 - INFO - Processing PDF: ns-30-2013.pdf
+2025-08-15 01:05:24,884 - INFO - Processing PDF: ns-31-2013.pdf
+2025-08-15 01:05:26,210 - INFO - Processing PDF: ns-32-2013.pdf
+2025-08-15 01:05:27,806 - INFO - Processing PDF: ns-33-2013.pdf
+2025-08-15 01:05:29,330 - INFO - Processing PDF: ns-34-2013.pdf
+2025-08-15 01:05:31,010 - INFO - Processing PDF: ns-35-2013.pdf
+2025-08-15 01:05:32,737 - INFO - Processing PDF: ns-36-2013.pdf
+2025-08-15 01:05:34,379 - INFO - Processing PDF: ns-37-2013.pdf
+2025-08-15 01:05:36,309 - INFO - Processing PDF: ns-38-2013.pdf
+2025-08-15 01:05:38,226 - INFO - Processing PDF: ns-39-2013.pdf
+2025-08-15 01:05:39,833 - INFO - Processing PDF: ns-40-2013.pdf
+2025-08-15 01:05:40,916 - INFO - Processing PDF: ns-41-2013.pdf
+2025-08-15 01:05:41,930 - INFO - Processing PDF: ns-42-2013.pdf
+2025-08-15 01:05:43,012 - INFO - Processing PDF: ns-43-2013.pdf
+2025-08-15 01:05:44,115 - INFO - Processing PDF: ns-44-2013.pdf
+2025-08-15 01:05:45,294 - INFO - Processing PDF: ns-45-2013.pdf
+2025-08-15 01:05:46,822 - INFO - Processing PDF: ns-46-2013.pdf
+2025-08-15 01:05:48,467 - INFO - Processing PDF: ns-47-2013.pdf
+2025-08-15 01:05:49,987 - INFO - Processing PDF: ns-48-2013.pdf
+2025-08-15 01:05:51,931 - INFO - Processing PDF: ns-49-2013.pdf
+2025-08-15 01:05:53,532 - INFO - Processing PDF: ns-50-2013.pdf
+2025-08-15 01:08:01,304 - INFO - Process stopped by user via popup.
+2025-08-15 01:08:01,305 - INFO - Process completed for all PDFs in 'C:\Users\Jason Cruz\OneDrive\Documentos\RA\CIUP\GDP Revisions\GitHub\peru_gdp_revisions\gdp_revisions_datasets\input_pdf'
+2025-08-15 01:13:59,746 - INFO - Starting processing folder: 2013
+2025-08-15 01:15:12,375 - INFO - Starting processing folder: 2013
+2025-08-15 01:20:13,475 - INFO - Starting processing folder: 2013
+2025-08-15 01:20:14,108 - INFO - Trimmed PDF saved: input_pdf\ns-01-2013.pdf - 4 pages
+2025-08-15 01:20:14,108 - INFO - Processed PDF: ns-01-2013.pdf - Pages retained: 4
+2025-08-15 01:20:14,727 - INFO - Trimmed PDF saved: input_pdf\ns-02-2013.pdf - 4 pages
+2025-08-15 01:20:14,727 - INFO - Processed PDF: ns-02-2013.pdf - Pages retained: 4
+2025-08-15 01:20:15,419 - INFO - Trimmed PDF saved: input_pdf\ns-03-2013.pdf - 4 pages
+2025-08-15 01:20:15,419 - INFO - Processed PDF: ns-03-2013.pdf - Pages retained: 4
+2025-08-15 01:20:15,755 - INFO - Trimmed PDF saved: input_pdf\ns-04-2013.pdf - 4 pages
+2025-08-15 01:20:15,755 - INFO - Processed PDF: ns-04-2013.pdf - Pages retained: 4
+2025-08-15 01:20:16,167 - INFO - Trimmed PDF saved: input_pdf\ns-05-2013.pdf - 4 pages
+2025-08-15 01:20:16,167 - INFO - Processed PDF: ns-05-2013.pdf - Pages retained: 4
+2025-08-15 01:20:16,653 - INFO - Trimmed PDF saved: input_pdf\ns-06-2013.pdf - 4 pages
+2025-08-15 01:20:16,653 - INFO - Processed PDF: ns-06-2013.pdf - Pages retained: 4
+2025-08-15 01:20:17,230 - INFO - Trimmed PDF saved: input_pdf\ns-07-2013.pdf - 4 pages
+2025-08-15 01:20:17,230 - INFO - Processed PDF: ns-07-2013.pdf - Pages retained: 4
+2025-08-15 01:20:17,814 - INFO - Trimmed PDF saved: input_pdf\ns-08-2013.pdf - 4 pages
+2025-08-15 01:20:17,814 - INFO - Processed PDF: ns-08-2013.pdf - Pages retained: 4
+2025-08-15 01:20:18,415 - INFO - Trimmed PDF saved: input_pdf\ns-09-2013.pdf - 4 pages
+2025-08-15 01:20:18,415 - INFO - Processed PDF: ns-09-2013.pdf - Pages retained: 4
+2025-08-15 01:20:19,022 - INFO - Trimmed PDF saved: input_pdf\ns-10-2013.pdf - 4 pages
+2025-08-15 01:20:19,022 - INFO - Processed PDF: ns-10-2013.pdf - Pages retained: 4
+2025-08-15 01:20:19,560 - INFO - Trimmed PDF saved: input_pdf\ns-11-2013.pdf - 4 pages
+2025-08-15 01:20:19,560 - INFO - Processed PDF: ns-11-2013.pdf - Pages retained: 4
+2025-08-15 01:20:20,313 - INFO - Trimmed PDF saved: input_pdf\ns-12-2013.pdf - 4 pages
+2025-08-15 01:20:20,313 - INFO - Processed PDF: ns-12-2013.pdf - Pages retained: 4
+2025-08-15 01:20:20,940 - INFO - Trimmed PDF saved: input_pdf\ns-13-2013.pdf - 4 pages
+2025-08-15 01:20:20,940 - INFO - Processed PDF: ns-13-2013.pdf - Pages retained: 4
+2025-08-15 01:20:21,589 - INFO - Trimmed PDF saved: input_pdf\ns-14-2013.pdf - 4 pages
+2025-08-15 01:20:21,589 - INFO - Processed PDF: ns-14-2013.pdf - Pages retained: 4
+2025-08-15 01:20:22,260 - INFO - Trimmed PDF saved: input_pdf\ns-15-2013.pdf - 4 pages
+2025-08-15 01:20:22,260 - INFO - Processed PDF: ns-15-2013.pdf - Pages retained: 4
+2025-08-15 01:20:22,921 - INFO - Trimmed PDF saved: input_pdf\ns-16-2013.pdf - 4 pages
+2025-08-15 01:20:22,921 - INFO - Processed PDF: ns-16-2013.pdf - Pages retained: 4
+2025-08-15 01:20:23,653 - INFO - Trimmed PDF saved: input_pdf\ns-17-2013.pdf - 4 pages
+2025-08-15 01:20:23,653 - INFO - Processed PDF: ns-17-2013.pdf - Pages retained: 4
+2025-08-15 01:20:24,302 - INFO - Trimmed PDF saved: input_pdf\ns-18-2013.pdf - 4 pages
+2025-08-15 01:20:24,302 - INFO - Processed PDF: ns-18-2013.pdf - Pages retained: 4
+2025-08-15 01:20:24,926 - INFO - Trimmed PDF saved: input_pdf\ns-19-2013.pdf - 4 pages
+2025-08-15 01:20:24,926 - INFO - Processed PDF: ns-19-2013.pdf - Pages retained: 4
+2025-08-15 01:20:25,494 - INFO - Trimmed PDF saved: input_pdf\ns-20-2013.pdf - 4 pages
+2025-08-15 01:20:25,502 - INFO - Processed PDF: ns-20-2013.pdf - Pages retained: 4
+2025-08-15 01:20:26,076 - INFO - Trimmed PDF saved: input_pdf\ns-21-2013.pdf - 4 pages
+2025-08-15 01:20:26,076 - INFO - Processed PDF: ns-21-2013.pdf - Pages retained: 4
+2025-08-15 01:20:26,649 - INFO - Trimmed PDF saved: input_pdf\ns-22-2013.pdf - 4 pages
+2025-08-15 01:20:26,649 - INFO - Processed PDF: ns-22-2013.pdf - Pages retained: 4
+2025-08-15 01:20:27,265 - INFO - Trimmed PDF saved: input_pdf\ns-23-2013.pdf - 4 pages
+2025-08-15 01:20:27,265 - INFO - Processed PDF: ns-23-2013.pdf - Pages retained: 4
+2025-08-15 01:20:27,928 - INFO - Trimmed PDF saved: input_pdf\ns-24-2013.pdf - 4 pages
+2025-08-15 01:20:27,928 - INFO - Processed PDF: ns-24-2013.pdf - Pages retained: 4
+2025-08-15 01:20:28,514 - INFO - Trimmed PDF saved: input_pdf\ns-25-2013.pdf - 4 pages
+2025-08-15 01:20:28,514 - INFO - Processed PDF: ns-25-2013.pdf - Pages retained: 4
+2025-08-15 01:20:29,100 - INFO - Trimmed PDF saved: input_pdf\ns-26-2013.pdf - 4 pages
+2025-08-15 01:20:29,100 - INFO - Processed PDF: ns-26-2013.pdf - Pages retained: 4
+2025-08-15 01:20:30,002 - INFO - Trimmed PDF saved: input_pdf\ns-27-2013.pdf - 4 pages
+2025-08-15 01:20:30,002 - INFO - Processed PDF: ns-27-2013.pdf - Pages retained: 4
+2025-08-15 01:20:30,788 - INFO - Trimmed PDF saved: input_pdf\ns-28-2013.pdf - 4 pages
+2025-08-15 01:20:30,788 - INFO - Processed PDF: ns-28-2013.pdf - Pages retained: 4
+2025-08-15 01:20:31,490 - INFO - Trimmed PDF saved: input_pdf\ns-29-2013.pdf - 4 pages
+2025-08-15 01:20:31,490 - INFO - Processed PDF: ns-29-2013.pdf - Pages retained: 4
+2025-08-15 01:20:32,191 - INFO - Trimmed PDF saved: input_pdf\ns-30-2013.pdf - 4 pages
+2025-08-15 01:20:32,191 - INFO - Processed PDF: ns-30-2013.pdf - Pages retained: 4
+2025-08-15 01:20:33,044 - INFO - Trimmed PDF saved: input_pdf\ns-31-2013.pdf - 4 pages
+2025-08-15 01:20:33,059 - INFO - Processed PDF: ns-31-2013.pdf - Pages retained: 4
+2025-08-15 01:20:33,964 - INFO - Trimmed PDF saved: input_pdf\ns-32-2013.pdf - 4 pages
+2025-08-15 01:20:33,964 - INFO - Processed PDF: ns-32-2013.pdf - Pages retained: 4
+2025-08-15 01:20:34,689 - INFO - Trimmed PDF saved: input_pdf\ns-33-2013.pdf - 4 pages
+2025-08-15 01:20:34,689 - INFO - Processed PDF: ns-33-2013.pdf - Pages retained: 4
+2025-08-15 01:20:35,547 - INFO - Trimmed PDF saved: input_pdf\ns-34-2013.pdf - 4 pages
+2025-08-15 01:20:35,563 - INFO - Processed PDF: ns-34-2013.pdf - Pages retained: 4
+2025-08-15 01:20:36,488 - INFO - Trimmed PDF saved: input_pdf\ns-35-2013.pdf - 4 pages
+2025-08-15 01:20:36,488 - INFO - Processed PDF: ns-35-2013.pdf - Pages retained: 4
+2025-08-15 01:20:37,403 - INFO - Trimmed PDF saved: input_pdf\ns-36-2013.pdf - 4 pages
+2025-08-15 01:20:37,403 - INFO - Processed PDF: ns-36-2013.pdf - Pages retained: 4
+2025-08-15 01:20:38,261 - INFO - Trimmed PDF saved: input_pdf\ns-37-2013.pdf - 4 pages
+2025-08-15 01:20:38,261 - INFO - Processed PDF: ns-37-2013.pdf - Pages retained: 4
+2025-08-15 01:20:39,081 - INFO - Trimmed PDF saved: input_pdf\ns-38-2013.pdf - 4 pages
+2025-08-15 01:20:39,081 - INFO - Processed PDF: ns-38-2013.pdf - Pages retained: 4
+2025-08-15 01:20:39,965 - INFO - Trimmed PDF saved: input_pdf\ns-39-2013.pdf - 4 pages
+2025-08-15 01:20:39,965 - INFO - Processed PDF: ns-39-2013.pdf - Pages retained: 4
+2025-08-15 01:20:40,821 - INFO - Trimmed PDF saved: input_pdf\ns-40-2013.pdf - 4 pages
+2025-08-15 01:20:40,821 - INFO - Processed PDF: ns-40-2013.pdf - Pages retained: 4
+2025-08-15 01:20:41,681 - INFO - Trimmed PDF saved: input_pdf\ns-41-2013.pdf - 4 pages
+2025-08-15 01:20:41,681 - INFO - Processed PDF: ns-41-2013.pdf - Pages retained: 4
+2025-08-15 01:20:42,507 - INFO - Trimmed PDF saved: input_pdf\ns-42-2013.pdf - 4 pages
+2025-08-15 01:20:42,507 - INFO - Processed PDF: ns-42-2013.pdf - Pages retained: 4
+2025-08-15 01:20:43,331 - INFO - Trimmed PDF saved: input_pdf\ns-43-2013.pdf - 4 pages
+2025-08-15 01:20:43,331 - INFO - Processed PDF: ns-43-2013.pdf - Pages retained: 4
+2025-08-15 01:20:44,161 - INFO - Trimmed PDF saved: input_pdf\ns-44-2013.pdf - 4 pages
+2025-08-15 01:20:44,177 - INFO - Processed PDF: ns-44-2013.pdf - Pages retained: 4
+2025-08-15 01:20:45,042 - INFO - Trimmed PDF saved: input_pdf\ns-45-2013.pdf - 4 pages
+2025-08-15 01:20:45,042 - INFO - Processed PDF: ns-45-2013.pdf - Pages retained: 4
+2025-08-15 01:20:45,874 - INFO - Trimmed PDF saved: input_pdf\ns-46-2013.pdf - 4 pages
+2025-08-15 01:20:45,874 - INFO - Processed PDF: ns-46-2013.pdf - Pages retained: 4
+2025-08-15 01:20:46,648 - INFO - Trimmed PDF saved: input_pdf\ns-47-2013.pdf - 4 pages
+2025-08-15 01:20:46,648 - INFO - Processed PDF: ns-47-2013.pdf - Pages retained: 4
+2025-08-15 01:20:47,418 - INFO - Trimmed PDF saved: input_pdf\ns-48-2013.pdf - 4 pages
+2025-08-15 01:20:47,418 - INFO - Processed PDF: ns-48-2013.pdf - Pages retained: 4
+2025-08-15 01:20:48,221 - INFO - Trimmed PDF saved: input_pdf\ns-49-2013.pdf - 4 pages
+2025-08-15 01:20:48,221 - INFO - Processed PDF: ns-49-2013.pdf - Pages retained: 4
+2025-08-15 01:20:49,038 - INFO - Trimmed PDF saved: input_pdf\ns-50-2013.pdf - 4 pages
+2025-08-15 01:20:49,054 - INFO - Processed PDF: ns-50-2013.pdf - Pages retained: 4
+2025-08-15 01:20:49,054 - INFO - Record file updated: input_pdf_record\input_pdf_record.txt
+2025-08-15 01:20:49,054 - INFO - Folder 2013 completed: 50 new, 0 skipped
+2025-08-15 01:27:23,000 - INFO - Record file updated: input_pdf_record\input_pdf_record.txt

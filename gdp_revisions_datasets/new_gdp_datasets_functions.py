@@ -1,7 +1,6 @@
-#*********************************************************************************************
+
 #*********************************************************************************************
 # Functions for new_gdp_revisions_datasets.ipynb 
-#*********************************************************************************************
 #*********************************************************************************************
 
 
@@ -245,8 +244,6 @@ def download_bcrp_pdfs(
     print(f"Already downloaded: {skipped_counter}")
     print(f"Newly downloaded: {new_counter}")
 
-    
-
 # Function to organize PDFs by year
 #________________________________________________________________       
 def organize_files_by_year(raw_pdf):
@@ -280,161 +277,101 @@ def organize_files_by_year(raw_pdf):
 ################################################################################################
 
 
-#+++++++++++++++
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # LIBRARIES
-#+++++++++++++++
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-import fitz  # for working with PDFs
-import tkinter as tk  # for creating popup windows
+import os  # File/folder manipulation
+import fitz  # PDF manipulation
+import ipywidgets as widgets  # Interactive widgets for Jupyter
+from IPython.display import display  # Display widgets in Jupyter
 
 
-# Folder path to download the trimmed PDF files (these are PDF inputs for the extraction and cleanup code)
-input_pdf = 'input_pdf'
-
-# Folder path to save PDF files containing only the pages of interest (where the GDP growth rate tables are located)
-input_pdf_record = 'input_pdf_record'
-    
-# Folder path to save the record of trimmed PDFs (input PDF)    
-input_pdf_record_txt = 'input_pdf_record.txt'
-
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# FUNCTIONS
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # Function to search for pages containing specified keywords in a PDF file
 # _________________________________________________________________________
 def search_keywords(pdf_file, keywords):
-    """Searches for pages containing specified keywords in a PDF file.
+    """Search pages in PDF that contain any of the keywords.
 
     Args:
-    - pdf_file (str): Path to the PDF file to search.
-    - keywords (list): List of keywords to search for.
+        pdf_file (str): Path to PDF.
+        keywords (list of str): Keywords to search.
 
     Returns:
-    - pages_with_keywords (list): List of page numbers containing any of the keywords.
+        List[int]: Pages containing keywords (0-indexed).
     """
     pages_with_keywords = []
     with fitz.open(pdf_file) as doc:
         for page_num in range(doc.page_count):
-            page = doc.load_page(page_num)
-            text = page.get_text()
-            if any(keyword in text for keyword in keywords):
+            page_text = doc.load_page(page_num).get_text()
+            if any(k in page_text for k in keywords):
                 pages_with_keywords.append(page_num)
     return pages_with_keywords
 
-# Function to trim a PDF file based on specified pages
+
+# Function to trim a PDF based on specified pages
 # _________________________________________________________________________
-def trim_pdf(pdf_file, pages):
-    """Trims a PDF file based on specified pages containing keywords.
+def trim_pdf(pdf_file, pages, output_folder):
+    """Trim PDF to pages of interest and save to output folder.
 
     Args:
-    - pdf_file (str): Path to the PDF file to trim.
-    - pages (list): List of page numbers to retain.
+        pdf_file (str): Path to source PDF.
+        pages (list[int]): Pages to retain.
+        output_folder (str): Folder to save trimmed PDF.
 
     Returns:
-    - num_pages_new_pdf (int): Number of pages in the trimmed PDF.
+        int: Number of pages in the trimmed PDF (0 if skipped).
     """
     if not pages:
-        print(f"No pages found with keywords in {pdf_file}")
         return 0
-    
-    new_pdf_file = os.path.join(input_pdf, os.path.basename(pdf_file))
-    
+
+    os.makedirs(output_folder, exist_ok=True)
+    new_pdf_file = os.path.join(output_folder, os.path.basename(pdf_file))
     with fitz.open(pdf_file) as doc:
         new_doc = fitz.open()
-        new_doc.insert_pdf(doc, from_page=0, to_page=0)
-        for page_num in pages:
-            new_doc.insert_pdf(doc, from_page=page_num, to_page=page_num)
+        for p in pages:
+            new_doc.insert_pdf(doc, from_page=p, to_page=p)
         new_doc.save(new_pdf_file)
-    
-    num_pages_new_pdf = new_doc.page_count
-    print(f"The trimmed PDF '{new_pdf_file}' has {num_pages_new_pdf} pages.")
+    return new_doc.page_count
 
-    if num_pages_new_pdf == 5:
-        final_doc = fitz.open()
-        final_doc.insert_pdf(new_doc, from_page=0, to_page=0)
-        final_doc.insert_pdf(new_doc, from_page=1, to_page=1)
-        final_doc.insert_pdf(new_doc, from_page=3, to_page=3)
-        final_doc.save(new_pdf_file)
 
-        num_pages_new_pdf = final_doc.page_count
-        print(f"Only the cover and pages with 2 tables of interest are retained in the trimmed PDF '{new_pdf_file}'.")
-    else:
-        print(f"All pages are retained in the trimmed PDF '{new_pdf_file}'.")
-
-    return num_pages_new_pdf
-
-# Function to read input PDF files from a record file
+# Function to read input PDF filenames from record file
 # _________________________________________________________________________
-def read_input_pdf_files():
-    """Reads input PDF filenames from a record file.
+def read_input_pdf_files(input_pdf_record, input_pdf_record_txt):
+    """Read filenames of previously processed PDFs.
 
     Returns:
-    - set of input PDF filenames.
+        set[str]: Set of filenames.
     """
-    input_pdf_files_path = os.path.join(input_pdf_record, input_pdf_record_txt)
-    if not os.path.exists(input_pdf_files_path):
+    record_path = os.path.join(input_pdf_record, input_pdf_record_txt)
+    if not os.path.exists(record_path):
         return set()
-    
-    with open(input_pdf_files_path, 'r') as file:
-        return set(file.read().splitlines())
+    with open(record_path, "r") as f:
+        return set(f.read().splitlines())
 
-# Function to write input PDF filenames to a record file
+
+# Function to write input PDF filenames to record file
 # _________________________________________________________________________
-def write_input_pdf_files(input_pdf_files):
-    """Writes input PDF filenames to a record file.
+def write_input_pdf_files(input_pdf_files, input_pdf_record, input_pdf_record_txt):
+    """Write processed PDF filenames to record file."""
+    record_path = os.path.join(input_pdf_record, input_pdf_record_txt)
+    os.makedirs(input_pdf_record, exist_ok=True)
+    with open(record_path, "w") as f:
+        for fn in sorted(input_pdf_files):
+            f.write(fn + "\n")
 
-    Args:
-    - input_pdf_files (set): Set of input PDF filenames to write.
-    """
-    input_pdf_files_path = os.path.join(input_pdf_record, input_pdf_record_txt)
-    sorted_filenames = sorted(input_pdf_files)  # Sort the filenames
-    with open(input_pdf_files_path, 'w') as file:
-        for filename in sorted_filenames:
-            file.write(filename + '\n')
 
-# Class to create and manage a pop-up window for user interaction
+# Function to ask user yes/no in Jupyter or server
 # _________________________________________________________________________
-            
-class PopupWindow(tk.Toplevel):
-    """Creates a pop-up window for user interaction."""
-
-    def __init__(self, root, message):
-        """Initialize the pop-up window."""
-        super().__init__(root)
-        self.root = root
-        self.title("Attention!")
-        self.message = message
-        self.result = None
-        self.configure_window()
-        self.create_widgets()
-
-    def configure_window(self):
-        """Configure the window to be non-resizable."""
-        self.resizable(False, False)
-
-    def create_widgets(self):
-        """Create widgets (labels and buttons) inside the pop-up window."""
-        self.label = tk.Label(self, text=self.message, wraplength=250)  # Adjust text if too long
-        self.label.pack(pady=10, padx=10)
-        self.btn_frame = tk.Frame(self)
-        self.btn_frame.pack(pady=5)
-        self.btn_yes = tk.Button(self.btn_frame, text="Yes", command=self.yes)
-        self.btn_yes.pack(side=tk.LEFT, padx=5)
-        self.btn_no = tk.Button(self.btn_frame, text="No", command=self.no)
-        self.btn_no.pack(side=tk.RIGHT, padx=5)
-
-        # Calculate window size based on text size
-        width = self.label.winfo_reqwidth() + 20
-        height = self.label.winfo_reqheight() + 100
-        self.geometry(f"{width}x{height}")
-
-    def yes(self):
-        """Set result to True and close the window."""
-        self.result = True
-        self.destroy()
-
-    def no(self):
-        """Set result to False and close the window."""
-        self.result = False
-        self.destroy()
+def ask_continue_input(message):
+    """Ask the user whether to continue using a simple input prompt."""
+    while True:
+        ans = input(f"{message} (y = yes / n = no): ").strip().lower()
+        if ans in ("y", "n"):
+            return ans == "y"
 
 
 
