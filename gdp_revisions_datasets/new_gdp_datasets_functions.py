@@ -11,85 +11,240 @@
 ################################################################################################
 
 
-#+++++++++++++++
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # LIBRARIES
-#+++++++++++++++
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 import os  # for file and directory manipulation
-import requests  # to make HTTP requests to web servers
-import random  # to generate random numbers
-import time  # to manage time and take breaks in the script
-from selenium import webdriver  # for automating web browsers
+import random  # for generating random numbers and random delays
+import time  # to pause execution and manage timing
+import requests  # to make HTTP requests to download PDFs or MP3s
+import pygame  # to handle sound notifications (play/stop .mp3 files)
+from selenium import webdriver  # to automate web browser actions
 from selenium.webdriver.common.by import By  # to locate elements on a webpage
-from selenium.webdriver.support.ui import WebDriverWait  # to wait until certain conditions are met on a webpage.
-from selenium.webdriver.support import expected_conditions as EC  # to define expected conditions
-from selenium.common.exceptions import StaleElementReferenceException  # To handle exceptions related to elements on the webpage that are no longer available.
-import pygame # Allows you to handle graphics, sounds and input events.
-
+from selenium.webdriver.support.ui import WebDriverWait  # to wait until elements are present
+from selenium.webdriver.support import expected_conditions as EC  # to define wait conditions
+from selenium.common.exceptions import StaleElementReferenceException  # handle dynamic web elements
+from webdriver_manager.chrome import ChromeDriverManager  # auto-install ChromeDriver
+from selenium.webdriver.chrome.options import Options  # set Chrome browser options
+from selenium.webdriver.chrome.service import Service  # define ChromeDriver service
 import shutil # used for high-level file operations, such as copying, moving, renaming, and deleting files and directories.
 
 
-# Function to play the sound
-#________________________________________________________________
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# FUNCTIONS
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# Function to load a sound
+# _________________________________________________________________________
+def load_sound(sound_folder):
+    """
+    Load a random .mp3 file from the sound folder.
+    If no .mp3 exists, simply continue without sound.
+    
+    Returns:
+        str or None: Path to the loaded sound, or None if unavailable
+    """
+    os.makedirs(sound_folder, exist_ok=True)
+    available_sounds = [f for f in os.listdir(sound_folder) if f.lower().endswith(".mp3")]
+
+    if not available_sounds:
+        print("🔇 No .mp3 files found in 'sound/' folder. Continuing without sound.")
+        return None
+
+    sound_path = os.path.join(sound_folder, random.choice(available_sounds))
+    pygame.mixer.music.load(sound_path)
+    return sound_path
+
+# Function to play sound
+# _________________________________________________________________________
 def play_sound():
+    """Start playing the currently loaded sound."""
     pygame.mixer.music.play()
-    
-    
+
+# Function to stop sound
+# _________________________________________________________________________
+def stop_sound():
+    """Stop the currently playing sound."""
+    pygame.mixer.music.stop()
+
 # Function to wait random seconds
-#________________________________________________________________
+# _________________________________________________________________________
 def random_wait(min_time, max_time):
+    """
+    Pause execution for a random duration between min_time and max_time.
+    
+    Args:
+        min_time (float): Minimum wait time in seconds
+        max_time (float): Maximum wait time in seconds
+    """
     wait_time = random.uniform(min_time, max_time)
-    print(f"Waiting randomly for {wait_time:.2f} seconds")
+    print(f"⏳ Waiting {wait_time:.2f} seconds...")
     time.sleep(wait_time)
 
+# Function to initialize web driver
+# _________________________________________________________________________
+def init_driver(browser="chrome", headless=False):
+    """
+    Initialize a Selenium WebDriver.
+    
+    Args:
+        browser (str): Browser to use (currently only 'chrome' supported)
+        headless (bool): Whether to run in headless mode
+    
+    Returns:
+        webdriver.Chrome: Initialized Chrome WebDriver
+    """
+    if browser.lower() == "chrome":
+        options = Options()
+        if headless:
+            options.add_argument("--headless=new")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
+        driver.set_page_load_timeout(30)
+        return driver
+    else:
+        raise ValueError("Currently only Chrome is supported. Future versions may add Firefox/Edge.")
 
-# Function to download PDFs
-#________________________________________________________________
+# Function to download a single PDF
+# _________________________________________________________________________
 def download_pdf(driver, pdf_link, wait, download_counter, raw_pdf, download_record):
-    # Click the link using JavaScript
+    """
+    Download a single PDF from the selenium link element.
+    
+    Args:
+        driver (webdriver.Chrome): Selenium Chrome WebDriver
+        pdf_link (WebElement): Selenium element containing PDF link
+        wait (WebDriverWait): WebDriverWait object for explicit waits
+        download_counter (int): Counter for display purposes
+        raw_pdf (str): Folder to save raw PDFs
+        download_record (str): Folder to save download records
+    
+    Returns:
+        bool: True if download succeeded, False otherwise
+    """
     driver.execute_script("arguments[0].click();", pdf_link)
-
-    # Wait for the new page to fully open (adjust timing as necessary)
     wait.until(EC.number_of_windows_to_be(2))
 
-    # Switch to the new window or tab
     windows = driver.window_handles
     driver.switch_to.window(windows[1])
 
-    # Get the current URL (may vary based on site-specific logic)
     new_url = driver.current_url
-    print(f"{download_counter}. New URL: {new_url}")
-
-    # Get the file name from the URL
-    file_name = new_url.split("/")[-1]
-
-    # Form the full destination path
+    file_name = os.path.basename(new_url)
     destination_path = os.path.join(raw_pdf, file_name)
 
-    # Download the PDF
     response = requests.get(new_url, stream=True)
-
-    # Check if the request was successful (status code 200)
     if response.status_code == 200:
-        # Save the PDF content to the local file
         with open(destination_path, 'wb') as pdf_file:
             for chunk in response.iter_content(chunk_size=128):
                 pdf_file.write(chunk)
 
-        print(f"PDF downloaded successfully at: {destination_path}")
-
-        # Save the file name in the record
         with open(os.path.join(download_record, "downloaded_files.txt"), "a") as f:
             f.write(file_name + "\n")
 
+        print(f"{download_counter}. ✅ Downloaded: {file_name}")
+        success = True
     else:
-        print(f"Error downloading the PDF. Response code: {response.status_code}")
+        print(f"{download_counter}. ❌ Error downloading {file_name}. HTTP {response.status_code}")
+        success = False
 
-    # Close the new window or tab
     driver.close()
-
-    # Switch back to the main window
     driver.switch_to.window(windows[0])
+    return success
+
+# Function to download all BCRP PDFs
+# _________________________________________________________________________
+def download_bcrp_pdfs(
+    bcrp_url,
+    raw_pdf,
+    download_record,
+    sound_folder,
+    max_downloads=None,
+    downloads_per_batch=5,
+    headless=False
+):
+    """
+    Download BCRP Weekly Report PDFs with enumerated output and sound notifications.
+    
+    Args:
+        bcrp_url (str): URL of BCRP Weekly Reports
+        raw_pdf (str): Folder to save raw PDFs
+        download_record (str): Folder to save download record file
+        sound_folder (str): Folder containing notification MP3s
+        max_downloads (int, optional): Maximum number of new PDFs to download
+        downloads_per_batch (int): Number of PDFs between user prompts
+        headless (bool): Whether to run browser in headless mode
+    """
+    print("\n📥 Starting PDF Downloader for BCRP Weekly Reports...\n")
+
+    pygame.mixer.init()
+    sound_path = load_sound(sound_folder)
+
+    record_path = os.path.join(download_record, "downloaded_files.txt")
+    downloaded_files = set()
+    if os.path.exists(record_path):
+        with open(record_path, "r") as f:
+            downloaded_files = set(f.read().splitlines())
+
+    driver = init_driver(headless=headless)
+    wait = WebDriverWait(driver, 60)
+    download_counter = 0
+    skipped_counter = 0
+    new_counter = 0
+
+    try:
+        driver.get(bcrp_url)
+        print("🌐 BCRP site opened successfully.")
+
+        pdf_links = list(reversed(wait.until(
+            EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rightside"]//a'))
+        )))
+        print(f"🔎 Found {len(pdf_links)} PDF links on page.\n")
+
+        for i, pdf_link in enumerate(pdf_links, start=1):
+            file_url = pdf_link.get_attribute("href")
+            file_name = os.path.basename(file_url)
+
+            if file_name in downloaded_files:
+                print(f"{i}. ⏩ Already downloaded: {file_name}")
+                skipped_counter += 1
+                continue
+
+            if download_pdf(driver, pdf_link, wait, i, raw_pdf, download_record):
+                downloaded_files.add(file_name)
+                download_counter += 1
+                new_counter += 1
+
+            # Batch + sound + user input
+            if download_counter % downloads_per_batch == 0 and sound_path:
+                play_sound()
+                user_input = input("⏸️ Continue? (y = yes, any other key = stop): ")
+                stop_sound()
+                if user_input.lower() != 'y':
+                    print("🛑 Download stopped by user.")
+                    break
+
+            if max_downloads and new_counter >= max_downloads:
+                print(f"🏁 Download limit of {max_downloads} new PDFs reached.")
+                break
+
+            random_wait(5, 10)
+
+    except StaleElementReferenceException:
+        print("⚠️ StaleElementReferenceException occurred. Retrying...")
+    finally:
+        driver.quit()
+        print("\n👋 Browser closed.")
+
+    # Summary
+    total_links = len(pdf_links)
+    print(f"\n📊 Summary:")
+    print(f"Total links found: {total_links}")
+    print(f"Already downloaded: {skipped_counter}")
+    print(f"Newly downloaded: {new_counter}")
+
     
 
 # Function to organize PDFs by year
