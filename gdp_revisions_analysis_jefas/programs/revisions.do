@@ -126,10 +126,6 @@ Revisions Regressions
 			}			
 		}
 
-		
-		
-		newey r_4 c.L1.r_4##i.L1.bench_r_4 c.r_3##i.bench_r_3, lag(6) force
-
 	cd "$path"
 	cd "$output_tables"
 

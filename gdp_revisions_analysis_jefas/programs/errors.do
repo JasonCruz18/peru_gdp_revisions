@@ -144,9 +144,7 @@ Errors Regressions
 			}				
 		}			
 		}
-		
-		newey e_3 c.y_3##i.bench_y_3 c.r_3##i.bench_r_3 c.L1.r_3##i.L1.bench_r_3, lag(6) force	
-		
+
 		
 		* Forecasting (compacta, fuera del bucle principal)
 		forval f = 1/11 {
