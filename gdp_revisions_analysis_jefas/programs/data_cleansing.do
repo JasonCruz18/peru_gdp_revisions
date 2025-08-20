@@ -174,10 +174,14 @@ Data Clean-up
 			label variable e_`h' "`h'-th GDP Error"
 		}
 		
-		* Dropping aberrant COVID releases (way too large/short growth rates)
-		gen covid_outlier = inlist(target_period, tm(2020m4), tm(2020m5), tm(2021m4), tm(2021m5))
+		* Dropping COVID obs
+		drop if target_period >= tm(2020m3) & target_period <= tm(2021m10)
+	
+	// Code lines below are useful to drop only aberrant COVID obs (way too large/short growth rates)
+	
+	*	gen covid_outlier = inlist(target_period, tm(2020m4), tm(2020m5), tm(2021m4), tm(2021m5))
 
-		keep if covid_outlier == 0
+	*	keep if covid_outlier == 0
 
 	
 	save `suffix'_gdp_releases_cleaned, replace
@@ -269,10 +273,14 @@ Data Clean-up
 		* Keep only bench revisions and target period
 		keep target_period bench_y_* bench_r_*
 
-		* Dropping aberrant COVID releases (way too large/short growth rates)
-		gen covid_outlier = inlist(target_period, tm(2020m4), tm(2020m5), tm(2021m4), tm(2021m5))
+		* Dropping COVID obs
+		drop if target_period >= tm(2020m3) & target_period <= tm(2021m10)
+	
+	// Code lines below are useful to drop only aberrant COVID obs (way too large/short growth rates)
+	
+	*	gen covid_outlier = inlist(target_period, tm(2020m4), tm(2020m5), tm(2021m4), tm(2021m5))
 
-		keep if covid_outlier == 0
+	*	keep if covid_outlier == 0
 		
 		
 	save `logic'_gdp_bench_releases_cleaned, replace
