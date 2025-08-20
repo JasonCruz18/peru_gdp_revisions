@@ -126,6 +126,10 @@ Revisions Regressions
 			}			
 		}
 
+		
+		
+		newey r_4 c.L1.r_4##i.L1.bench_r_4 c.r_3##i.bench_r_3, lag(6) force
+
 	cd "$path"
 	cd "$output_tables"
 
@@ -134,13 +138,7 @@ Revisions Regressions
 		esttab r_auto_* using revisions.txt, order(_cons r_lag_t) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 		esttab r_cros_* using revisions.txt, order(_cons r_lag_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 		esttab r_omni_* using revisions.txt, order(_cons r_lag_h r_lag_t) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
-		noisily esttab r_bench_omni_* using revisions.txt, drop(0.*) order(_cons r_lag_h r_lag_t) varlabels( ///
-    1.bench_r_lag_h "B L1.r_h" ///
-	1.bench_r_lag_h#c.r_lag_h "B x L1.r_h" ///
-    1.bench_r_lag_t "B L1.r_h" ///
-	1.bench_r_lag_t#c.r_lag_t "B x L1.r_h" ///
-) ///
-se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) append
+		noisily esttab r_bench_omni_* using revisions.txt, drop(0.*) order(_cons r_lag_h r_lag_t) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) append
 
 		* Resultados en pantalla 
 		noisily {
@@ -148,13 +146,7 @@ se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) append
 		esttab r_auto_*, order(_cons r_lag_t) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
 		esttab r_cros_*, order(_cons r_lag_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
 		esttab r_omni_*, order(_cons r_lag_h r_lag_t) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) 
-		esttab r_bench_omni_*, drop(0.*) order(_cons r_lag_h r_lag_t) varlabels( ///
-    1.bench_r_lag_h "B L1.r_h" ///
-	1.bench_r_lag_h#c.r_lag_h "B x L1.r_h" ///
-    1.bench_r_lag_t "B L1.r_h" ///
-	1.bench_r_lag_t#c.r_lag_t "B x L1.r_h" ///
-) ///
-se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) 
+		esttab r_bench_omni_*, drop(0.*) order(_cons r_lag_h r_lag_t) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) 
 		}
 
 		* Resultados
@@ -170,7 +162,7 @@ se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2)
 	Pooled Analysis
 	-----------------------*/
 	
-/*	
+	
 	cd "$path"
 	cd "$input_data"
 
@@ -224,7 +216,5 @@ se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2)
 		noisily estout r_bench_omni_pooled_re using revisions_pooled.xls,drop(0b*) order(_cons L.r L2.r) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
 
 	cd "$path"
-
-*/
 
 	

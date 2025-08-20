@@ -144,7 +144,9 @@ Errors Regressions
 			}				
 		}			
 		}
-
+		
+		newey e_3 c.y_3##i.bench_y_3 c.r_3##i.bench_r_3 c.L1.r_3##i.L1.bench_r_3, lag(6) force	
+		
 		
 		* Forecasting (compacta, fuera del bucle principal)
 		forval f = 1/11 {
@@ -171,9 +173,6 @@ Errors Regressions
 		}
 		
 		
-	*	newey e_3 c.y_3##i.bench_y_3 c.r_3##i.bench_r_3 c.L1.r_3##i.L1.bench_r_3, lag(6) force
-		
-		
 	save "gdp_revisions_hat_ts", replace
 
 	cd "$path"
@@ -185,15 +184,7 @@ Errors Regressions
 	esttab e_enco_* using errors.txt, order(_cons r_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 	esttab e_amz* using errors.txt, order(_cons y_h r_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 	esttab e_omni_* using errors.txt, order(_cons y_h r_h r_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
-	esttab e_bench_omni_* using errors.txt, drop(0.*) order(_cons y_h r_h r_lag) varlabels( ///
-    1.bench_y_h "Ben y_h" ///
-	1.bench_y_h#c.y_h "Ben x y_h" ///
-    1.bench_r_h "Ben r_h" ///
-	1.bench_r_h#c.r_h "Ben x r_h" ///
-    1.bench_r_lag "B Lag r_h" ///
-	1.bench_r_lag#c.r_lag "B x Lag r_h" ///
-) ///
-se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
+	esttab e_bench_omni_* using errors.txt, drop(0.*) order(_cons y_h r_h r_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 	noisily esttab e_fore_* using errors.txt, order(_cons) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 
 	* Resultados en pantalla 
@@ -203,15 +194,7 @@ se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 	esttab e_enco_* , order(_cons r_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
 	esttab e_amz_*, order(_cons y_h r_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N)  
 	esttab e_omni_* , order(_cons y_h r_h r_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
-	esttab e_bench_omni_* , drop(0.*) order(_cons y_h r_h r_lag) varlabels( ///
-    1.bench_y_h "Ben y_h" ///
-	1.bench_y_h#c.y_h "Ben x y_h" ///
-    1.bench_r_h "Ben r_h" ///
-	1.bench_r_h#c.r_h "Ben x r_h" ///
-    1.bench_r_lag "B Lag r_h" ///
-	1.bench_r_lag#c.r_lag "B x Lag r_h" ///
-) ///
-se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
+	esttab e_bench_omni_* , drop(0.*) order(_cons y_h r_h r_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
 	esttab e_fore_* , order(_cons) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
 	}
 
@@ -232,7 +215,7 @@ se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N)
 	Pooled Analysis
 	-----------------------*/
 	
-/*	
+	
 	cd "$path"
 	cd "$input_data"
 
@@ -287,5 +270,4 @@ se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N)
 
 	cd "$path"
 	
-*/	
-
+	
