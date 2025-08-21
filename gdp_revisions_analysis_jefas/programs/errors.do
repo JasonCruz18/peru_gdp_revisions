@@ -88,15 +88,19 @@ Errors Regressions
 			
 		* Loop through variables r_`i'_gdp where `i' ranges from 3 to 12
 		
-		gen y_h    = .
-		gen r_h    = .
-		gen bench_y_h = .
-		gen bench_r_h = .
-		gen bench_r_lag = .
-		gen r_lag = .
-		gen r_1 = .
-		gen bench_r_1 = .
-		gen e_lag  = .
+		gen y_h    		= .
+		gen r_h    		= .
+		gen bench_y_h 	= .
+		gen r_h_lag 	= .
+		gen r_1 		= .
+		gen e_h_lag  	= .
+		
+		* Generate interaction variables (only once per loop)
+		
+		gen D_h      	= . // Dummy for benchmark revisions
+		gen Dy_h     	= . // Interaction Dummy x y_h
+		gen Dr_h     	= . // Interaction Dummy x r_h
+		gen Dr_h_lag   	= . // Interaction Dummy x r_h_lag
 
 			
 		forval h = 1/11 {			
@@ -105,11 +109,13 @@ Errors Regressions
 		if !_rc {
 			replace y_h   = y_`h'
 			replace r_h   = r_`h'
-			replace bench_y_h = bench_y_`h'
-			replace bench_r_h = bench_r_`h'
-			replace r_lag = L1.r_`h'
-			replace bench_r_lag = L1.bench_r_`h'
-			replace e_lag = L1.e_`h'
+			replace D_h = bench_y_`h'
+			replace r_h_lag = L1.r_`h'
+			replace e_h_lag = L1.e_`h'
+			
+			replace Dy_h = bench_y_`h'*y_`h'
+			replace Dr_h = bench_y_`h'*r_`h'
+			replace Dr_h_lag = bench_y_`h'*L1.r_`h'
 					
 			capture {			
 				quietly count if !missing(e_`h')
@@ -135,33 +141,31 @@ Errors Regressions
 				eststo e_amz_`h'	
 				
 				* Omnibus
-				newey e_`h' y_h r_h r_lag, lag(6) force	
+				newey e_`h' y_h r_h r_h_lag, lag(6) force	
 				eststo e_omni_`h'
 				
-				* Omnibus with benchmark revisions
-				newey e_`h' c.y_h##i.bench_y_h c.r_h##i.bench_r_h c.r_lag##i.bench_r_lag, lag(6) force	
+				* Omnibus with benchmark revisions	
+				newey e_`h' y_h r_h r_h_lag D_h Dy_h Dr_h Dr_h_lag, lag(6) force
 				eststo e_bench_omni_`h'
 			}				
 		}			
 		}
-
 		
 		* Forecasting (compacta, fuera del bucle principal)
 		forval f = 1/11 {
 			replace y_h        = y_`f'
 			replace r_h        = r_`f'
-			replace bench_r_h  = bench_r_`f'
-			replace r_lag      = L1.r_`f'
-			replace e_lag      = L1.e_`f'
+			replace r_h_lag      = L1.r_`f'
+			replace e_h_lag      = L1.e_`f'
 
 			if `f' == 1 {
-				newey e_`f' y_h e_lag, lag(6) force
+				newey e_`f' y_h e_h_lag, lag(6) force
 			}
 			else if `f' == 2 {
-				newey e_`f' r_h y_h e_lag, lag(6) force
+				newey e_`f' r_h y_h e_h_lag, lag(6) force
 			}
 			else {
-				newey e_`f' y_h r_h r_lag e_lag, lag(6) force
+				newey e_`f' y_h r_h r_h_lag e_h_lag, lag(6) force
 			}
 
 			eststo e_fore_`f'
@@ -169,9 +173,6 @@ Errors Regressions
 			
 			gen y_hat_`f' = y_`f' + e_hat_`f'
 		}
-		
-		
-	*	newey e_3 c.y_3##i.bench_y_3 c.r_3##i.bench_r_3 c.L1.r_3##i.L1.bench_r_3, lag(6) force
 		
 		
 	save "gdp_revisions_hat_ts", replace
@@ -184,16 +185,8 @@ Errors Regressions
 	esttab e_mz_* using errors.txt, order(_cons y_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 	esttab e_enco_* using errors.txt, order(_cons r_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 	esttab e_amz* using errors.txt, order(_cons y_h r_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
-	esttab e_omni_* using errors.txt, order(_cons y_h r_h r_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
-	esttab e_bench_omni_* using errors.txt, drop(0.*) order(_cons y_h r_h r_lag) varlabels( ///
-    1.bench_y_h "Ben y_h" ///
-	1.bench_y_h#c.y_h "Ben x y_h" ///
-    1.bench_r_h "Ben r_h" ///
-	1.bench_r_h#c.r_h "Ben x r_h" ///
-    1.bench_r_lag "B Lag r_h" ///
-	1.bench_r_lag#c.r_lag "B x Lag r_h" ///
-) ///
-se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
+	esttab e_omni_* using errors.txt, order(_cons y_h r_h r_h_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
+	esttab e_bench_omni_* using errors.txt, order(_cons y_h r_h r_h_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 	noisily esttab e_fore_* using errors.txt, order(_cons) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 
 	* Resultados en pantalla 
@@ -202,16 +195,8 @@ se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 	esttab e_mz_* , order(_cons y_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
 	esttab e_enco_* , order(_cons r_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
 	esttab e_amz_*, order(_cons y_h r_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N)  
-	esttab e_omni_* , order(_cons y_h r_h r_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
-	esttab e_bench_omni_* , drop(0.*) order(_cons y_h r_h r_lag) varlabels( ///
-    1.bench_y_h "Ben y_h" ///
-	1.bench_y_h#c.y_h "Ben x y_h" ///
-    1.bench_r_h "Ben r_h" ///
-	1.bench_r_h#c.r_h "Ben x r_h" ///
-    1.bench_r_lag "B Lag r_h" ///
-	1.bench_r_lag#c.r_lag "B x Lag r_h" ///
-) ///
-se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
+	esttab e_omni_* , order(_cons y_h r_h r_h_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
+	esttab e_bench_omni_* , order(_cons y_h r_h r_h_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
 	esttab e_fore_* , order(_cons) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
 	}
 
@@ -221,71 +206,8 @@ se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N)
 	estout e_enco_* using errors.xls, order(_cons r_h) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
 	estout e_amz* using errors.xls, order(_cons y_h r_h) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
 	estout e_omni* using errors.xls, order(_cons y_h r_h) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
-	estout e_bench_omni* using errors.xls, drop(0.*) order(_cons y_h r_h r_lag) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
+	estout e_bench_omni* using errors.xls, order(_cons y_h r_h r_h_lag) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
 	noisily estout e_fore_* using errors.xls, order(_cons) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
 
 	cd "$path"
-	
-	
-	
-	/*----------------------
-	Pooled Analysis
-	-----------------------*/
-	
-/*	
-	cd "$path"
-	cd "$input_data"
-
-	use e_gdp_revisions_panel, clear
-
-		* Lag of the the revisions		
-		xtset target_period horizon
-				
-		* Loop through variables r_`i'_gdp where `i' ranges from 3 to 12
-		
-		capture {			
-			quietly count if !missing(r)
-			if r(N) < 5 continue  // Skip if there are less than 5 observations
-					
-			xtreg e r L1.r, fe vce(cluster target_period)
-			eststo e_omni_pooled_fe
-			
-			xtreg e r L1.r, re vce(cluster target_period)
-			eststo e_omni_pooled_re
-			
-			xtreg e c.r##bench_r c.L1.r##i.L1.bench_r, fe vce(cluster target_period)
-			eststo e_bench_omni_pooled_fe
-			
-			xtreg e c.r##bench_r c.L1.r##i.L1.bench_r, re vce(cluster target_period)
-			eststo e_bench_omni_pooled_re
-			
-		}
-		
-		
-	cd "$path"
-	cd "$output_tables"
-
-		* Resultados
-		esttab e_omni_pooled_fe using errors_pooled.txt, order(_cons r L.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) replace
-		esttab e_omni_pooled_re using errors_pooled.txt, order(_cons r L.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
-		esttab e_bench_omni_pooled_fe using errors_pooled.txt, drop(0*) order(_cons r L.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
-		noisily esttab e_bench_omni_pooled_re using errors_pooled.txt,drop(0*) order(_cons L.r L2.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) append
-
-		* Resultados en pantalla 
-		noisily { 
-		esttab e_omni_pooled_fe, order(_cons r L.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) 
-		esttab e_omni_pooled_re, order(_cons r L.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) 
-		esttab e_bench_omni_pooled_fe, drop(0*) order(_cons r L.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) 
-		esttab e_bench_omni_pooled_re, drop(0*) order(_cons r L.r) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N r2) 
-		}
-
-		* Resultados
-		estout e_omni_pooled_fe using errors_pooled.xls, order(_cons r L.r) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) replace
-		estout e_omni_pooled_re using errors_pooled.xls, order(_cons r L.r) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
-		estout e_bench_omni_pooled_fe using errors_pooled.xls, drop(0b*) order(_cons r L.r) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
-		noisily estout e_bench_omni_pooled_re using errors_pooled.xls,drop(0b*) order(_cons r L.r) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
-
-	cd "$path"
-	
-*/	
 
