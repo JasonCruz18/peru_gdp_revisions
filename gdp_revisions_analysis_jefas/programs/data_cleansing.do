@@ -9,7 +9,7 @@ Data Clean-up
 
 	*** Program: data_cleansing.do
 	** 	First Created: 07/11/25
-	** 	Last Updated:  07/12/25
+	** 	Last Updated:  07/12/25	
 		
 ***
 ** Just click on the "Run (do)" button, the code will do the rest for you.
@@ -174,16 +174,33 @@ Data Clean-up
 			label variable e_`h' "`h'-th GDP Error"
 		}
 		
-		* Dropping COVID obs
-		drop if target_period >= tm(2020m3) & target_period <= tm(2021m10)
+		* Handle COVID observations
+		** Replace values with missing for all numeric variables (except target_period) in the COVID window: 2020m3–2021m10
+		foreach var of varlist _all {
+			if "`var'" != "target_period" {
+				capture confirm numeric variable `var'
+				if !_rc {
+					replace `var' = . if inrange(target_period, tm(2020m3), tm(2021m10))
+				}
+			}
+		}
 	
-	// Code lines below are useful to drop only aberrant COVID obs (way too large/short growth rates)
+	// 	** Optionally, instead of wiping the full window, you can restrict to just the aberrant COVID months (very large or short growth rates)
 	
+		*** Flag outlier months
 	*	gen covid_outlier = inlist(target_period, tm(2020m4), tm(2020m5), tm(2021m4), tm(2021m5))
 
-	*	keep if covid_outlier == 0
+		*** Replace values with missing for those outlier months
+	*	foreach var of varlist _all {
+	*		if "`var'" != "target_period" {
+	*			capture confirm numeric variable `var'
+	*			if !_rc {
+	*				replace `var' = . if covid_outlier == 1
+	*			}
+	*		}
+	*	}
 
-	
+		
 	save `suffix'_gdp_releases_cleaned, replace
 	
 	}
@@ -273,14 +290,31 @@ Data Clean-up
 		* Keep only bench revisions and target period
 		keep target_period bench_y_* bench_r_*
 
-		* Dropping COVID obs
-		drop if target_period >= tm(2020m3) & target_period <= tm(2021m10)
+		* Handle COVID observations
+		** Replace values with missing for all numeric variables (except target_period) in the COVID window: 2020m3–2021m10
+		foreach var of varlist _all {
+			if "`var'" != "target_period" {
+				capture confirm numeric variable `var'
+				if !_rc {
+					replace `var' = . if inrange(target_period, tm(2020m3), tm(2021m10))
+				}
+			}
+		}
 	
-	// Code lines below are useful to drop only aberrant COVID obs (way too large/short growth rates)
+	// 	** Optionally, instead of wiping the full window, you can restrict to just the aberrant COVID months (very large or short growth rates)
 	
+		*** Flag outlier months
 	*	gen covid_outlier = inlist(target_period, tm(2020m4), tm(2020m5), tm(2021m4), tm(2021m5))
 
-	*	keep if covid_outlier == 0
+		*** Replace values with missing for those outlier months
+	*	foreach var of varlist _all {
+	*		if "`var'" != "target_period" {
+	*			capture confirm numeric variable `var'
+	*			if !_rc {
+	*				replace `var' = . if covid_outlier == 1
+	*			}
+	*		}
+	*	}
 		
 		
 	save `logic'_gdp_bench_releases_cleaned, replace
