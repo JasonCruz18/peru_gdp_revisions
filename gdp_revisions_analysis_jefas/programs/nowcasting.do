@@ -59,27 +59,62 @@ use e_gdp_revisions_ts, clear
 
 
 /*----------------------
-EWMA construction
+Clean-up at a glance
+-----------------------*/
+
+* Drop no longer needed vars (bench vars) for this forecasting analysis
+drop bench_*
+
+/*----------------------
+EWS construction
 -----------------------*/
 
 tsset target_period, monthly
 local delta = 0.5
 
-forvalues h = 1/11 {
-    gen Yewma_`h' = .
-    quietly replace Yewma_`h' = y_`h' in 1
-    forvalues t = 2/`=_N' {
-        quietly replace Yewma_`h' = `delta'*y_`h' + (1-`delta')*L.Yewma_`h' in `t'
-    }
+	forvalues h = 1/12 {
+		
+		gen Y_ews_`h' = .
+		quietly replace Y_ews_`h' = y_`h' in 1   // initialize with first nonmissing
 
-    if `h' > 1 {
-        gen Rewma_`h' = .
-        quietly replace Rewma_`h' = r_`h' in 1
-        forvalues t = 2/`=_N' {
-            quietly replace Rewma_`h' = `delta'*r_`h' + (1-`delta')*L.Rewma_`h' in `t'
-        }
-    }
-}
+		forvalues t = 2/`=_N' {
+			* If y_h is not missing, update normally
+			quietly replace Y_ews_`h' = `delta'*L1.Y_ews_`h' + y_`h' in `t' if !missing(y_`h') & !missing(L1.Y_ews_`h')
+			   
+			* If y_h is missing, just carry the exponential sum forward
+			quietly replace Y_ews_`h' = L1.Y_ews_`h' in `t' if missing(y_`h')
+		}
+
+		* Burn first 12 obs
+		*quietly replace Y_ews_`h' = . in 1/12
+	}
+
+	forvalues h = 2/12 {
+		
+		gen R_ews_`h' = .
+		quietly replace R_ews_`h' = r_`h' in 1   // initialize with first nonmissing
+
+		forvalues t = 2/`=_N' {
+			* If y_h is not missing, update normally
+			quietly replace R_ews_`h' = `delta'*L1.R_ews_`h' + r_`h' in `t' if !missing(r_`h') & !missing(L1.R_ews_`h')
+			   
+			* If y_h is missing, just carry the exponential sum forward
+			quietly replace R_ews_`h' = L1.R_ews_`h' in `t' if missing(r_`h')
+		}
+
+		* Burn first 12 obs
+		*quietly replace R_ews_`h' = . in 1/12
+	}
+
+	forvalues h = 3/12 {
+		
+		gen L1_R_ews_`h' = .
+		quietly replace L1_R_ews_`h' = L1.R_ews_`h'
+
+		* Burn first 12 obs
+		*quietly replace L1_R_ews_`h' = . in 1/12
+	}
+
 
 * Save the dataset with EWMA for later merge
 tempfile ewma
@@ -90,31 +125,45 @@ save `ewma'
 Omnibus regressions
 -----------------------*/
 
-tempfile results
-postfile handle str8 horizon double b_y b_r b_Lr b_Le Nobs using `results'
+* Keep common observations
+qui {
+    tsset target_period, monthly
+    newey e_1 y_1 L1.e_1, lag(6) force
+    predict residuals_aux, resid
+}
+keep if !missing(residuals_aux)
+qui drop residuals_aux
 
 forvalues h = 1/11 {
+    
     if `h' == 1 {
-        newey e_`h' y_`h' L1.e_`h', lag(6) force
+        newey e_`h' L1.e_`h' y_`h', lag(6) force
         matrix b = e(b)
-        post handle ("h`h'") (b[1,1]) (.) (.) (b[1,2]) (e(N))
+        gen alpha_`h' = b[1, "_cons"]
+        gen theta_`h' = b[1, "y_`h'"]
+        gen delta_`h' = b[1, "L1.e_`h'"]
     }
+    
     else if `h' == 2 {
-        newey e_`h' r_`h' y_`h' L1.e_`h', lag(6) force
+        newey e_`h' L1.e_`h' y_`h' r_`h', lag(6) force
         matrix b = e(b)
-        post handle ("h`h'") (b[1,2]) (b[1,1]) (.) (b[1,3]) (e(N))
+        gen alpha_`h' = b[1, "_cons"]
+        gen theta_`h' = b[1, "y_`h'"]
+        gen delta_`h' = b[1, "L1.e_`h'"]
+        gen gamma_`h' = b[1, "r_`h'"]
     }
+    
     else {
-        newey e_`h' y_`h' r_`h' L1.r_`h' L1.e_`h', lag(6) force
+        newey e_`h' L1.e_`h' y_`h' r_`h' L1.r_`h', lag(6) force
         matrix b = e(b)
-        post handle ("h`h'") (b[1,1]) (b[1,2]) (b[1,3]) (b[1,4]) (e(N))
+        gen alpha_`h' = b[1, "_cons"]
+        gen theta_`h' = b[1, "y_`h'"]
+        gen delta_`h' = b[1, "L1.e_`h'"]
+        gen gamma_`h' = b[1, "r_`h'"]
+        gen rho_`h'   = b[1, "L1.r_`h'"]
     }
+    
 }
-postclose handle
-
-use `results', clear
-gen h = real(substr(horizon,2,.))
-sort h
 
 tempfile coeffs
 save `coeffs', replace
@@ -124,23 +173,24 @@ save `coeffs', replace
 Fitted values
 -----------------------*/
 
-use `ewma', clear
-merge 1:1 _n using `coeffs', nogen keep(master match)
-
-* Re-establish the time series structure after merge
-tsset target_period, monthly
-
 forvalues h = 1/11 {
-    gen yhat_`h' = .
+    gen e_hat_`h' = .
     if `h' == 1 {
-        replace yhat_`h' = b_y*Yewma_`h' + b_Le*L.e_`h'
+        replace e_hat_`h' = (alpha_`h')/(1-delta_`h') + theta_`h'*Y_ews_`h'
     }
     else if `h' == 2 {
-        replace yhat_`h' = b_y*Yewma_`h' + b_r*Rewma_`h' + b_Le*L.e_`h'
+        replace e_hat_`h' = (alpha_`h')/(1-delta_`h') + theta_`h'*Y_ews_`h' + gamma_`h'*R_ews_`h'
     }
     else {
-        replace yhat_`h' = b_y*Yewma_`h' + b_r*Rewma_`h' + b_Lr*L.Rewma_`h' + b_Le*L.e_`h'
+        replace e_hat_`h' = (alpha_`h')/(1-delta_`h') + theta_`h'*Y_ews_`h' + gamma_`h'*R_ews_`h' + rho_`h'*L1_R_ews_`h'
     }
+}
+
+
+forvalues h = 1/11 {
+    gen y_hat_`h' = .
+    
+	replace y_hat_`h' = y_`h' + e_hat_`h'
 }
 
 
@@ -176,14 +226,15 @@ Plots
 use "fitted_vals.dta", clear
 tsset target_period, monthly
 
-twoway (tsline yhat_1 y_1 y_12 if tin(2015m1,2022m12)), ///
+twoway (tsline y_hat_1 y_1 y_12 if tin(2015m1,2022m12), cmissing(n)), ///
     title("Nowcast vs. true GDP growth — Horizon 1")
 
-twoway (tsline yhat_2 y_2 y_12 if tin(2015m1,2022m12)), ///
+twoway (tsline y_hat_2 y_2 y_12 if tin(2015m1,2022m12)), ///
     title("Nowcast vs. true GDP growth — Horizon 2")
 
-twoway (tsline yhat_3 y_3 y_12 if tin(2015m1,2022m12)), ///
+twoway (tsline y_hat_3 y_3 y_12 if tin(2015m1,2022m12)), ///
     title("Nowcast vs. true GDP growth — Horizon 3")
+
 
 
 
