@@ -201,22 +201,37 @@ save "fitted_vals.dta", replace
 Forecast evaluation
 -----------------------*/
 
-tempfile evals
-postfile handle str8 horizon double ME RMSE MAE using `evals'
+use "fitted_vals.dta", clear
+
+
+* Generate forecast errors
+forvalues h = 1/11 {
+gen fe_hat_`h' = y_`h' - y_hat_`h' // EWMA forecast error
+gen fe_bench_`h' = e_`h' // Benchmark error (release vs. final)
+}
+
+
+* Loss differentials (squared errors)
+forvalues h = 1/11 {
+gen d_`h' = (fe_hat_`h')^2 - (fe_bench_`h')^2
+}
+
+cd "$path"
+cd "$output_tables"
+* Diebold–Mariano test using HAC variance
+postfile results h dm_stat using "dm_results.dta", replace
+
 
 forvalues h = 1/11 {
-    gen err_`h' = e_`h' - yhat_`h'
-    quietly summarize err_`h'
-    local ME = r(mean)
-    quietly summarize err_`h', detail
-    local MAE = r(sum_w)/r(N)
-    local RMSE = sqrt(r(sum_w)/r(N))
-    post handle ("h`h'") (`ME') (`RMSE') (`MAE')
+newey d_`h', lag(6) force
+scalar dm_stat_`h' = _b[_cons] / _se[_cons]
+di "DM test statistic for h=`h': " dm_stat_`h'
+post results (`h') (dm_stat_`h')
 }
-postclose handle
 
-use `evals', clear
-save "eval_metrics.dta", replace
+
+postclose results
+
 
 
 /*----------------------
