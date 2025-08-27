@@ -271,6 +271,8 @@ label var tstat   "Encompassing t-stat β"
 export excel using "Nowcasting_Performance.xlsx", firstrow(varlabels) replace
 
 
+
+x
 	/*----------------------
 	Plots
 	-----------------------*/
