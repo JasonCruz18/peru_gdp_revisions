@@ -225,7 +225,7 @@ plot <- ggplot() +
   ) +
   
   scale_color_manual(
-    values = c("1st release" = "#3366FF", "Ongoing releases" = "#E6004C", "Last release" = "#E6004C"),
+    values = c("1st release" = "#3366FF", "Ongoing releases" = "#3366FF", "Last release" = "#3366FF"),
     breaks = c("1st release", "Ongoing releases", "Last release")  # Explicitly setting legend order
   ) +
   
