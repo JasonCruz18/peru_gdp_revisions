@@ -174,6 +174,8 @@ df_adjusted_last_points <- df_adjusted %>%
   filter(release_date == max(release_date)) %>%
   ungroup()
 
+
+
 #*******************************************************************************
 # 4. Visualización
 #*******************************************************************************
@@ -186,18 +188,18 @@ plot <- ggplot() +
   geom_rect(aes(xmin = as.Date("2020-03-01"), xmax = as.Date("2021-10-01"),
                 ymin = -Inf, ymax = Inf, fill = "COVID-19"), alpha = 0.70) +
   
-  # Línea principal: 1st release suavizado (línea negra)
+  # NUEVO: Línea principal — 1st release hat suavizado (rojo)
   geom_line(
     data = df_h1,
-    aes(x = release_date, y = gdp_release_smooth, color = "1st release"),
-    linewidth = 0.5
+    aes(x = release_date, y = gdp_release_hat_smooth, color = "1st nowcast"),
+    linewidth = 0.7
   ) +
   geom_point(
     data = df_h1,
-    aes(x = release_date, y = gdp_release_smooth, color = "1st release"),
+    aes(x = release_date, y = gdp_release_hat_smooth, color = "1st nowcast"),
     shape = 21,
-    size = 0.85,
-    stroke = 0.85,
+    size = 0.9,
+    stroke = 0.9,
     fill = NA
   ) +
   
@@ -210,14 +212,13 @@ plot <- ggplot() +
     alpha = 0.70
   ) +
   
-  # NUEVO: Ongoing releases (hat)
+  # Ongoing nowcasts
   geom_line(
     data = df_adjusted,
     aes(x = release_date, y = gdp_release_hat_adjusted, group = target_period,
-        color = "Ongoing releases (hat)"),
-    linewidth = 1.25,
-    alpha = 0.70,
-    linetype = "solid"
+        color = "Ongoing nowcasts"),
+    linewidth = 0.70,
+    alpha = 0.70
   ) +
   
   # Últimos puntos (reales)
@@ -227,15 +228,7 @@ plot <- ggplot() +
     shape = 15,
     size = 1.70
   ) +
-  
-  # Últimos puntos (hat)
-  geom_point(
-    data = df_adjusted_last_points,
-    aes(x = release_date, y = gdp_release_hat_adjusted, color = "Last release (hat)"),
-    shape = 17,
-    size = 1.70
-  ) +
-  
+
   labs(
     x = NULL,
     y = NULL,
@@ -257,14 +250,13 @@ plot <- ggplot() +
   
   scale_color_manual(
     values = c(
-      "1st release" = "#3366FF",
-      "Ongoing releases" = "#E6004C",
-      "Last release" = "#E6004C",
-      "Ongoing releases (hat)" = "purple",
-      "Last release (hat)" = "purple"
+      "1st nowcast" = "#E6004C",
+      "Ongoing releases" = "#3366FF",
+      "Last release" = "#3366FF",
+      "Ongoing nowcasts" = "#E6004C"
     ),
-    breaks = c("1st release", "Ongoing releases", "Ongoing releases (hat)",
-               "Last release", "Last release (hat)")
+    breaks = c("1st nowcast", "Ongoing releases", "Ongoing nowcasts",
+               "Last release")
   ) +
   
   scale_fill_manual(
@@ -306,5 +298,5 @@ print(plot)
 
 
 # Guardar
-ggsave(filename = file.path(output_dir, "gdp_revisions_by_horizon_events_1.png"), plot = plot, width = 12, height = 8, bg = "white")
+ggsave(filename = file.path(output_dir, "gdp_nowcasts_revisions_by_horizon_events_1.png"), plot = plot, width = 12, height = 8, bg = "white")
 

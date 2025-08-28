@@ -16,16 +16,18 @@
 # Libraries
 #*******************************************************************************
 
-# Load required packages
-library(RPostgres)    # For connecting to PostgreSQL databases
-library(ggplot2)      # For data visualization
-library(lubridate)    # For date handling and manipulation
-library(svglite)      # For creating SVG graphics
-library(dplyr)        # For data manipulation and transformation
-library(tidyr)        # For reshaping data
-library(scales)       # For formatting numbers
-
-
+# Load required packages for data processing and visualization
+library(RPostgres)    # PostgreSQL database connection
+library(ggplot2)      # Data visualization
+library(lubridate)    # Date handling
+library(svglite)      # SVG graphics export
+library(dplyr)        # Data manipulation
+library(tidyr)        # Data reshaping (pivot_longer)
+library(tcltk)        # GUI elements for user input
+library(sandwich)     # Robust standard errors
+library(lmtest)       # Hypothesis testing
+library(scales)       # Format number
+library(zoo)   # for as.yearmon
 
 #*******************************************************************************
 # Initial Setup
@@ -33,20 +35,19 @@ library(scales)       # For formatting numbers
 
 # Use a dialog box to select the folder
 if (requireNamespace("rstudioapi", quietly = TRUE)) {
-  # Check if rstudioapi is available for folder selection
-  user_path <- rstudioapi::selectDirectory() # Open directory selection dialog
+  user_path <- rstudioapi::selectDirectory()
   if (!is.null(user_path)) {
-    setwd(user_path)  # Set the working directory to the selected folder
+    setwd(user_path)
     cat("The working directory has been set to:", getwd(), "\n")
   } else {
-    cat("No folder was selected.\n")  # If no folder was selected
+    cat("No folder was selected.\n")
   }
 } else {
-  cat("Install the 'rstudioapi' package to use this functionality.\n")  # If rstudioapi is not installed
+  cat("Install the 'rstudioapi' package to use this functionality.\n")
 }
 
 # Define output directories
-output_dir <- file.path(user_path, "charts")  # Main output directory
+output_dir <- file.path(user_path, "charts")
 
 # Create output directories if they do not exist
 if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
@@ -56,30 +57,18 @@ cat("Directories created successfully in:", user_path, "\n")
 
 
 #*******************************************************************************
-# Database Connection
+# Import from CSV file
 #*******************************************************************************
 
-# Retrieve database credentials from environment variables
-user <- Sys.getenv("CIUP_SQL_USER")  # PostgreSQL username
-password <- Sys.getenv("CIUP_SQL_PASS")  # PostgreSQL password
-host <- Sys.getenv("CIUP_SQL_HOST")  # Host of the PostgreSQL server
-port <- 5432  # Default PostgreSQL port
-database <- "gdp_revisions_datasets"  # Database name
+# Define file path
+file_path <- "C:/Users/Jason Cruz/OneDrive/Documentos/jefas_nowcasting_ts.csv"
 
-# Connect to PostgreSQL database
-con <- dbConnect(RPostgres::Postgres(),
-                 dbname = database,
-                 host = host,
-                 port = port,
-                 user = user,
-                 password = password)
+# Read CSV into dataframe
+df <- read.csv(file_path)
 
-# Fetch data from the first table
-query <- "SELECT * FROM jefas_gdp_revisions_base_year"
-df <- dbGetQuery(con, query)
-
-# Close the database connection
-dbDisconnect(con)
+# If you prefer readr (tidyverse) for faster import:
+# library(readr)
+# df <- read_csv(file_path)
 
 
 
@@ -87,26 +76,38 @@ dbDisconnect(con)
 # Data Preparation
 #*******************************************************************************
 
+df <- df %>%
+  mutate(
+    target_period = gsub("m", "-", target_period),
+    target_period = as.yearmon(target_period, "%Y-%m"),
+    target_period = as.Date(target_period)
+  )
+
 # Define the sectors to iterate over for plotting
 #sectors <- c("gdp", "agriculture", "fishing", "mining", "manufacturing", 
 #             "electricity", "construction", "commerce", "services")
 sectors <- c("gdp")
 
-# vintages_date aAs Date
+# target_period aAs Date
 
-# df$vintages_date <- dmy_hms(df$vintages_date) # for imported csv
+# df$target_period <- dmy_hms(df$target_period) # for imported csv
 
 # Verificar el resultado
-head(df$vintages_date)
+head(df$target_period)
 
-# Ensure that the 'vintages_date' column is of type Date
-df$vintages_date <- as.Date(df$vintages_date)
+# Ensure that the 'target_period' column is of type Date
+df$target_period <- as.Date(df$target_period)
 
 
 df <- df %>%
   mutate(
-    gdp_most_recent = ifelse(vintages_date >= as.Date("2020-03-01") & vintages_date <= as.Date("2021-10-01"), NaN, gdp_most_recent),
-    gdp_release_1 = ifelse(vintages_date >= as.Date("2020-03-01") & vintages_date <= as.Date("2021-10-01"), NaN, gdp_release_1)
+    gdp_most_recent = ifelse(target_period >= as.Date("2020-03-01") & target_period <= as.Date("2021-10-01"), NaN, gdp_most_recent),
+    gdp_release_1 = ifelse(target_period >= as.Date("2020-03-01") & target_period <= as.Date("2021-10-01"), NaN, gdp_release_1),
+    gdp_release_2 = ifelse(target_period >= as.Date("2020-03-01") & target_period <= as.Date("2021-10-01"), NaN, gdp_release_2),
+    gdp_release_3 = ifelse(target_period >= as.Date("2020-03-01") & target_period <= as.Date("2021-10-01"), NaN, gdp_release_3),
+    gdp_release_hat_1 = ifelse(target_period >= as.Date("2020-03-01") & target_period <= as.Date("2021-10-01"), NaN, gdp_release_hat_1),
+    gdp_release_hat_2 = ifelse(target_period >= as.Date("2020-03-01") & target_period <= as.Date("2021-10-01"), NaN, gdp_release_hat_2),
+    gdp_release_hat_3 = ifelse(target_period >= as.Date("2020-03-01") & target_period <= as.Date("2021-10-01"), NaN, gdp_release_hat_3),
   )
 
 
@@ -126,12 +127,42 @@ df <- df %>%
                               2 * lag(gdp_release_1, 1) + 
                               4 * gdp_release_1 + 
                               2 * lead(gdp_release_1, 1) + 
-                              lead(gdp_release_1, 2)) / 10
+                              lead(gdp_release_1, 2)) / 10,
+    
+    gdp_release_2_smooth = (lag(gdp_release_2, 2) + 
+                              2 * lag(gdp_release_2, 1) + 
+                              4 * gdp_release_2 + 
+                              2 * lead(gdp_release_2, 1) + 
+                              lead(gdp_release_2, 2)) / 10,
+    
+    gdp_release_3_smooth = (lag(gdp_release_3, 2) + 
+                              2 * lag(gdp_release_3, 1) + 
+                              4 * gdp_release_3 + 
+                              2 * lead(gdp_release_3, 1) + 
+                              lead(gdp_release_3, 2)) / 10,
+    
+    gdp_release_hat_1_smooth = (lag(gdp_release_hat_1, 2) + 
+                              2 * lag(gdp_release_hat_1, 1) + 
+                              4 * gdp_release_hat_1 + 
+                              2 * lead(gdp_release_hat_1, 1) + 
+                              lead(gdp_release_hat_1, 2)) / 10,
+    
+    gdp_release_hat_2_smooth = (lag(gdp_release_hat_2, 2) + 
+                                  2 * lag(gdp_release_hat_2, 1) + 
+                                  4 * gdp_release_hat_2 + 
+                                  2 * lead(gdp_release_hat_2, 1) + 
+                                  lead(gdp_release_hat_2, 2)) / 10,
+    
+    gdp_release_hat_3_smooth = (lag(gdp_release_hat_3, 2) + 
+                                  2 * lag(gdp_release_hat_3, 1) + 
+                                  4 * gdp_release_hat_3 + 
+                                  2 * lead(gdp_release_hat_3, 1) + 
+                                  lead(gdp_release_hat_3, 2)) / 10
   )
 
 
 # Filter the dataframe for the desired date range
-df_filtered <- df[df$vintages_date >= as.Date("2001-01-01") & df$vintages_date <= as.Date("2023-10-31"), ]
+df_filtered <- df[df$target_period >= as.Date("2001-01-01") & df$target_period <= as.Date("2023-10-31"), ]
 
 
 
@@ -146,8 +177,8 @@ date_label_format <- function(date) {
 
 
 # Create the graph
-time_plot <- ggplot(df_filtered, aes(x = vintages_date)) +
-
+time_plot <- ggplot(df_filtered, aes(x = target_period)) +
+  
   # Rectángulos de periodo de referencia con data explícita
   geom_rect(
     data = data.frame(
@@ -174,12 +205,13 @@ time_plot <- ggplot(df_filtered, aes(x = vintages_date)) +
     alpha = 0.70
   ) +
   
+  # Series
   geom_line(aes(y = gdp_most_recent_smooth, color = "Last release"), linewidth = 0.5) +
   geom_line(aes(y = gdp_release_1_smooth, color = "1st release"), linewidth = 0.85) +
-  geom_bar(aes(y = e_1_gdp * 2.0, fill = "1st nowcast error"), 
-           stat = "identity", alpha = 0.45, color = "black", linewidth = 0.35) +
-  geom_hline(yintercept = 0, color = "black", linewidth = 0.45) +
-  geom_point(aes(y = gdp_most_recent_smooth, color = "Last release"), size = 0.85) +
+  geom_line(aes(y = gdp_release_hat_1_smooth, color = "1st nowcast"), 
+            linewidth = 0.70, alpha = 0.70) +   # transparency 50%
+  geom_point(aes(y = gdp_most_recent_smooth, color = "Last release"), size = 0.85, show.legend = FALSE) +
+  
   labs(
     x = NULL,
     y = NULL,
@@ -208,17 +240,20 @@ time_plot <- ggplot(df_filtered, aes(x = vintages_date)) +
     panel.border = element_rect(color = "black", linewidth = 0.45, fill = NA),
     plot.margin = margin(9, 5, 9, 4)
   ) +
-    
+  
+  # Color scale
   scale_color_manual(values = c("1st release" = "#3366FF", 
+                                "1st nowcast" = "#3366FF",  # same blue
                                 "Last release" = "#E6004C")) +
   
-  scale_fill_manual(values = c("1st nowcast error" = "#F5F5F5", 
-                               "2007 base year" = "#00DFA2", 
+  # Fill scale
+  scale_fill_manual(values = c("2007 base year" = "#00DFA2", 
                                "COVID-19" = "#FFF183")) +  
+  
   # Adjusting legend order
   guides(
-    color = guide_legend(order = 1),  # First legend for line colors
-    fill = guide_legend(order = 2)    # Second legend for fill colors
+    color = guide_legend(order = 1),
+    fill = guide_legend(order = 2)
   ) +
   
   scale_y_continuous(
@@ -240,7 +275,9 @@ time_plot <- ggplot(df_filtered, aes(x = vintages_date)) +
 print(time_plot)
 
 
+
+
 # Guardar el gráfico
-plot_output_file <- file.path(output_dir, "e_releses_time_plot_by_subsample.png")
+plot_output_file <- file.path(output_dir, "e_nowcasts_releses_time_plot_by_subsample.png")
 ggsave(filename = plot_output_file, plot = time_plot, width = 10, height = 6, dpi = 300, bg = "white")
 
