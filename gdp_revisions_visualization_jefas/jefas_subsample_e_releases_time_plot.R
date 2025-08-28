@@ -176,7 +176,7 @@ time_plot <- ggplot(df_filtered, aes(x = vintages_date)) +
   
   geom_line(aes(y = gdp_most_recent_smooth, color = "Last release"), linewidth = 0.5) +
   geom_line(aes(y = gdp_release_1_smooth, color = "1st release"), linewidth = 0.85) +
-  geom_bar(aes(y = e_1_gdp * 2.0, fill = "1st nowcast error"), 
+  geom_bar(aes(y = e_1_gdp * 2.0, fill = "1st error"), 
            stat = "identity", alpha = 0.45, color = "black", linewidth = 0.35) +
   geom_hline(yintercept = 0, color = "black", linewidth = 0.45) +
   geom_point(aes(y = gdp_most_recent_smooth, color = "Last release"), size = 0.85) +
@@ -212,7 +212,7 @@ time_plot <- ggplot(df_filtered, aes(x = vintages_date)) +
   scale_color_manual(values = c("1st release" = "#3366FF", 
                                 "Last release" = "#E6004C")) +
   
-  scale_fill_manual(values = c("1st nowcast error" = "#F5F5F5", 
+  scale_fill_manual(values = c("1st error" = "#F5F5F5", 
                                "2007 base year" = "#00DFA2", 
                                "COVID-19" = "#FFF183")) +  
   # Adjusting legend order

@@ -176,6 +176,10 @@ date_label_format <- function(date) {
 }
 
 
+# Compute 1st nowcast error
+df_filtered <- df_filtered %>%
+  mutate(e_hat_1_gdp = gdp_most_recent_hat - gdp_release_hat_1)
+
 # Create the graph
 time_plot <- ggplot(df_filtered, aes(x = target_period)) +
   
@@ -210,6 +214,15 @@ time_plot <- ggplot(df_filtered, aes(x = target_period)) +
   geom_line(aes(y = gdp_release_1_smooth, color = "1st release"), linewidth = 0.85) +
   geom_line(aes(y = gdp_release_hat_1_smooth, color = "1st nowcast"), 
             linewidth = 0.70, alpha = 0.70) +   # transparency 50%
+  
+  # NEW: Forecast error bars (hat version)
+  geom_bar(aes(y = e_hat_1_gdp * 2.0, fill = "1st nowcast error"), 
+           stat = "identity", alpha = 0.45, color = "black", linewidth = 0.35) +
+  
+  # Reference line at 0
+  geom_hline(yintercept = 0, color = "black", linewidth = 0.45) +
+  
+  # Last release points
   geom_point(aes(y = gdp_most_recent_smooth, color = "Last release"), size = 0.85, show.legend = FALSE) +
   
   labs(
@@ -247,7 +260,8 @@ time_plot <- ggplot(df_filtered, aes(x = target_period)) +
                                 "Last release" = "#E6004C")) +
   
   # Fill scale
-  scale_fill_manual(values = c("2007 base year" = "#00DFA2", 
+  scale_fill_manual(values = c("1st nowcast error" = "#F5F5F5", 
+                               "2007 base year" = "#00DFA2", 
                                "COVID-19" = "#FFF183")) +  
   
   # Adjusting legend order
@@ -273,7 +287,6 @@ time_plot <- ggplot(df_filtered, aes(x = target_period)) +
 
 # Mostrar el gráfico
 print(time_plot)
-
 
 
 
