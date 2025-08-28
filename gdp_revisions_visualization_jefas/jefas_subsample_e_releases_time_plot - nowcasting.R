@@ -264,10 +264,10 @@ time_plot <- ggplot(df_filtered, aes(x = target_period)) +
                                "2007 base year" = "#00DFA2", 
                                "COVID-19" = "#FFF183")) +  
   
-  # Adjusting legend order
+  # Adjusting legend order and forcing 2 rows for each box
   guides(
-    color = guide_legend(order = 1),
-    fill = guide_legend(order = 2)
+    color = guide_legend(order = 1, nrow = 2, byrow = TRUE),
+    fill  = guide_legend(order = 2, nrow = 2, byrow = TRUE)
   ) +
   
   scale_y_continuous(
@@ -291,6 +291,6 @@ print(time_plot)
 
 
 # Guardar el gráfico
-plot_output_file <- file.path(output_dir, "e_nowcasts_releses_time_plot_by_subsample.png")
+plot_output_file <- file.path(output_dir, "e_nowcasts_releses_time_plot_by_subsample_1.png")
 ggsave(filename = plot_output_file, plot = time_plot, width = 10, height = 6, dpi = 300, bg = "white")
 
