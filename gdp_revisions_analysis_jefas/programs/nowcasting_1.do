@@ -64,6 +64,7 @@ Clean-up at a glance
 
 drop bench_*
 
+
 /*----------------------
  Define split (train / eval)
 -----------------------*/
@@ -153,21 +154,41 @@ save `coeffs', replace
 
 
 /*----------------------
-Fitted values
+Fitted values (raw correction)
 -----------------------*/
 
 forvalues h = 1/11 {
     gen e_hat_`h' = .
     if `h' == 1 {
-        replace e_hat_`h' = (alpha_`h')/(1 - delta_`h') + theta_`h'*Y_ews_`h'
+        replace e_hat_`h' = (alpha_`h')/(1 - `delta') + theta_`h'*Y_ews_`h'
     }
     else if `h' == 2 {
-        replace e_hat_`h' = (alpha_`h')/(1 - delta_`h') + theta_`h'*Y_ews_`h' + gamma_`h'*R_ews_`h'
+        replace e_hat_`h' = (alpha_`h')/(1 - `delta') + theta_`h'*Y_ews_`h' + gamma_`h'*R_ews_`h'
     }
     else {
-        replace e_hat_`h' = (alpha_`h')/(1 - delta_`h') + theta_`h'*Y_ews_`h' + gamma_`h'*R_ews_`h' + rho_`h'*L1_R_ews_`h'
+        replace e_hat_`h' = (alpha_`h')/(1 - `delta') + theta_`h'*Y_ews_`h' + gamma_`h'*R_ews_`h' + rho_`h'*L1_R_ews_`h'
     }
 }
+
+
+/*----------------------
+Bias-scaling adjustment
+-----------------------*/
+
+
+forvalues h = 1/11 {
+    quietly summarize e_`h' if train==1
+    scalar mean_train = r(mean)
+    quietly summarize e_`h' if eval==1
+    scalar mean_eval = r(mean)
+
+    * scaling factor λ_h = mean_eval / mean_train
+    scalar lambda = cond(mean_train!=0, mean_eval/mean_train, 1)
+
+    * apply scaling only on eval subsample
+    replace e_hat_`h' = lambda * e_hat_`h' if eval==1
+}
+
 
 forvalues h = 1/11 {
     gen y_hat_`h' = y_`h' + e_hat_`h'
