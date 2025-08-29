@@ -1,5 +1,5 @@
 /********************
-Nowcasting GDP Revisions — EWS
+Nowcasting GDP Revisions — EWS + Forecast Combination
 ***
 
 	Author
@@ -9,7 +9,7 @@ Nowcasting GDP Revisions — EWS
 
 	*** Program: nowcasting.do
 	** 	First Created: 08/11/25
-	** 	Last Updated:  08/25/25
+	** 	Last Updated:  08/29/25
 		
 ***/
 
@@ -168,104 +168,129 @@ forvalues h = 1/11 {
     else {
         replace e_hat_`h' = (alpha_`h')/(1 - `delta') + theta_`h'*Y_ews_`h' + gamma_`h'*R_ews_`h' + rho_`h'*L1_R_ews_`h'
     }
-}
-
-
-/*----------------------
-Bias-scaling adjustment
------------------------*/
-
-/*
-forvalues h = 1/11 {
-    quietly summarize e_`h' if train==1
-    scalar mean_train = r(mean)
-    quietly summarize e_`h' if eval==1
-    scalar mean_eval = r(mean)
-
-    * scaling factor λ_h = mean_eval / mean_train
-    scalar lambda = cond(mean_train!=0, mean_eval/mean_train, 1)
-
-    * apply scaling only on eval subsample
-    replace e_hat_`h' = lambda * e_hat_`h' if eval==1
-}
-
-
-forvalues h = 1/11 {
     gen y_hat_`h' = y_`h' + e_hat_`h'
 }
-*/
 
 save "fitted_vals.dta", replace
 
 
 /*----------------------
-Forecast evaluation
+Forecast combination with releases (real-time expanding OLS)
 -----------------------*/
+
+* Settings
+local minobs = 24    // minimum past observations to estimate lambda
+local bound_lambda = 1 // bound lambda in [0,1]
 
 use "fitted_vals.dta", clear
 
-* Relative MAE, RMSE, MAPE vs benchmark
+* Prepare storage for combined forecasts and errors
+foreach h of numlist 1/11 {
+    gen double y_comb_`h' = .
+    gen double e_comb_`h' = .
+    gen double lambda_comb_`h' = .
+}
+
+* list of evaluation dates
+levelsof target_period if eval==1, local(eval_dates)
+
+* Loop horizons
+foreach h of numlist 1/11 {
+    di as txt "== Combination for horizon h=`h' =="
+
+    foreach t of local eval_dates {
+
+        * Past-sample for expanding-window OLS
+        quietly {
+            gen double dep_past = e_`h' if target_period < `t' & !missing(e_`h')
+            gen double ind_past = e_hat_`h' if target_period < `t' & !missing(e_hat_`h')
+        }
+
+        quietly count if !missing(dep_past, ind_past)
+        local Npast = r(N)
+
+        if `Npast' >= `minobs' {
+            quietly regress dep_past ind_past if !missing(dep_past, ind_past), noconstant
+            local lambda = _b[ind_past]
+            if `bound_lambda'==1 {
+                if `lambda'<0 local lambda = 0
+                if `lambda'>1 local lambda = 1
+            }
+        }
+        else local lambda = 0.5
+
+        * Apply combination to evaluation date `t'
+        quietly replace y_comb_`h' = `lambda'*y_hat_`h' + (1-`lambda')*y_`h' if target_period==`t'
+        quietly replace e_comb_`h' = y_12 - y_comb_`h' if target_period==`t'
+        quietly replace lambda_comb_`h' = `lambda' if target_period==`t'
+
+        quietly drop dep_past ind_past
+    }
+
+    di as txt "Finished combination for h=`h'"
+}
+
+save "nowcast_combined_series.dta", replace
+
+
+/*----------------------
+Forecast evaluation (RMSE + DM + Encompassing)
+-----------------------*/
+
+
+* RMSE relative to benchmark
 tempfile rmse_results
 postfile pf_rmse h rmse using `rmse_results', replace
 
 forvalues h = 1/11 {
-
-	gen sq_now = (e_hat_`h')^2 if train==0
-	gen sq_bench = (e_`h')^2 if train==0
-	quietly summarize sq_now
-	local rmse_now = sqrt(r(mean))
-	quietly summarize sq_bench
+	gen double sq_comb = (e_comb_`h')^2 if eval==1
+	gen double sq_bench = (e_`h')^2 if eval==1
+	quietly summarize sq_comb if !missing(sq_comb)
+	local rmse_comb = sqrt(r(mean))
+	quietly summarize sq_bench if !missing(sq_bench)
 	local rmse_bench = sqrt(r(mean))
-	drop sq_now sq_bench
-	local rmse_rel = `rmse_now' / `rmse_bench'
-
+	local rmse_rel = `rmse_comb'/`rmse_bench'
 	post pf_rmse (`h') (`rmse_rel')
+	drop sq_comb sq_bench
 }
 postclose pf_rmse
 use `rmse_results', clear
-
 gen rmse100 = rmse*100
 save "rmse_results.dta", replace
-export excel h rmse100 using "nowcasting_rel_perf.xlsx", firstrow(variables) replace
 
+use "nowcast_combined_series.dta", clear
 
-/*----------------------
-DM test
------------------------*/
+* Diebold-Mariano test comparing combined vs benchmark
+tempfile dm_comb
+postfile pf_dm h dm_stat using `dm_comb', replace
 
-use "fitted_vals.dta", clear
 forvalues h = 1/11 {
-	gen d_`h'_dm = (e_hat_`h')^2 - (e_`h')^2
-}
-postfile pf_dm h dm_stat using "dm_results.dta", replace
-forvalues h = 1/11 {
-	newey d_`h'_dm if train==0, lag(6) force
-	scalar dm_stat_`h' = _b[_cons] / _se[_cons]
-	post pf_dm (`h') (dm_stat_`h')
+	gen double d_comb_`h' = . 
+	replace d_comb_`h' = (e_comb_`h')^2 - (e_`h')^2 if eval==1 & !missing(e_comb_`h', e_`h')
+	quietly newey d_comb_`h' if eval==1, lag(6) force
+	local b_cons = _b[_cons]
+	local se_cons = _se[_cons]
+	local dm = cond("`b_cons'"!="" & "`se_cons'"!="", `b_cons'/`se_cons', .)
+	post pf_dm (`h') (`dm')
+	drop d_comb_`h'
 }
 postclose pf_dm
+use `dm_comb', clear
 
+use "nowcast_combined_series.dta", clear
 
-/*----------------------
-Encompassing test
------------------------*/
-
-use "fitted_vals.dta", clear
+* Encompassing test
 postfile pf_encom h beta tstat using "encom_results.dta", replace
 forvalues h = 1/11 {
-	gen d_`h'_encom = e_`h' - e_hat_`h'
-	newey e_`h' d_`h'_encom if train==0, lag(6) force
+	gen d_`h'_encom = e_`h' - y_comb_`h'
+	newey e_`h' d_`h'_encom if eval==1, lag(6) force
 	scalar beta_`h' = _b[d_`h'_encom]
 	scalar tstat_`h' = _b[d_`h'_encom]/_se[d_`h'_encom]
 	post pf_encom (`h') (beta_`h') (tstat_`h')
 }
 postclose pf_encom
 
-
-/*----------------------
-Merge and Final Export
------------------------*/
-
+* Merge and export
 use "rmse_results.dta", clear
 merge 1:1 h using "dm_results.dta"
 drop _merge
@@ -280,15 +305,20 @@ label var rmse100 "RMSE (Bench=100)"
 label var dm_stat "DM stat"
 label var tstat   "Encompassing t-stat β"
 
-export excel using "Nowcasting_Performance_EVAL_split_2013.xlsx", firstrow(varlabels) replace
+export excel using "Nowcasting_Performance_EVAL_split_2013_1.xlsx", firstrow(varlabels) replace
 
 
 	/*----------------------
 	Plots
 	-----------------------*/
 
-use "fitted_vals.dta", clear
+use "nowcast_combined_series.dta", clear
 	tsset target_period, monthly
 
-	twoway (tsline e_1 e_hat_1 if tin(2013m2,2022m12), cmissing(n))
+	twoway (tsline e_1 if !missing(e_1), cmissing(n)) ///
+       (tsline e_hat_1 if !missing(e_hat_1), cmissing(n)) ///
+       (tsline e_comb_1 if !missing(e_comb_1), cmissing(n)) ///
+       if tin(2013m2,2022m12)
+	
+	
 	
