@@ -1,5 +1,5 @@
 /********************
-Nowcasting GDP Revisions — EWMA
+Nowcasting GDP Revisions — EWS
 ***
 
 	Author
@@ -175,7 +175,7 @@ forvalues h = 1/11 {
 Bias-scaling adjustment
 -----------------------*/
 
-
+/*
 forvalues h = 1/11 {
     quietly summarize e_`h' if train==1
     scalar mean_train = r(mean)
@@ -193,6 +193,7 @@ forvalues h = 1/11 {
 forvalues h = 1/11 {
     gen y_hat_`h' = y_`h' + e_hat_`h'
 }
+*/
 
 save "fitted_vals.dta", replace
 
@@ -205,17 +206,9 @@ use "fitted_vals.dta", clear
 
 * Relative MAE, RMSE, MAPE vs benchmark
 tempfile rmse_results
-postfile pf_rmse h mae rmse mape using `rmse_results', replace
+postfile pf_rmse h rmse using `rmse_results', replace
 
 forvalues h = 1/11 {
-	gen abs_now = abs(e_hat_`h') if train==0
-	gen abs_bench = abs(e_`h') if train==0
-	quietly summarize abs_now
-	local mae_now = r(mean)
-	quietly summarize abs_bench
-	local mae_bench = r(mean)
-	drop abs_now abs_bench
-	local mae_rel = `mae_now' / `mae_bench'
 
 	gen sq_now = (e_hat_`h')^2 if train==0
 	gen sq_bench = (e_`h')^2 if train==0
@@ -226,25 +219,14 @@ forvalues h = 1/11 {
 	drop sq_now sq_bench
 	local rmse_rel = `rmse_now' / `rmse_bench'
 
-	gen ape_now = abs(e_hat_`h'/y_12) if train==0
-	gen ape_bench = abs(e_`h'/y_12) if train==0
-	quietly summarize ape_now
-	local mape_now = 100*r(mean)
-	quietly summarize ape_bench
-	local mape_bench = 100*r(mean)
-	drop ape_now ape_bench
-	local mape_rel = `mape_now' / `mape_bench'
-
-	post pf_rmse (`h') (`mae_rel') (`rmse_rel') (`mape_rel')
+	post pf_rmse (`h') (`rmse_rel')
 }
 postclose pf_rmse
 use `rmse_results', clear
 
-gen mae100  = mae*100
 gen rmse100 = rmse*100
-gen mape100 = mape*100
 save "rmse_results.dta", replace
-export excel h mae100 rmse100 mape100 using "nowcasting_rel_perf.xlsx", firstrow(variables) replace
+export excel h rmse100 using "nowcasting_rel_perf.xlsx", firstrow(variables) replace
 
 
 /*----------------------
@@ -290,13 +272,11 @@ drop _merge
 merge 1:1 h using "encom_results.dta"
 drop _merge
 
-keep h mae100 rmse100 mape100 dm_stat tstat
-order h mae100 rmse100 mape100 dm_stat tstat
+keep h rmse100 dm_stat tstat
+order h rmse100 dm_stat tstat
 
 label var h       "Horizon"
-label var mae100  "MAE (Bench=100)"
 label var rmse100 "RMSE (Bench=100)"
-label var mape100 "MAPE (Bench=100)"
 label var dm_stat "DM stat"
 label var tstat   "Encompassing t-stat β"
 
