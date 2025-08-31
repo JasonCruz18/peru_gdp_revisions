@@ -176,77 +176,30 @@ forvalues h = 1/11 {
  (train-only estimation; eval-only application)
 *******************************************/
 
-* 1) Build training-only sign of remaining revision for each h
+* --- Shrinkage calibration from training
 forvalues h = 1/11 {
-    gen byte dpos_`h' = (y_12 - y_`h' > 0) if train==1
-}
-
-gen r_1 = .
-
-* --- Probit models with horizon-specific predictors ---
-forvalues h = 1/11 {
-    capture drop p_`h'
-
-    if `h' == 1 {
-        quietly probit dpos_`h' y_`h' if train==1
-        predict double p_`h', pr
-    }
-    else if `h' == 2 {
-        quietly probit dpos_`h' y_`h' r_`h' ///
-            if train==1 & !missing(r_`h')
-        predict double p_`h', pr
-    }
-    else {
-        quietly probit dpos_`h' y_`h' r_`h' L1.r_`h' ///
-            if train==1 & !missing(r_`h', L1.r_`h')
-        predict double p_`h', pr
-    }
-
-    * Safe fallback: if model had zero usable obs, keep gate neutral
-    replace p_`h' = 0.5 if missing(p_`h')
-}
-
-* Directional weights & signs (unchanged)
-forvalues h = 1/11 {
-    capture drop w_`h' g_`h'
-    gen double w_`h' = abs(2*p_`h' - 1)
-    replace w_`h' = 0 if missing(w_`h')
-    gen byte   g_`h' = cond(2*p_`h' - 1 > 0, 1, cond(2*p_`h' - 1 < 0, -1, 0))
-}
-
-
-* 4) Training-based caps by predicted sign (75th percentile of |remaining revision|)
-tempname Cplus Cminus
-forvalues h = 1/11 {
-    summarize y_12 y_`h' if train==1 // ensure available
-    gen double abs_s_`h' = abs(y_12 - y_`h') if train==1
-    _pctile abs_s_`h' if train==1 & dpos_`h'==1, p(75)
-    scalar `Cplus'  = r(r1)
-    _pctile abs_s_`h' if train==1 & dpos_`h'==0, p(75)
-    scalar `Cminus' = r(r1)
-    drop abs_s_`h'
-
-    * 5) Directional shrink of your raw correction (no formula change upstream)
-    gen double e_dir_`h' = g_`h' * ( w_`h' * abs(e_hat_`h') )
-
-	* 6) Final nowcast with gated, capped correction  (safe drops)
-	capture drop e_dir_`h'
-	capture drop e_cap_`h'
-	capture drop y_hat_`h'
-
-	gen double e_dir_`h' = g_`h' * ( w_`h' * abs(e_hat_`h') )
-
-	gen double e_cap_`h' = 0
-	replace e_cap_`h' = sign(e_dir_`h') * min(abs(e_dir_`h'), `Cplus')   if g_`h'== 1
-	replace e_cap_`h' = sign(e_dir_`h') * min(abs(e_dir_`h'), `Cminus')  if g_`h'==-1
-	replace e_cap_`h' = 0 if g_`h'==0 | missing(g_`h')
-
-	gen double y_hat_`h' = y_`h' + e_cap_`h'
-
-
-    * 7) Final corrected nowcast (replace downstream variable names if preferred)
-    drop y_hat_`h'
-    gen double y_hat_`h' = y_`h' + e_cap_`h'
+    capture drop phi_`h'
+    quietly regress e_`h' e_hat_`h' if train==1, noconstant
+    scalar ph = _b[e_hat_`h']
+    
+    * bound to [0,1]
+    if ph<0 local ph=0
+    if ph>1 local ph=1
+    
+    * store shrinkage factor
+    gen double phi_`h' = .
+    replace phi_`h' = ph in 1   // correct way
+    
+    * apply scaled correction only in eval (and keep phi available)
+    gen double e_hat_shr_`h' = .
+    replace e_hat_shr_`h' = ph*e_hat_`h' if eval==1
+    
+    gen double y_hat_shr_`h' = . 
+    replace y_hat_shr_`h' = y_`h' + e_hat_shr_`h' if eval==1
+    
+    * error for evaluation
+    gen double e_hat_shr_err_`h' = . 
+    replace e_hat_shr_err_`h' = y_12 - y_hat_shr_`h' if eval==1
 }
 
 
@@ -266,7 +219,7 @@ postfile pf_rmse h rmse using `rmse_results', replace
 
 forvalues h = 1/11 {
 
-	gen sq_now = (e_cap_`h')^2 if eval==1
+	gen sq_now = (e_hat_shr_err_`h')^2 if eval==1
 	gen sq_bench = (e_`h')^2 if eval==1
 	quietly summarize sq_now
 	local rmse_now = sqrt(r(mean))
@@ -291,7 +244,7 @@ DM test
 
 use "fitted_vals.dta", clear
 forvalues h = 1/11 {
-	gen d_`h'_dm = (e_cap_`h')^2 - (e_`h')^2
+	gen d_`h'_dm = (e_hat_shr_err_`h')^2 - (e_`h')^2
 }
 postfile pf_dm h dm_stat using "dm_results.dta", replace
 forvalues h = 1/11 {
@@ -309,7 +262,7 @@ Encompassing test
 use "fitted_vals.dta", clear
 postfile pf_encom h beta tstat using "encom_results.dta", replace
 forvalues h = 1/11 {
-	gen d_`h'_encom = e_`h' - e_cap_`h'
+	gen d_`h'_encom = e_`h' - e_hat_shr_err_`h'
 	newey e_`h' d_`h'_encom if eval==1, lag(6) force
 	scalar beta_`h' = _b[d_`h'_encom]
 	scalar tstat_`h' = _b[d_`h'_encom]/_se[d_`h'_encom]
@@ -336,7 +289,7 @@ label var rmse100 "RMSE (Bench=100)"
 label var dm_stat "DM stat"
 label var tstat   "Encompassing t-stat β"
 
-export excel using "Nowcasting_Performance_EVAL_split_2013_refinement.xlsx", firstrow(varlabels) replace
+export excel using "Nowcasting_Performance_EVAL_split_2013_refinement_2.xlsx", firstrow(varlabels) replace
 
 
 	/*----------------------
@@ -348,61 +301,10 @@ use "fitted_vals.dta", clear
 
 	tsfill, full
 	
-	* 1) Make smoothed series (5-term MA: 2-1-2)
-	foreach h in 1 3 6 9 {
-		tssmooth ma e_`h'_ma      = e_`h',      window(2 1 2)
-		tssmooth ma e_hat_`h'_ma  = e_hat_`h',  window(2 1 2)
-		tssmooth ma e_cap_`h'_ma  = e_cap_`h',  window(2 1 2)
-	}
-
 	
 	twoway ///
-		(tsline e_6_ma     if tin(2014m1, 2023m10), cmissing(n) recast(scatter) mcolor("41 41 41") msize(0.5)) ///
-		(tsline e_hat_6_ma if tin(2014m1, 2023m10), cmissing(n) lcolor("51 102 255")  lwidth(medthick)) ///
-		(tsline e_cap_6_ma if tin(2014m1, 2023m10), cmissing(n) lcolor("230 0 76")   lwidth(medthick)) ///
+		(tsline e_1     if tin(2014m1, 2023m10), cmissing(n) recast(scatter) mcolor("41 41 41") msize(0.5)) ///
+		(tsline e_hat_1 if tin(2014m1, 2023m10), cmissing(n) lcolor("51 102 255")  lwidth(medthick)) ///
+		(tsline e_hat_shr_err_1 if tin(2014m1, 2023m10), cmissing(n) lcolor("230 0 76")   lwidth(medthick)) ///
 		, legend(position(6) ring(6) cols(3) region(lstyle(none)))
 
-
-
-	* Common style locals to avoid repetition
-	local xwin if tin(2014m1, 2023m10)
-	local scat  recast(scatter) mcolor("41 41 41") msize(0.5)
-	local lhat  lcolor("51 102 255") lwidth(medthick)
-	local lcap  lcolor("230 0 76")   lwidth(medthick)
-
-	* Panel 1: keep the legend (bottom, outside)
-	twoway ///
-		(tsline e_1     `xwin', cmissing(n) `scat') ///
-		(tsline e_hat_1 `xwin', cmissing(n) `lhat') ///
-		(tsline e_cap_1 `xwin', cmissing(n) `lcap') ///
-		, title("h = 1") legend(position(6) ring(6) cols(3) region(lstyle(none))) ///
-		  name(g1, replace)
-
-	* Panel 3: no legend
-	twoway ///
-		(tsline e_3     `xwin', cmissing(n) `scat') ///
-		(tsline e_hat_3 `xwin', cmissing(n) `lhat') ///
-		(tsline e_cap_3 `xwin', cmissing(n) `lcap') ///
-		, title("h = 3") legend(off) name(g3, replace)
-
-	* Panel 6: no legend
-	twoway ///
-		(tsline e_6     `xwin', cmissing(n) `scat') ///
-		(tsline e_hat_6 `xwin', cmissing(n) `lhat') ///
-		(tsline e_cap_6 `xwin', cmissing(n) `lcap') ///
-		, title("h = 6") legend(off) name(g6, replace)
-
-	* Panel 9: no legend
-	twoway ///
-		(tsline e_9     `xwin', cmissing(n) `scat') ///
-		(tsline e_hat_9 `xwin', cmissing(n) `lhat') ///
-		(tsline e_cap_9 `xwin', cmissing(n) `lcap') ///
-		, title("h = 9") legend(off) name(g9, replace)
-
-	* Combine into a 2x2 layout; share axes if appropriate
-	graph combine g1 g3 g6 g9, cols(2) imargin(small) xcommon ycommon
-
-
-
-
-	

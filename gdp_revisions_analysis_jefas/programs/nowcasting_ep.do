@@ -162,6 +162,12 @@ forvalues h = 1/11 {
     gen y_hat_`h' = y_`h' + e_hat_`h'
 }
 
+forvalues h = 1/11 {
+    gen e_now_`h' = .
+	replace e_now_`h' = y_12 - y_hat_`h'
+}
+
+
 save "fitted_vals.dta", replace
 
 
@@ -173,19 +179,10 @@ use "fitted_vals.dta", clear
 
 * Relative MAE, RMSE, MAPE vs benchmark
 tempfile rmse_results
-postfile pf_rmse h mae rmse mape using `rmse_results', replace
+postfile pf_rmse h rmse using `rmse_results', replace
 
 forvalues h = 1/11 {
-	gen abs_now = abs(e_hat_`h')
-	gen abs_bench = abs(e_`h')
-	quietly summarize abs_now
-	local mae_now = r(mean)
-	quietly summarize abs_bench
-	local mae_bench = r(mean)
-	drop abs_now abs_bench
-	local mae_rel = `mae_now' / `mae_bench'
-
-	gen sq_now = (e_hat_`h')^2
+	gen sq_now = (e_now_`h')^2
 	gen sq_bench = (e_`h')^2
 	quietly summarize sq_now
 	local rmse_now = sqrt(r(mean))
@@ -194,25 +191,15 @@ forvalues h = 1/11 {
 	drop sq_now sq_bench
 	local rmse_rel = `rmse_now' / `rmse_bench'
 
-	gen ape_now = abs(e_hat_`h'/y_12)
-	gen ape_bench = abs(e_`h'/y_12)
-	quietly summarize ape_now
-	local mape_now = 100*r(mean)
-	quietly summarize ape_bench
-	local mape_bench = 100*r(mean)
-	drop ape_now ape_bench
-	local mape_rel = `mape_now' / `mape_bench'
-
-	post pf_rmse (`h') (`mae_rel') (`rmse_rel') (`mape_rel')
+	post pf_rmse (`h') (`rmse_rel')
 }
 postclose pf_rmse
 use `rmse_results', clear
 
-gen mae100  = mae*100
 gen rmse100 = rmse*100
-gen mape100 = mape*100
+
 save "rmse_results.dta", replace
-export excel h mae100 rmse100 mape100 using "nowcasting_rel_perf.xlsx", firstrow(variables) replace
+export excel h rmse100 using "nowcasting_rel_perf.xlsx", firstrow(variables) replace
 
 
 /*----------------------
@@ -221,7 +208,7 @@ DM test
 
 use "fitted_vals.dta", clear
 forvalues h = 1/11 {
-	gen d_`h'_dm = (e_hat_`h')^2 - (e_`h')^2
+	gen d_`h'_dm = (e_now_`h')^2 - (e_`h')^2
 }
 postfile pf_dm h dm_stat using "dm_results.dta", replace
 forvalues h = 1/11 {
@@ -239,7 +226,7 @@ Encompassing test
 use "fitted_vals.dta", clear
 postfile pf_encom h beta tstat using "encom_results.dta", replace
 forvalues h = 1/11 {
-	gen d_`h'_encom = e_`h' - e_hat_`h'
+	gen d_`h'_encom = e_`h' - e_now_`h'
 	newey e_`h' d_`h'_encom, lag(6) force
 	scalar beta_`h' = _b[d_`h'_encom]
 	scalar tstat_`h' = _b[d_`h'_encom]/_se[d_`h'_encom]
@@ -258,13 +245,11 @@ drop _merge
 merge 1:1 h using "encom_results.dta"
 drop _merge
 
-keep h mae100 rmse100 mape100 dm_stat tstat
-order h mae100 rmse100 mape100 dm_stat tstat
+keep h rmse100 dm_stat tstat
+order h rmse100 dm_stat tstat
 
 label var h       "Horizon"
-label var mae100  "MAE (Bench=100)"
 label var rmse100 "RMSE (Bench=100)"
-label var mape100 "MAPE (Bench=100)"
 label var dm_stat "DM stat"
 label var tstat   "Encompassing t-stat β"
 
@@ -278,13 +263,11 @@ export excel using "Nowcasting_Performance.xlsx", firstrow(varlabels) replace
 	use "fitted_vals.dta", clear
 	tsset target_period, monthly
 
-	twoway (tsline y_hat_1 y_1 y_12 if tin(2002m2,2012m12), cmissing(n)), ///
-		title("Nowcast vs. true GDP growth — Horizon 1") ///
-		legend(position(6) ring(1) rows(1)  ///
-			   label(1 "Nowcast (h=1)") ///
-			   label(2 "1st release") ///
-			   label(3 "True"))
+	twoway (tsline e_1 e_now_1 if tin(2002m2,2012m12), cmissing(n))
+	
+	twoway (tsline e_2 e_now_2 if tin(2002m2,2012m12), cmissing(n))
 
+	twoway (tsline e_3 e_now_3 if tin(2002m2,2012m12), cmissing(n))
 		
 	twoway (tsline y_hat_1 y_1 y_12 if tin(2014m1,2020m2), cmissing(n)), ///
 		title("Nowcast vs. true GDP growth — Horizon 1") ///

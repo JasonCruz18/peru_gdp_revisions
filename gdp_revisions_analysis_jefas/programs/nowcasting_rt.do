@@ -170,6 +170,15 @@ forvalues h = 1/11 {
     }
 }
 
+forvalues h = 1/11 {
+    gen y_hat_`h' = y_`h' + e_hat_`h'
+}
+
+forvalues h = 1/11 {
+    gen e_now_`h' = .
+	replace e_now_`h' = y_12 - y_hat_`h'
+}
+
 
 /*----------------------
 Bias-scaling adjustment
@@ -186,12 +195,7 @@ forvalues h = 1/11 {
     scalar lambda = cond(mean_train!=0, mean_eval/mean_train, 1)
 
     * apply scaling only on eval subsample
-    replace e_hat_`h' = lambda * e_hat_`h' if eval==1
-}
-
-
-forvalues h = 1/11 {
-    gen y_hat_`h' = y_`h' + e_hat_`h'
+    replace e_now_`h' = lambda * e_now_`h' if eval==1
 }
 */
 
@@ -210,8 +214,8 @@ postfile pf_rmse h rmse using `rmse_results', replace
 
 forvalues h = 1/11 {
 
-	gen sq_now = (e_hat_`h')^2 if train==0
-	gen sq_bench = (e_`h')^2 if train==0
+	gen sq_now = (e_now_`h')^2 if eval==1
+	gen sq_bench = (e_`h')^2 if eval==1
 	quietly summarize sq_now
 	local rmse_now = sqrt(r(mean))
 	quietly summarize sq_bench
@@ -235,11 +239,11 @@ DM test
 
 use "fitted_vals.dta", clear
 forvalues h = 1/11 {
-	gen d_`h'_dm = (e_hat_`h')^2 - (e_`h')^2
+	gen d_`h'_dm = (e_now_`h')^2 - (e_`h')^2
 }
 postfile pf_dm h dm_stat using "dm_results.dta", replace
 forvalues h = 1/11 {
-	newey d_`h'_dm if train==0, lag(6) force
+	newey d_`h'_dm if eval==1, lag(6) force
 	scalar dm_stat_`h' = _b[_cons] / _se[_cons]
 	post pf_dm (`h') (dm_stat_`h')
 }
@@ -253,8 +257,8 @@ Encompassing test
 use "fitted_vals.dta", clear
 postfile pf_encom h beta tstat using "encom_results.dta", replace
 forvalues h = 1/11 {
-	gen d_`h'_encom = e_`h' - e_hat_`h'
-	newey e_`h' d_`h'_encom if train==0, lag(6) force
+	gen d_`h'_encom = e_`h' - e_now_`h'
+	newey e_`h' d_`h'_encom if eval==1, lag(6) force
 	scalar beta_`h' = _b[d_`h'_encom]
 	scalar tstat_`h' = _b[d_`h'_encom]/_se[d_`h'_encom]
 	post pf_encom (`h') (beta_`h') (tstat_`h')
@@ -290,5 +294,5 @@ export excel using "Nowcasting_Performance_EVAL_split_2013.xlsx", firstrow(varla
 use "fitted_vals.dta", clear
 	tsset target_period, monthly
 
-	twoway (tsline e_1 e_hat_1 if tin(2013m2,2022m12), cmissing(n))
+	twoway (tsline e_1 e_now_1 if tin(2013m2,2022m12), cmissing(n))
 	

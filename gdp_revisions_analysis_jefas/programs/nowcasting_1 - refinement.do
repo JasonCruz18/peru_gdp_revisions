@@ -170,6 +170,15 @@ forvalues h = 1/11 {
     }
 }
 
+forvalues h = 1/11 {
+    gen y_hat_`h' = y_`h' + e_hat_`h'
+}
+
+forvalues h = 1/11 {
+    gen e_now_`h' = .
+	replace e_now_`h' = y_12 - y_hat_`h'
+}
+
 
 /******************************************
  DPG+Cap: Real-time directional gating + caps
@@ -227,14 +236,14 @@ forvalues h = 1/11 {
     drop abs_s_`h'
 
     * 5) Directional shrink of your raw correction (no formula change upstream)
-    gen double e_dir_`h' = g_`h' * ( w_`h' * abs(e_hat_`h') )
+    gen double e_dir_`h' = g_`h' * ( w_`h' * abs(e_now_`h') )
 
 	* 6) Final nowcast with gated, capped correction  (safe drops)
 	capture drop e_dir_`h'
 	capture drop e_cap_`h'
 	capture drop y_hat_`h'
 
-	gen double e_dir_`h' = g_`h' * ( w_`h' * abs(e_hat_`h') )
+	gen double e_dir_`h' = g_`h' * ( w_`h' * abs(e_now_`h') )
 
 	gen double e_cap_`h' = 0
 	replace e_cap_`h' = sign(e_dir_`h') * min(abs(e_dir_`h'), `Cplus')   if g_`h'== 1
