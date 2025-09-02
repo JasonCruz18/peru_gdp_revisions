@@ -77,38 +77,6 @@ gen byte eval  = (tm >  tm(2013m12))
 tab train eval
 
 
-/*----------------------
-EWS construction
------------------------*/
-
-tsset target_period, monthly
-local delta = 0.5
-
-forvalues h = 1/12 {
-	gen Y_ews_`h' = .
-	quietly replace Y_ews_`h' = y_`h' in 1
-	forvalues t = 2/`=_N' {
-		quietly replace Y_ews_`h' = `delta'*L1.Y_ews_`h' + y_`h' in `t' if !missing(y_`h') & !missing(L1.Y_ews_`h')
-		quietly replace Y_ews_`h' = L1.Y_ews_`h' in `t' if missing(y_`h')
-	}
-}
-
-forvalues h = 2/12 {
-	gen R_ews_`h' = .
-	quietly replace R_ews_`h' = r_`h' in 1
-	forvalues t = 2/`=_N' {
-		quietly replace R_ews_`h' = `delta'*L1.R_ews_`h' + r_`h' in `t' if !missing(r_`h') & !missing(L1.R_ews_`h')
-		quietly replace R_ews_`h' = L1.R_ews_`h' in `t' if missing(r_`h')
-	}
-}
-
-forvalues h = 3/12 {
-	gen L1_R_ews_`h' = L1.R_ews_`h'
-}
-
-tempfile ewma
-save `ewma'
-
 
 /*----------------------
 Omnibus regressions
@@ -153,6 +121,42 @@ tempfile coeffs
 save `coeffs', replace
 
 
+
+/*----------------------
+EWS construction
+-----------------------*/
+
+tsset target_period, monthly
+tsfill, full
+
+*local delta = 0.5
+
+forvalues h = 1/11 {
+	gen Y_ews_`h' = .
+	quietly replace Y_ews_`h' = y_`h' in 1
+	forvalues t = 2/`=_N' {
+		quietly replace Y_ews_`h' = delta_`h'*L1.Y_ews_`h' + y_`h' in `t' if !missing(y_`h') & !missing(L1.Y_ews_`h')
+		quietly replace Y_ews_`h' = L1.Y_ews_`h' in `t' if missing(y_`h')
+	}
+}
+
+forvalues h = 2/11 {
+	gen R_ews_`h' = .
+	quietly replace R_ews_`h' = r_`h' in 1
+	forvalues t = 2/`=_N' {
+		quietly replace R_ews_`h' = delta_`h'*L1.R_ews_`h' + r_`h' in `t' if !missing(r_`h') & !missing(L1.R_ews_`h')
+		quietly replace R_ews_`h' = L1.R_ews_`h' in `t' if missing(r_`h')
+	}
+}
+
+forvalues h = 3/11 {
+	gen L1_R_ews_`h' = L1.R_ews_`h'
+}
+
+tempfile ewma
+save `ewma'
+
+
 /*----------------------
 Fitted values (raw correction)
 -----------------------*/
@@ -160,13 +164,13 @@ Fitted values (raw correction)
 forvalues h = 1/11 {
     gen e_hat_`h' = .
     if `h' == 1 {
-        replace e_hat_`h' = (alpha_`h')/(1 - `delta') + theta_`h'*Y_ews_`h'
+        replace e_hat_`h' = (alpha_`h')/(1 - delta_`h') + theta_`h'*Y_ews_`h'
     }
     else if `h' == 2 {
-        replace e_hat_`h' = (alpha_`h')/(1 - `delta') + theta_`h'*Y_ews_`h' + gamma_`h'*R_ews_`h'
+        replace e_hat_`h' = (alpha_`h')/(1 - delta_`h') + theta_`h'*Y_ews_`h' + gamma_`h'*R_ews_`h'
     }
     else {
-        replace e_hat_`h' = (alpha_`h')/(1 - `delta') + theta_`h'*Y_ews_`h' + gamma_`h'*R_ews_`h' + rho_`h'*L1_R_ews_`h'
+        replace e_hat_`h' = (alpha_`h')/(1 - delta_`h') + theta_`h'*Y_ews_`h' + gamma_`h'*R_ews_`h' + rho_`h'*L1_R_ews_`h'
     }
 }
 
@@ -283,6 +287,9 @@ label var h       "Horizon"
 label var rmse100 "RMSE (Bench=100)"
 label var dm_stat "DM stat"
 label var tstat   "Encompassing t-stat β"
+
+cd "$path"
+cd "$output_tables"
 
 export excel using "Nowcasting_Performance_EVAL_split_2013.xlsx", firstrow(varlabels) replace
 
