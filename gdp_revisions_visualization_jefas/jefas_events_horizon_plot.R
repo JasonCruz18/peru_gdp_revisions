@@ -12,6 +12,7 @@
 
 
 
+
 #*******************************************************************************
 # Libraries
 #*******************************************************************************
@@ -27,8 +28,7 @@ library(tcltk)        # GUI elements for user input
 library(sandwich)     # Robust standard errors
 library(lmtest)       # Hypothesis testing
 library(scales)       # Format number
-
-
+library(zoo)   # for as.yearmon
 
 #*******************************************************************************
 # Initial Setup
@@ -58,30 +58,18 @@ cat("Directories created successfully in:", user_path, "\n")
 
 
 #*******************************************************************************
-# Database Connection
+# Import from CSV file
 #*******************************************************************************
 
-# Retrieve database credentials from environment variables
-user <- Sys.getenv("CIUP_SQL_USER")
-password <- Sys.getenv("CIUP_SQL_PASS")
-host <- Sys.getenv("CIUP_SQL_HOST")
-port <- 5432
-database <- "gdp_revisions_datasets"
+# Define file path
+file_path <- "C:/Users/Jason Cruz/OneDrive/Documentos/jefas_nowcasting_panel.csv"
 
-# Connect to PostgreSQL database
-con <- dbConnect(RPostgres::Postgres(),
-                 dbname = database,
-                 host = host,
-                 port = port,
-                 user = user,
-                 password = password)
+# Read CSV into dataframe
+df <- read.csv(file_path)
 
-# Fetch data for the selected sector
-query <- "SELECT * FROM jefas_gdp_revisions_panel"
-df <- dbGetQuery(con, query)
-
-# Close database connection
-dbDisconnect(con)
+# If you prefer readr (tidyverse) for faster import:
+# library(readr)
+# df <- read_csv(file_path)
 
 
 
@@ -89,24 +77,24 @@ dbDisconnect(con)
 # Data Preparation
 #*******************************************************************************
 
-# Asegurar que vintages_date es de tipo Date
+# Asegurar que target_period es de tipo Date
 df <- df %>%
-  mutate(vintages_date = as.Date(vintages_date))  # Convertir a Date si es necesario
+  mutate(target_period = as.Date(target_period))  # Convertir a Date si es necesario
 
 # Definir las fechas específicas que quieres graficar
 selected_vintages <- as.Date(c("2022-07-01", "2022-08-01", "2022-09-01"))
 
 # Filtrar los datos
 df_filtered <- df %>%
-  filter(vintages_date %in% selected_vintages)
+  filter(target_period %in% selected_vintages)
 
 # Crear etiquetas amigables para la leyenda
 df_filtered <- df_filtered %>%
   mutate(vintage_label = case_when(
-    vintages_date == as.Date("2022-07-01") ~ "2022m07",
-    vintages_date == as.Date("2022-08-01") ~ "2022m08",
-    vintages_date == as.Date("2022-09-01") ~ "2022m09",
-    TRUE ~ as.character(vintages_date)  # En caso de otros valores no especificados
+    target_period == as.Date("2022-07-01") ~ "2022m07",
+    target_period == as.Date("2022-08-01") ~ "2022m08",
+    target_period == as.Date("2022-09-01") ~ "2022m09",
+    TRUE ~ as.character(target_period)  # En caso de otros valores no especificados
   ))
 
 # Definir formas específicas para cada línea
