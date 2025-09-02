@@ -65,38 +65,6 @@ Clean-up at a glance
 drop bench_*
 
 
-/*----------------------
-EWS construction
------------------------*/
-
-tsset target_period, monthly
-local delta = 0.5
-
-forvalues h = 1/12 {
-	gen Y_ews_`h' = .
-	quietly replace Y_ews_`h' = y_`h' in 1
-	forvalues t = 2/`=_N' {
-		quietly replace Y_ews_`h' = `delta'*L1.Y_ews_`h' + y_`h' in `t' if !missing(y_`h') & !missing(L1.Y_ews_`h')
-		quietly replace Y_ews_`h' = L1.Y_ews_`h' in `t' if missing(y_`h')
-	}
-}
-
-forvalues h = 2/12 {
-	gen R_ews_`h' = .
-	quietly replace R_ews_`h' = r_`h' in 1
-	forvalues t = 2/`=_N' {
-		quietly replace R_ews_`h' = `delta'*L1.R_ews_`h' + r_`h' in `t' if !missing(r_`h') & !missing(L1.R_ews_`h')
-		quietly replace R_ews_`h' = L1.R_ews_`h' in `t' if missing(r_`h')
-	}
-}
-
-forvalues h = 3/12 {
-	gen L1_R_ews_`h' = L1.R_ews_`h'
-}
-
-tempfile ewma
-save `ewma'
-
 
 /*----------------------
 Omnibus regressions
@@ -139,6 +107,42 @@ forvalues h = 1/11 {
 
 tempfile coeffs
 save `coeffs', replace
+
+
+
+/*----------------------
+EWS construction
+-----------------------*/
+
+tsset target_period, monthly
+tsfill, full
+*local delta = 0.3
+
+forvalues h = 1/11 {
+	gen Y_ews_`h' = .
+	quietly replace Y_ews_`h' = y_`h' in 1
+	forvalues t = 2/`=_N' {
+		quietly replace Y_ews_`h' = delta_`h'*L1.Y_ews_`h' + y_`h' in `t' if !missing(y_`h') & !missing(L1.Y_ews_`h')
+		quietly replace Y_ews_`h' = L1.Y_ews_`h' in `t' if missing(y_`h')
+	}
+}
+
+forvalues h = 2/11 {
+	gen R_ews_`h' = .
+	quietly replace R_ews_`h' = r_`h' in 1
+	forvalues t = 2/`=_N' {
+		quietly replace R_ews_`h' = delta_`h'*L1.R_ews_`h' + r_`h' in `t' if !missing(r_`h') & !missing(L1.R_ews_`h')
+		quietly replace R_ews_`h' = L1.R_ews_`h' in `t' if missing(r_`h')
+	}
+}
+
+forvalues h = 3/11 {
+	gen L1_R_ews_`h' = L1.R_ews_`h'
+}
+
+tempfile ewma
+save `ewma'
+
 
 
 /*----------------------
