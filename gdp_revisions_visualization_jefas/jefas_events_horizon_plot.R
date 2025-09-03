@@ -1,7 +1,6 @@
 #*******************************************************************************
 # Lines: Specific Annual Events by Horizon (1998 & 1999)
 #*******************************************************************************
-
 #-------------------------------------------------------------------------------
 # Author: Jason Cruz
 #...............................................................................
@@ -10,31 +9,24 @@
 # + Last Updated: 12/15/24
 #-------------------------------------------------------------------------------
 
-
-
-
 #*******************************************************************************
 # Libraries
 #*******************************************************************************
-
-# Load required packages for data processing and visualization
-library(RPostgres)    # PostgreSQL database connection
-library(ggplot2)      # Data visualization
-library(lubridate)    # Date handling
-library(svglite)      # SVG graphics export
-library(dplyr)        # Data manipulation
-library(tidyr)        # Data reshaping (pivot_longer)
-library(tcltk)        # GUI elements for user input
-library(sandwich)     # Robust standard errors
-library(lmtest)       # Hypothesis testing
-library(scales)       # Format number
-library(zoo)   # for as.yearmon
+library(RPostgres)
+library(ggplot2)
+library(lubridate)
+library(svglite)
+library(dplyr)
+library(tidyr)
+library(tcltk)
+library(sandwich)
+library(lmtest)
+library(scales)
+library(zoo)
 
 #*******************************************************************************
 # Initial Setup
 #*******************************************************************************
-
-# Use a dialog box to select the folder
 if (requireNamespace("rstudioapi", quietly = TRUE)) {
   user_path <- rstudioapi::selectDirectory()
   if (!is.null(user_path)) {
@@ -47,81 +39,90 @@ if (requireNamespace("rstudioapi", quietly = TRUE)) {
   cat("Install the 'rstudioapi' package to use this functionality.\n")
 }
 
-# Define output directories
 output_dir <- file.path(user_path, "charts")
-
-# Create output directories if they do not exist
 if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
-
 cat("Directories created successfully in:", user_path, "\n")
-
-
 
 #*******************************************************************************
 # Import from CSV file
 #*******************************************************************************
-
-# Define file path
 file_path <- "C:/Users/Jason Cruz/OneDrive/Documentos/jefas_nowcasting_panel.csv"
-
-# Read CSV into dataframe
 df <- read.csv(file_path)
-
-# If you prefer readr (tidyverse) for faster import:
-# library(readr)
-# df <- read_csv(file_path)
-
-
 
 #*******************************************************************************
 # Data Preparation
 #*******************************************************************************
-
-# Asegurar que target_period es de tipo Date
 df <- df %>%
-  mutate(target_period = as.Date(target_period))  # Convertir a Date si es necesario
+  mutate(
+    target_period = gsub("m", "-", target_period),
+    target_period = as.yearmon(target_period, "%Y-%m"),
+    target_period = as.Date(target_period),
+    horizon = as.numeric(horizon)
+  )
 
-# Definir las fechas específicas que quieres graficar
-selected_vintages <- as.Date(c("2022-07-01", "2022-08-01", "2022-09-01"))
+selected_vintages <- as.Date(c("2008-07-01", "2008-08-01", "2008-09-01"))
 
-# Filtrar los datos
 df_filtered <- df %>%
-  filter(target_period %in% selected_vintages)
+  filter(target_period %in% selected_vintages) %>%
+  mutate(
+    vintage_label = case_when(
+      target_period == as.Date("2008-07-01") ~ "2008m07",
+      target_period == as.Date("2008-08-01") ~ "2008m08",
+      target_period == as.Date("2008-09-01") ~ "2008m09",
+      TRUE ~ as.character(target_period)
+    )
+  )
 
-# Crear etiquetas amigables para la leyenda
-df_filtered <- df_filtered %>%
-  mutate(vintage_label = case_when(
-    target_period == as.Date("2022-07-01") ~ "2022m07",
-    target_period == as.Date("2022-08-01") ~ "2022m08",
-    target_period == as.Date("2022-09-01") ~ "2022m09",
-    TRUE ~ as.character(target_period)  # En caso de otros valores no especificados
-  ))
-
-# Definir formas específicas para cada línea
-shape_values <- c("2022m07" = 16,  # Círculo (point)
-                  "2022m08" = 15,   # Cuadrado (square)
-                  "2022m09" = 17)   # Triángulo (triangle)
-
-
+# Wide → Long: add both release & release_hat
+df_long <- df_filtered %>%
+  select(horizon, vintage_label, gdp_release, gdp_release_hat) %>%
+  pivot_longer(cols = c("gdp_release", "gdp_release_hat"),
+               names_to = "series", values_to = "value") %>%
+  mutate(
+    series_label = case_when(
+      series == "gdp_release" ~ vintage_label,
+      series == "gdp_release_hat" ~ paste0(vintage_label, " now")
+    ),
+    type = ifelse(series == "gdp_release", "release", "nowcast")
+  )
 
 #*******************************************************************************
 # Visualization
 #*******************************************************************************
+color_values <- c("2008m07" = "#3366FF", "2008m08" = "#00DFA2", "2008m09" = "#E6004C",
+                  "2008m07 now" = "#3366FF", "2008m08 now" = "#00DFA2", "2008m09 now" = "#E6004C")
 
-# Graficar con símbolos diferentes
-horizon_plot <- ggplot(df_filtered, aes(x = horizon, y = gdp_release, color = vintage_label, shape = vintage_label)) +
-  geom_line(linewidth = 1.2) +  # Grosor de línea
-  geom_point(size = 4.0) +  # Tamaño de los puntos con forma específica
-  #geom_hline(yintercept = 0, color = "black", linewidth = 0.45) +  # Línea horizontal en 0
-  scale_x_continuous(breaks = 1:12) +  # Mostrar enteros de 1 a 12 en el eje X
-  scale_color_manual(values = c("#3366FF", "#00DFA2", "#E6004C")) +  # Colores personalizados
-  scale_shape_manual(values = shape_values) +  # Aplicar formas personalizadas
-  labs(
-    x = NULL,
-    y = NULL,
-    title = NULL,
-    color = NULL,
-    shape = NULL  # Ocultar título de la leyenda de formas
+shape_values <- c("2008m07" = 16, "2008m08" = 15, "2008m09" = 17)
+
+horizon_plot <- ggplot(df_long, aes(x = horizon, y = value, color = series_label)) +
+  # lines for all (solid for releases, dashed for nowcasts)
+  geom_line(aes(alpha = ifelse(type == "nowcast", 0.75, 1),
+                linetype = ifelse(type == "nowcast", "dashed", "solid")),
+            linewidth = 1.2) +
+  # points only for releases
+  geom_point(data = subset(df_long, type == "release"),
+             aes(shape = series_label), size = 4.0) +
+  scale_x_continuous(breaks = 1:12) +
+  scale_color_manual(values = color_values,
+                     breaks = c("2008m07","2008m08","2008m09",
+                                "2008m07 now","2008m08 now","2008m09 now")) +
+  scale_shape_manual(values = shape_values) +
+  scale_alpha_identity() +
+  scale_linetype_identity() +
+  labs(x = NULL, y = NULL, title = NULL, color = NULL) +
+  guides(
+    color = guide_legend(
+      nrow = 2, byrow = TRUE,
+      keywidth = 1.5, keyheight = 1.2,   # make boxes larger
+      override.aes = list(
+        shape = c(16, 15, 17, NA, NA, NA),             # shapes only for releases
+        linetype = c("solid","solid","solid",
+                     "dashed","dashed","dashed"),      # dashed for nowcasts
+        alpha = c(1,1,1,0.75,0.75,0.75),                  # transparency
+        size = c(4,4,4,4,4,4)              # thicker lines & bigger symbols
+      )
+    ),
+    shape = "none"
   ) +
   theme_minimal() +
   theme(
@@ -145,11 +146,7 @@ horizon_plot <- ggplot(df_filtered, aes(x = horizon, y = gdp_release, color = vi
     plot.margin = margin(9, 5, 9, 4)
   )
 
-# Mostrar el gráfico
 horizon_plot
 
-
-# Guardar el gráfico
-plot_output_file <- file.path(output_dir, "releses_horizon_plot.png")
+plot_output_file <- file.path(output_dir, "nowcasts_releases_horizon_plot_1.png")
 ggsave(filename = plot_output_file, plot = horizon_plot, width = 10, height = 6, dpi = 300, bg = "white")
-
