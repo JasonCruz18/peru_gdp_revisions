@@ -72,7 +72,7 @@ Regressions to assess rationality on revisions
 	Time Series Analysis
 	-----------------------*/
 	
-	use "$input_data/r_gdp_revisions_ts", clear
+	use "$input_data/e_gdp_revisions_ts", clear // We use the same data than "errors.do" to homogenize the obs number under analysis
 	
 		* Set time-variable
 		tsset target_period, monthly
@@ -80,7 +80,7 @@ Regressions to assess rationality on revisions
 		* Keep common observations
 		** Set common information using regression for the model with the least observations to keep if !missing(residuals)
 		qui {
-			newey r_12 L1.r_12 r_11, lag(6) force
+			newey e_1 y_1, lag(6) force
 			predict residuals_aux, resid  // Generate the regression residuals.
 		}
 		keep if !missing(residuals_aux)  // Keep only the observations where the residuals are not missing.
