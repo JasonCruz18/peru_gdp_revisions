@@ -87,7 +87,6 @@ Regressions to assess rationality on errors
 		qui drop residuals_aux
 			
 		* Generate explanatory vars (only once per loop)
-		
 		gen y_h    		= .
 		gen r_h    		= .
 		gen bench_y_h 	= .
@@ -96,12 +95,10 @@ Regressions to assess rationality on errors
 		gen e_h_lag  	= .
 		
 		* Generate interaction variables (only once per loop)
-		
 		gen D_h      	= . // Dummy for benchmark revisions
 		gen Dy_h     	= . // Interaction Dummy x y_h
 		gen Dr_h     	= . // Interaction Dummy x r_h
 		gen Dr_h_lag   	= . // Interaction Dummy x r_h_lag
-
 			
 		forval h = 1/11 {			
 		capture confirm variable r_`h'
@@ -121,7 +118,7 @@ Regressions to assess rationality on errors
 				quietly count if !missing(e_`h')
 				if r(N) < 5 continue  // Skip if there are less than 5 observations
 						
-				* Unbiasedness		
+				* Unbiasedness
 				newey e_`h', lag(6) force					
 				eststo e_bias_`h'
 				
