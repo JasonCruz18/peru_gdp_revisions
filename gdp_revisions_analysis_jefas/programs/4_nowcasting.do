@@ -89,7 +89,7 @@ Ex-post nowcasting exercise
 		* Keep common observations
 		** Set common information using regression for the model with the least observations to keep if !missing(residuals)
 		qui {
-			newey e_1 y_1 L1.e_1, lag(6) force
+			newey e_1 y_1, lag(6) force
 			predict residuals_aux, resid
 		}
 		keep if !missing(residuals_aux)
@@ -199,6 +199,20 @@ Ex-post nowcasting exercise
 	----------------------*/
 
 	use "$input_data/fitted_vals", clear
+	
+	
+		* Set time-variable
+		tsset target_period, monthly
+		
+		* Keep common observations
+		** Set common information using regression for the model with the least observations to keep if !missing(residuals)
+		qui {
+			newey e_1 y_1, lag(6) force
+			predict residuals_aux, resid
+		}
+		keep if !missing(residuals_aux)
+		drop residuals_aux
+		
 
 		/*++++++++++++++++++++
 		Relative RMSE
