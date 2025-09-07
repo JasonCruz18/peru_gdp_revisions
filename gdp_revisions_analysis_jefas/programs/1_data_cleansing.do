@@ -148,7 +148,7 @@ Data Clean-up
 		replace target_period = mofd(dofc(target_period))
 		format target_period %tm
 		
-		* Order and	sort by vintages_date
+		* Order and	sort by target_period
 		order target_period		
 		sort target_period
 		
@@ -198,7 +198,7 @@ Data Clean-up
 			}
 		}
 	
-	 	** Optionally, instead of wiping the full window, you can restrict to just the aberrant COVID months (very large or short growth rates)
+	 	** Optionally, instead of wiping the full window, we can restrict to just the aberrant COVID months (very large or short growth rates)
 	
 		*** Flag outlier months
 	*	gen covid_outlier = inlist(target_period, tm(2020m4), tm(2020m5), tm(2021m4), tm(2021m5))
@@ -226,7 +226,7 @@ Data Clean-up
 	revisions dummies
 	-----------------------*/
 	
-	foreach logic in e r {
+	foreach logic in e r { // Since datasets are revision- and error-specific, computing dummies for benchmark is revision- and error-logic-based  (see the data-building official documentation)
 
 	use `logic'_gdp_bench_releases, clear
 	
@@ -234,7 +234,7 @@ Data Clean-up
 		* Remove the old true value
 		drop *_most_recent		
 	
-		* Remove releases for h > 12 (12-th release will be the new true value)		
+		* Remove releases for h > 12 (12-th release will be the new true value)	
 		ds *_release_*
 		
 		foreach var in `r(varlist)' {
@@ -254,21 +254,25 @@ Data Clean-up
 			rename gdp_release_`h' y_`h' 
 		}
 			
-		* Add the suffix "dummy" in each column
+		* Add the suffix "bench" (dummy var) in each vars to differentiate with growth rates
 		foreach var of varlist * {
 			if "`var'" != "target_period" {
 				rename `var' bench_`var'
 			}
 		}
 		
-		* Convert variables from double to int (except vintages_date)
-		ds target_period, not
-		recast int `r(varlist)', force
+		* Convert variables from double to byte (except target_period)
+		ds target_period, not // List all variables except target_period
+		recast byte `r(varlist)', force
 		
 		* Label vars
 		label variable target_period "Monthly Targed Period"
 		
-		forvalue h = 1/12{
+		label variable bench_y_1 "1st GDP Benchmark Release"
+		label variable bench_y_2 "2nd GDP Benchmark Release"
+		label variable bench_y_3 "3rd GDP Benchmark Release"
+		
+		forvalue h = 4/12{
 			label variable bench_y_`h' "`h'-th GDP Benchmark Release"
 		}
 
@@ -276,7 +280,7 @@ Data Clean-up
 		replace target_period = mofd(dofc(target_period))
 		format target_period %tm
 		
-		* Order and	sort by vintages_date
+		* Order and	sort by target_period
 		order target_period
 		sort target_period
 
@@ -286,7 +290,7 @@ Data Clean-up
 			
 		/*++++++++++++++++++++++
 		Compute dummy for
-		benchmark r
+		benchmark r and e
 		++++++++++++++++++++++++*/
 		
 		* Generate benchmark revisions for horizons 2 to 12
@@ -296,11 +300,15 @@ Data Clean-up
 		}
 		
 		* Label benchmark revisions
-		forvalue h = 2/12{
+		label variable bench_r_1 "1st Benchmark GDP Revision"
+		label variable bench_r_2 "2nd Benchmark GDP Revision"
+		label variable bench_r_3 "3rd Benchmark GDP Revision"
+		
+		forvalue h = 4/12{
 			label variable bench_r_`h' "`=`h'-1'-th Benchmark GDP Revision"
 		}
 		
-		* Keep only bench revisions and target period
+		* Keep only bench revisions and releases, and target period
 		keep target_period bench_y_* bench_r_*
 
 		* Handle COVID observations
@@ -314,7 +322,7 @@ Data Clean-up
 			}
 		}
 	
-	// 	** Optionally, instead of wiping the full window, you can restrict to just the aberrant COVID months (very large or short growth rates)
+	 	** Optionally, instead of wiping the full window, we can restrict to just the aberrant COVID months (very large or short growth rates)
 	
 		*** Flag outlier months
 	*	gen covid_outlier = inlist(target_period, tm(2020m4), tm(2020m5), tm(2021m4), tm(2021m5))
