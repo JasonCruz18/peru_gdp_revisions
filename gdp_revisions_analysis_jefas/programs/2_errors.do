@@ -179,13 +179,13 @@ Rationality tests based on errors
 	
 	* Screen results
 	noisily {
-	esttab e_bias_* , se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps	scalar(N) 				
-	esttab e_mz_* , order(_cons y_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
-	esttab e_enco_* , order(_cons r_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
+	esttab e_bias_*, se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 				
+	esttab e_mz_*, order(_cons y_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
+	esttab e_enco_*, order(_cons r_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
 	esttab e_amz_*, order(_cons y_h r_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N)  
-	esttab e_omni_* , order(_cons y_h r_h r_h_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
-	esttab e_bench_omni_* , order(_cons y_h r_h r_h_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
-	esttab e_fore_* , order(_cons) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
+	esttab e_omni_*, order(_cons y_h r_h r_h_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
+	esttab e_bench_omni_*, order(_cons y_h r_h r_h_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
+	esttab e_fore_*, order(_cons) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
 	}
 	
 	* Exportable results (.txt)

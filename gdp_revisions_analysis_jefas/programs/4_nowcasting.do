@@ -1,338 +1,202 @@
 /********************
-Nowcasting GDP Revisions — EWMA
+Ex-post nowcasting exercise
 ***
 
 	Author
 	---------------------
-	D & J
+	Jason (for any issues email to jj.cruza@up.edu.pe)
 	*********************/
 
 	*** Program: nowcasting.do
 	** 	First Created: 08/11/25
-	** 	Last Updated:  08/25/25
+	** 	Last Updated:  09/09/25	
 		
-***/
+***
+** Just click on the "Run (do)" button, the code will do the rest for you.
+***
 
-
-/*----------------------
-Initial do-file setting
------------------------*/
-
-cls
-clear all
-version
-set more off
-cap set maxvar 12000
-program drop _all
-capture log close
-pause on
-set varabbrev off
-
-
-/*----------------------
-Defining workspace path
------------------------*/
-
-di `"Please, enter your path for storing the outputs of this dofile in the COMMAND WINDOW and press ENTER."'  _request(path)
-cd "$path"
-
-
-/*----------------------
-Setting folders to save outputs
------------------------*/
-
-shell mkdir "input"
-shell mkdir "input/data"
-shell mkdir "output"
-shell mkdir "output/tables"
-
-global input_data "input/data"
-global output_tables "output/tables"
-
-
-/*----------------------
-Time Series Analysis
------------------------*/
-
-cd "$input_data"
-use e_gdp_revisions_ts, clear
-
-
-/*----------------------
-Clean-up at a glance
------------------------*/
-
-drop bench_*
-
-
-
-/*----------------------
-Omnibus regressions
------------------------*/
-
-qui {
-    tsset target_period, monthly
-    newey e_1 y_1 L1.e_1, lag(6) force
-    predict residuals_aux, resid
-}
-keep if !missing(residuals_aux)
-drop residuals_aux
-
-forvalues h = 1/11 {
-    if `h' == 1 {
-        newey e_`h' L1.e_`h' y_`h', lag(6) force
-        matrix b = e(b)
-        gen alpha_`h' = b[1, "_cons"]
-        gen theta_`h' = b[1, "y_`h'"]
-        gen delta_`h' = b[1, "L1.e_`h'"]
-    }
-    else if `h' == 2 {
-        newey e_`h' L1.e_`h' y_`h' r_`h', lag(6) force
-        matrix b = e(b)
-        gen alpha_`h' = b[1, "_cons"]
-        gen theta_`h' = b[1, "y_`h'"]
-        gen delta_`h' = b[1, "L1.e_`h'"]
-        gen gamma_`h' = b[1, "r_`h'"]
-    }
-    else {
-        newey e_`h' L1.e_`h' y_`h' r_`h' L1.r_`h', lag(6) force
-        matrix b = e(b)
-        gen alpha_`h' = b[1, "_cons"]
-        gen theta_`h' = b[1, "y_`h'"]
-        gen delta_`h' = b[1, "L1.e_`h'"]
-        gen gamma_`h' = b[1, "r_`h'"]
-        gen rho_`h'   = b[1, "L1.r_`h'"]
-    }
-}
-
-tempfile coeffs
-save `coeffs', replace
-
-
-
-/*----------------------
-EWS construction
------------------------*/
-
-tsset target_period, monthly
-tsfill, full
-*local delta = 0.3
-
-forvalues h = 1/11 {
-	gen Y_ews_`h' = .
-	quietly replace Y_ews_`h' = y_`h' in 1
-	forvalues t = 2/`=_N' {
-		quietly replace Y_ews_`h' = delta_`h'*L1.Y_ews_`h' + y_`h' in `t' if !missing(y_`h') & !missing(L1.Y_ews_`h')
-		quietly replace Y_ews_`h' = L1.Y_ews_`h' in `t' if missing(y_`h')
-	}
-}
-
-forvalues h = 2/11 {
-	gen R_ews_`h' = .
-	quietly replace R_ews_`h' = r_`h' in 1
-	forvalues t = 2/`=_N' {
-		quietly replace R_ews_`h' = delta_`h'*L1.R_ews_`h' + r_`h' in `t' if !missing(r_`h') & !missing(L1.R_ews_`h')
-		quietly replace R_ews_`h' = L1.R_ews_`h' in `t' if missing(r_`h')
-	}
-}
-
-forvalues h = 3/11 {
-	gen L1_R_ews_`h' = L1.R_ews_`h'
-}
-
-tempfile ewma
-save `ewma'
-
-
-
-/*----------------------
-Fitted values
------------------------*/
-
-forvalues h = 1/11 {
-    gen e_hat_`h' = .
-    if `h' == 1 {
-        replace e_hat_`h' = (alpha_`h')/(1 - delta_`h') + theta_`h'*Y_ews_`h'
-    }
-    else if `h' == 2 {
-        replace e_hat_`h' = (alpha_`h')/(1 - delta_`h') + theta_`h'*Y_ews_`h' + gamma_`h'*R_ews_`h'
-    }
-    else {
-        replace e_hat_`h' = (alpha_`h')/(1 - delta_`h') + theta_`h'*Y_ews_`h' + gamma_`h'*R_ews_`h' + rho_`h'*L1_R_ews_`h'
-    }
-}
-
-forvalues h = 1/11 {
-    gen y_hat_`h' = y_`h' + e_hat_`h'
-}
-
-forvalues h = 1/11 {
-    gen e_now_`h' = .
-	replace e_now_`h' = y_12 - y_hat_`h'
-}
-
-
-save "fitted_vals.dta", replace
-
-
-/*----------------------
-Forecast evaluation
------------------------*/
-
-use "fitted_vals.dta", clear
-
-* Relative MAE, RMSE, MAPE vs benchmark
-tempfile rmse_results
-postfile pf_rmse h rmse using `rmse_results', replace
-
-forvalues h = 1/11 {
-	gen sq_now = (e_now_`h')^2
-	gen sq_bench = (e_`h')^2
-	quietly summarize sq_now
-	local rmse_now = sqrt(r(mean))
-	quietly summarize sq_bench
-	local rmse_bench = sqrt(r(mean))
-	drop sq_now sq_bench
-	local rmse_rel = `rmse_now' / `rmse_bench'
-
-	post pf_rmse (`h') (`rmse_rel')
-}
-postclose pf_rmse
-use `rmse_results', clear
-
-gen rmse100 = rmse*100
-
-save "rmse_results.dta", replace
-export excel h rmse100 using "nowcasting_rel_perf.xlsx", firstrow(variables) replace
-
-
-/*----------------------
-DM test
------------------------*/
-
-use "fitted_vals.dta", clear
-forvalues h = 1/11 {
-	gen d_`h'_dm = (e_now_`h')^2 - (e_`h')^2
-}
-postfile pf_dm h dm_stat using "dm_results.dta", replace
-forvalues h = 1/11 {
-	newey d_`h'_dm, lag(6) force
-	scalar dm_stat_`h' = _b[_cons] / _se[_cons]
-	post pf_dm (`h') (dm_stat_`h')
-}
-postclose pf_dm
-
-
-/*----------------------
-Encompassing test
------------------------*/
-
-use "fitted_vals.dta", clear
-postfile pf_encom h beta tstat using "encom_results.dta", replace
-forvalues h = 1/11 {
-	gen d_`h'_encom = e_`h' - e_now_`h'
-	newey e_`h' d_`h'_encom, lag(6) force
-	scalar beta_`h' = _b[d_`h'_encom]
-	scalar tstat_`h' = _b[d_`h'_encom]/_se[d_`h'_encom]
-	post pf_encom (`h') (beta_`h') (tstat_`h')
-}
-postclose pf_encom
-
-
-/*----------------------
-Merge and Final Export
------------------------*/
-
-use "rmse_results.dta", clear
-merge 1:1 h using "dm_results.dta"
-drop _merge
-merge 1:1 h using "encom_results.dta"
-drop _merge
-
-keep h rmse100 dm_stat tstat
-order h rmse100 dm_stat tstat
-
-label var h       "Horizon"
-label var rmse100 "RMSE (Bench=100)"
-label var dm_stat "DM stat"
-label var tstat   "Encompassing t-stat β"
-
-export excel using "Nowcasting_Performance.xlsx", firstrow(varlabels) replace
 
 
 	/*----------------------
-	Plots
+	Initial do-file setting
 	-----------------------*/
 
-	use "fitted_vals.dta", clear
-	tsset target_period, monthly
+	cls 					// Clears the screen.
+	clear all 				// Frees all memory.
+	version 				// Displays the software version.
+			
+	set more off 			// Turns off pagination for output.
+	cap set maxvar 12000	// Sets the maximum number of variables to 12000.
+	program drop _all 		// Deletes all user-defined programs.
+				
+	capture log close 		// Closes the log file if open.
+					
+	pause on 				// Enables pauses in programs.
+	set varabbrev off 		// Turns off variable abbreviation.
+				
+	//log using jefas_encompassing.txt, text replace // Opens a log file and replaces it if it exists.
 
-	twoway (tsline e_1 e_now_1 if tin(2002m2,2012m12), cmissing(n))
 	
-	twoway (tsline e_2 e_now_2 if tin(2002m2,2012m12), cmissing(n))
+	
+	/*----------------------
+	Defining workspace path
+	------------------------*/
 
-	twoway (tsline e_3 e_now_3 if tin(2002m2,2012m12), cmissing(n))
+	di `"Please, enter your path for storing the (in/out)puts of this do-file in the COMMAND WINDOW and press ENTER."'  _request(path)
+	
+	cd "$path"
 		
-	twoway (tsline y_hat_1 y_1 y_12 if tin(2014m1,2020m2), cmissing(n)), ///
-		title("Nowcast vs. true GDP growth — Horizon 1") ///
-		legend(position(6) ring(1) rows(1)  ///
-			   label(1 "Nowcast (h=1)") ///
-			   label(2 "1st release") ///
-			   label(3 "True"))
-
-	twoway (tsline y_hat_2 y_2 y_12 if tin(2002m2,2012m12), cmissing(n)), ///
-		title("Nowcast vs. true GDP growth — Horizon 2") ///
-		legend(position(6) ring(1) rows(1)  ///
-		   label(1 "Nowcast (h=2)") ///
-		   label(2 "2nd release") ///
-		   label(3 "True"))
+	
+	
+	/*----------------------
+	Setting folders to store (in/out)puts
+	------------------------*/
+	
+	shell mkdir "raw_data"		// Creating raw data folder.
+	shell mkdir "input_data"	// Creating input data folder.
+	shell mkdir "output" 		// Creating output folder.
+*	shell mkdir "output/graphs" // Creating output charts folder.
+	shell mkdir "output/tables" // Creating output tables folder.
+			
 		
-	twoway (tsline y_hat_2 y_2 y_12 if tin(2014m1,2020m2), cmissing(n)), ///
-		title("Nowcast vs. true GDP growth — Horizon 2") ///
-		legend(position(6) ring(1) rows(1)  ///
-		   label(1 "Nowcast (h=2)") ///
-		   label(2 "2nd release") ///
-		   label(3 "True"))
+	* Set as global vars
+	
+	global raw_data "raw_data"				// Use to raw data.
+	global input_data "input_data"			// Use to import data.
+*	global output_graphs "output/graphs"	// Use to export charts.
+	global output_tables "output/tables"	// Use to export tables.
 
-	twoway (tsline y_hat_3 y_3 y_12 if tin(2002m2,2012m12), cmissing(n)), ///
-		title("Nowcast vs. true GDP growth — Horizon 3") ///
-		legend(position(6) ring(1) rows(1)  ///
-		   label(1 "Nowcast (h=3)") ///
-		   label(2 "3rd release") ///
-		   label(3 "True"))
+	
+
+	/*----------------------
+	Clean-up at a glance
+	-----------------------*/
+
+	use "$input_data/e_gdp_revisions_ts", clear
+
+		* Drop benchmark revision dummies since they are no longer needed
+		drop bench_*
+
+
+
+	/*----------------------
+	Omnibus regressions
+	-----------------------*/
+
+		* Set time-variable
+		tsset target_period, monthly
 		
-	twoway ///
-		(tsline y_hat_3 if tin(2014m1,2020m2), cmissing(n) ///
-			lcolor(blue) lwidth(0.5) lpattern(dash)) ///
-		(tsline y_3 if tin(2014m1,2020m2), cmissing(n) ///
-			lcolor(orange)) ///
-		(tsline y_12 if tin(2014m1,2020m2), cmissing(n) ///
-			lcolor(red) lpattern(solid)), ///
-		title("Nowcast vs. true GDP growth — Horizon 3") ///
-		legend(position(6) ring(1) rows(1) ///
-			   label(1 "Nowcast (h=3)") ///
-			   label(2 "3rd release") ///
-			   label(3 "True"))
+		* Keep common observations
+		** Set common information using regression for the model with the least observations to keep if !missing(residuals)
+		qui {
+			newey e_1 y_1 L1.e_1, lag(6) force
+			predict residuals_aux, resid
+		}
+		keep if !missing(residuals_aux)
+		drop residuals_aux
 
-		   
-		   
-	twoway ///
-		(tsline y_hat_3 if tin(2014m1,2020m2), cmissing(n) lcolor(red)) ///
-		(tsline y_12     if tin(2014m1,2020m2), cmissing(n) lcolor(blue)), ///
-		title("Nowcast vs. true GDP growth — Horizon 3") ///
-		legend(position(6) ring(1) rows(1) ///
-			   label(1 "Nowcast (h=3)") ///
-			   label(2 "True"))
-		   
-	twoway ///
-		(tsline y_3 if tin(2014m1,2020m2), cmissing(n) lcolor(green)) ///
-		(tsline y_12     if tin(2014m1,2020m2), cmissing(n) lcolor(blue)), ///
-		title("Nowcast vs. true GDP growth — Horizon 3") ///
-		legend(position(6) ring(1) rows(1) ///
-			   label(1 "3rd release") ///
-			   label(2 "True"))
+		forvalues h = 1/11 {
+			if `h' == 1 {
+				newey e_`h' L1.e_`h' y_`h', lag(6) force
+				matrix b = e(b)
+				gen alpha_`h' = b[1, "_cons"]
+				gen theta_`h' = b[1, "y_`h'"]
+				gen delta_`h' = b[1, "L1.e_`h'"]
+			}
+			else if `h' == 2 {
+				newey e_`h' L1.e_`h' y_`h' r_`h', lag(6) force
+				matrix b = e(b)
+				gen alpha_`h' = b[1, "_cons"]
+				gen theta_`h' = b[1, "y_`h'"]
+				gen delta_`h' = b[1, "L1.e_`h'"]
+				gen gamma_`h' = b[1, "r_`h'"]
+			}
+			else {
+				newey e_`h' L1.e_`h' y_`h' r_`h' L1.r_`h', lag(6) force
+				matrix b = e(b)
+				gen alpha_`h' = b[1, "_cons"]
+				gen theta_`h' = b[1, "y_`h'"]
+				gen delta_`h' = b[1, "L1.e_`h'"]
+				gen gamma_`h' = b[1, "r_`h'"]
+				gen rho_`h'   = b[1, "L1.r_`h'"]
+			}
+		}
+
+		
+	tempfile omnibus_coeffs
+	save `omnibus_coeffs', replace
 
 
 
+	/*----------------------
+	EWS construction
+	-----------------------*/
+
+		tsfill, full // Ensure the whole range for target periods
+	* 	local delta = 0.3
+
+		forvalues h = 1/11 {
+			gen Y_ews_`h' = .
+			quietly replace Y_ews_`h' = y_`h' in 1
+			forvalues t = 2/`=_N' {
+				quietly replace Y_ews_`h' = delta_`h'*L1.Y_ews_`h' + y_`h' in `t' if !missing(y_`h') & !missing(L1.Y_ews_`h')
+				quietly replace Y_ews_`h' = L1.Y_ews_`h' in `t' if missing(y_`h')
+			}
+		}
+
+		forvalues h = 2/11 {
+			gen R_ews_`h' = .
+			quietly replace R_ews_`h' = r_`h' in 1
+			forvalues t = 2/`=_N' {
+				quietly replace R_ews_`h' = delta_`h'*L1.R_ews_`h' + r_`h' in `t' if !missing(r_`h') & !missing(L1.R_ews_`h')
+				quietly replace R_ews_`h' = L1.R_ews_`h' in `t' if missing(r_`h')
+			}
+		}
+
+		forvalues h = 3/11 {
+			gen L1_R_ews_`h' = L1.R_ews_`h'
+		}
+
+		
+	tempfile ews
+	save `ews', replace
 
 
+
+	/*----------------------
+	Fitted values
+	-----------------------*/
+
+		forvalues h = 1/11 {
+			gen e_hat_`h' = .
+			if `h' == 1 {
+				replace e_hat_`h' = (alpha_`h')/(1 - delta_`h') + theta_`h'*Y_ews_`h'
+			}
+			else if `h' == 2 {
+				replace e_hat_`h' = (alpha_`h')/(1 - delta_`h') + theta_`h'*Y_ews_`h' + gamma_`h'*R_ews_`h'
+			}
+			else {
+				replace e_hat_`h' = (alpha_`h')/(1 - delta_`h') + theta_`h'*Y_ews_`h' + gamma_`h'*R_ews_`h' + rho_`h'*L1_R_ews_`h'
+			}
+		}
+
+		forvalues h = 1/11 {
+			gen y_hat_`h' = y_`h' + e_hat_`h'
+		}
+
+		forvalues h = 1/11 {
+			gen e_now_`h' = .
+			replace e_now_`h' = y_12 - y_hat_`h'
+		}
+
+
+	save "$input_data/fitted_vals", replace
+
+	
+
+	/*----------------------
+	Nowcast evaluation
+	-----------------------*/
+
+	use "$input_data/fitted_vals", clear
+	
