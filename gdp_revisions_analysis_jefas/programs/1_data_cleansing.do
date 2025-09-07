@@ -153,7 +153,7 @@ Data Clean-up
 		sort target_period
 		
 		* Keep obs in specific date range		
-		keep if inrange(target_date, tm(2001m1), tm(2023m10))	
+		keep if inrange(target_period, tm(2001m1), tm(2023m10))
 
 		
 		/*++++++++++++++++++++++
@@ -285,7 +285,7 @@ Data Clean-up
 		sort target_period
 
 		* Keep obs in specific date range
-		keep if inrange(target_date, tm(2001m1), tm(2023m10))
+		keep if inrange(target_period, tm(2001m1), tm(2023m10))
 			
 			
 		/*++++++++++++++++++++++
@@ -300,11 +300,11 @@ Data Clean-up
 		}
 		
 		* Label benchmark revisions
-		label variable bench_r_1 "1st Benchmark GDP Revision"
-		label variable bench_r_2 "2nd Benchmark GDP Revision"
-		label variable bench_r_3 "3rd Benchmark GDP Revision"
+		label variable bench_r_2 "1st Benchmark GDP Revision"
+		label variable bench_r_3 "2nd Benchmark GDP Revision"
+		label variable bench_r_4 "3rd Benchmark GDP Revision"
 		
-		forvalue h = 4/12{
+		forvalue h = 5/12{
 			label variable bench_r_`h' "`=`h'-1'-th Benchmark GDP Revision"
 		}
 		
