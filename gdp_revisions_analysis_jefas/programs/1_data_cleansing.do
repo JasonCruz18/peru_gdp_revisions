@@ -52,21 +52,19 @@ Data Clean-up
 	Setting folders to store (in/out)puts
 	------------------------*/
 	
-	shell mkdir "input"			// Creating input folder.
-	shell mkdir "input/data"	// Creating input data folder.
+	shell mkdir "raw_data"		// Creating raw data folder.
+	shell mkdir "input_data"	// Creating input data folder.
 	shell mkdir "output" 		// Creating output folder.
 *	shell mkdir "output/graphs" // Creating output charts folder.
 	shell mkdir "output/tables" // Creating output tables folder.
 			
 		
 	* Set as global vars
-		
-	global input_data "input/data"			// Use to import data (gdp_releases.dta).
+	
+	global raw_data "raw_data"				// Use to raw data.
+	global input_data "input_data"			// Use to import data.
 *	global output_graphs "output/graphs"	// Use to export charts.
 	global output_tables "output/tables"	// Use to export tables.
-	
-	
-	cd "$input_data"
 			
 			
 			
@@ -74,27 +72,27 @@ Data Clean-up
 	Import ODBC dataset and
 	save temp
 	-----------------------*/
-	
+		
 *	import delimited using "e_gdp_monthly_releases.csv", clear // Uncomment this code if you were provided with csv datasets. 
 		
 	odbc load, exec("select * from e_gdp_monthly_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Error-specific releases
 		
-	save e_gdp_releases, replace
+	save "$raw_data/e_gdp_releases", replace
 	
 	
 	odbc load, exec("select * from e_gdp_monthly_releases_seasonal_dummies") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Error-specific benchmark revision dummies
 		
-	save e_gdp_bench_releases, replace
+	save "$raw_data/e_gdp_bench_releases", replace
 
 	
 	odbc load, exec("select * from r_gdp_monthly_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Revision-specific releases
 		
-	save r_gdp_releases, replace
+	save "$raw_data/r_gdp_releases", replace
 	
 	
 	odbc load, exec("select * from r_gdp_monthly_releases_seasonal_dummies") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Revision-specific benchmark revision dummies
 		
-	save r_gdp_bench_releases, replace
+	save "$raw_data/r_gdp_bench_releases", replace
 	
 	
 	
@@ -106,7 +104,7 @@ Data Clean-up
 	
 	foreach suffix in e r {
 	
-	use `suffix'_gdp_releases, clear
+	use "$raw_data/`suffix'_gdp_releases", clear
 
 	
 		* Remove the old true value
@@ -213,8 +211,8 @@ Data Clean-up
 	*		}
 	*	}
 
-		
-	save `suffix'_gdp_releases_cleaned, replace
+	
+	save "$input_data/`suffix'_gdp_releases_cleaned", replace
 	
 	}
 	
@@ -227,8 +225,8 @@ Data Clean-up
 	-----------------------*/
 	
 	foreach logic in e r { // Since datasets are revision- and error-specific, computing dummies for benchmark is revision- and error-logic-based  (see the data-building official documentation)
-
-	use `logic'_gdp_bench_releases, clear
+	
+	use "$raw_data/`logic'_gdp_bench_releases", clear
 	
 	
 		* Remove the old true value
@@ -338,7 +336,7 @@ Data Clean-up
 	*	}
 		
 		
-	save `logic'_gdp_bench_releases_cleaned, replace
+	save "$input_data/`logic'_gdp_bench_releases_cleaned", replace
 		
 	}
 	
@@ -352,14 +350,14 @@ Data Clean-up
 	
 	foreach suffix in e r {
 	
-	use `suffix'_gdp_releases_cleaned, clear
+	use "$input_data/`suffix'_gdp_releases_cleaned", clear
 	
 
-		merge 1:1 target_period using `suffix'_gdp_bench_releases_cleaned
+		merge 1:1 target_period using "$input_data/`suffix'_gdp_bench_releases_cleaned"
 		drop _merge
 
 		
-	save `suffix'_gdp_revisions_ts, replace
+	save "$input_data/`suffix'_gdp_revisions_ts", replace
 	
 	}
 
@@ -373,7 +371,7 @@ Data Clean-up
 	/*
 	foreach logic in e r {
 	
-	use `logic'_gdp_revisions_ts, clear	
+	use "$input_data/`logic'_gdp_revisions_ts", clear	
 	
 	
 		* Create a temporary identifier
@@ -407,7 +405,7 @@ Data Clean-up
 		label variable e "GDP Error"
 
 		
-	save `logic'_gdp_revisions_panel, replace
+	save "$input_data/`logic'_gdp_revisions_panel", replace
 	
 	}	
 
