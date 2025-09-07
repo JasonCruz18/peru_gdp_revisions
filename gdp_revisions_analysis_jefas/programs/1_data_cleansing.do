@@ -2,14 +2,14 @@
 Data Clean-up
 ***
 
-	Author(s)
+	Author
 	---------------------
-	D & J
+	Jason (for any issues email to jj.cruza@up.edu.pe)
 	*********************/
 
 	*** Program: data_cleansing.do
 	** 	First Created: 07/11/25
-	** 	Last Updated:  07/12/25	
+	** 	Last Updated:  09/09/25	
 		
 ***
 ** Just click on the "Run (do)" button, the code will do the rest for you.
@@ -18,7 +18,7 @@ Data Clean-up
 	
 
 	/*----------------------
-	Initial do-file setting
+	Initial setting
 	-----------------------*/
 
 	cls 					// Clears the screen.
@@ -42,14 +42,14 @@ Data Clean-up
 	Defining workspace path
 	------------------------*/
 		
-	di `"Please, enter your path for storing the outputs of this dofile in the COMMAND WINDOW and press ENTER."'  _request(path)
+	di `"Please, enter your path for storing the (in/out)puts of this do-file in the COMMAND WINDOW and press ENTER."'  _request(path)
 	
 	cd "$path"
 			
 			
 			
 	/*----------------------
-	Setting folders to save outputs
+	Setting folders to store (in/out)puts
 	------------------------*/
 	
 	shell mkdir "input"			// Creating input folder.
@@ -57,7 +57,6 @@ Data Clean-up
 	shell mkdir "output" 		// Creating output folder.
 *	shell mkdir "output/graphs" // Creating output charts folder.
 	shell mkdir "output/tables" // Creating output tables folder.
-*	shell mkdir "output/data" 	// Creating output data folder.
 			
 		
 	* Set as global vars
@@ -75,24 +74,25 @@ Data Clean-up
 	Import ODBC dataset and
 	save temp
 	-----------------------*/
+	
+*	import delimited using "e_gdp_monthly_releases.csv", clear // Uncomment this code if you were provided with csv datasets. 
 		
-		
-	odbc load, exec("select * from e_gdp_monthly_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change the dataset loaded from SQL as preferred. 
+	odbc load, exec("select * from e_gdp_monthly_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Error-specific releases
 		
 	save e_gdp_releases, replace
 	
 	
-	odbc load, exec("select * from e_gdp_monthly_releases_seasonal_dummies") dsn("gdp_revisions_datasets") lowercase sqlshow clear // seasonal dummies specified for errors. 
+	odbc load, exec("select * from e_gdp_monthly_releases_seasonal_dummies") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Error-specific benchmark revision dummies
 		
 	save e_gdp_bench_releases, replace
 
 	
-	odbc load, exec("select * from r_gdp_monthly_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Change the dataset loaded from SQL as preferred. 
+	odbc load, exec("select * from r_gdp_monthly_releases") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Revision-specific releases
 		
 	save r_gdp_releases, replace
 	
 	
-	odbc load, exec("select * from r_gdp_monthly_releases_seasonal_dummies") dsn("gdp_revisions_datasets") lowercase sqlshow clear // seasonal dummies specified for revisions. 
+	odbc load, exec("select * from r_gdp_monthly_releases_seasonal_dummies") dsn("gdp_revisions_datasets") lowercase sqlshow clear // Revision-specific benchmark revision dummies
 		
 	save r_gdp_bench_releases, replace
 	
@@ -109,15 +109,15 @@ Data Clean-up
 	use `suffix'_gdp_releases, clear
 
 	
-		* Remove the current definitive value (most recent release) for each target period and sector		
+		* Remove the old true value
 		drop *_most_recent		
 	
-		* Remove columns for h > 12		
+		* Remove releases for h > 12 (12-th release will be the new true value)		
 		ds *_release_*
 		
 		foreach var in `r(varlist)' {
 			if regexm("`var'", "([0-9]+)$") { // Extract the number at the end of the variable name
-				local num = regexs(1)  // Capture the number
+				local num = regexs(1)  	// Capture the number
 
 				if real("`num'") > 12 { // Drop if number > 12
 					drop `var'
@@ -133,9 +133,14 @@ Data Clean-up
 		}	 
 				
 		* Label vars
-		label variable target_period "Monthly Targed Period"
+		label variable target_period "Monthly Target Period"
 		
-		forvalue h = 1/12{
+		
+		label variable y_1 "1st GDP Release"
+		label variable y_2 "2nd GDP Release"
+		label variable y_2 "3rd GDP Release"
+		
+		forvalue h = 4/12{
 			label variable y_`h' "`h'-th GDP Release"
 		}
 		
@@ -148,7 +153,7 @@ Data Clean-up
 		sort target_period
 		
 		* Keep obs in specific date range		
-		keep if target_period > tm(2000m12) & target_period < tm(2023m11)	
+		keep if inrange(target_date, tm(2001m1), tm(2023m10))	
 
 		
 		/*++++++++++++++++++++++
@@ -166,11 +171,19 @@ Data Clean-up
 		}
 
 		* Label revisions
-		forvalue h = 2/12{
+		label variable r_2 "1st GDP Revision"
+		label variable r_3 "2nd GDP Revision"
+		label variable r_4 "3rd GDP Revision"
+		
+		forvalue h = 5/12{
 			label variable r_`h' "`=`h'-1'-th GDP Revision"
 		}
 		
-		forvalue h = 1/11{
+		label variable e_1 "1st GDP Error"
+		label variable e_2 "2nd GDP Error"
+		label variable e_3 "3rd GDP Error"
+		
+		forvalue h = 4/11{
 			label variable e_`h' "`h'-th GDP Error"
 		}
 		
@@ -185,7 +198,7 @@ Data Clean-up
 			}
 		}
 	
-	// 	** Optionally, instead of wiping the full window, you can restrict to just the aberrant COVID months (very large or short growth rates)
+	 	** Optionally, instead of wiping the full window, you can restrict to just the aberrant COVID months (very large or short growth rates)
 	
 		*** Flag outlier months
 	*	gen covid_outlier = inlist(target_period, tm(2020m4), tm(2020m5), tm(2021m4), tm(2021m5))
@@ -218,15 +231,15 @@ Data Clean-up
 	use `logic'_gdp_bench_releases, clear
 	
 	
-		* Remove the current definitive value (most recent release) for each target period and sector		
+		* Remove the old true value
 		drop *_most_recent		
 	
-		* Remove columns for h > 12		
+		* Remove releases for h > 12 (12-th release will be the new true value)		
 		ds *_release_*
 		
 		foreach var in `r(varlist)' {
 			if regexm("`var'", "([0-9]+)$") { // Extract the number at the end of the variable name
-				local num = regexs(1)  // Capture the number
+				local num = regexs(1)  	// Capture the number
 
 				if real("`num'") > 12 { // Drop if number > 12
 					drop `var'
@@ -268,7 +281,7 @@ Data Clean-up
 		sort target_period
 
 		* Keep obs in specific date range
-		keep if target_period > tm(2000m12) & target_period < tm(2023m11)
+		keep if inrange(target_date, tm(2001m1), tm(2023m10))
 			
 			
 		/*++++++++++++++++++++++
