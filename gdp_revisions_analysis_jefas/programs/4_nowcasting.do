@@ -272,8 +272,8 @@ Ex-post nowcasting exercise
 		* Combine RMSE, DM t-stat, and encompassing t-stat into one matrix
 		matrix results = rmse_results \ dm_results \ encom_results
 
-		* Export directly from matrix to Excel
-		putexcel set "$output_tables/ex-post_nwc.xlsx", sheet("ex-post_nwc") replace
+		* Export directly from matrix to Excel (.xls)
+		putexcel set "$output_tables/ex-post_nwc.xls", sheet("ex-post_nwc") replace
 
 		putexcel A1 = matrix(results), names
 
