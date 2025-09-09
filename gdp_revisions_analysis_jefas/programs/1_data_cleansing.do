@@ -42,9 +42,9 @@ Data Clean-up
 	Defining workspace path
 	------------------------*/
 		
-	di `"Please, enter your path for storing the (in/out)puts of this do-file in the COMMAND WINDOW and press ENTER."'  _request(path)
+*	di `"Please, enter your path for storing the (in/out)puts of this do-file in the COMMAND WINDOW and press ENTER."'  _request(path)
 	
-	cd "$path"
+*	cd "$path"
 			
 			
 			
@@ -52,19 +52,19 @@ Data Clean-up
 	Setting folders to store (in/out)puts
 	------------------------*/
 	
-	shell mkdir "raw_data"		// Creating raw data folder.
-	shell mkdir "input_data"	// Creating input data folder.
-	shell mkdir "output" 		// Creating output folder.
+*	shell mkdir "raw_data"		// Creating raw data folder.
+*	shell mkdir "input_data"	// Creating input data folder.
+*	shell mkdir "output" 		// Creating output folder.
 *	shell mkdir "output/graphs" // Creating output charts folder.
-	shell mkdir "output/tables" // Creating output tables folder.
+*	shell mkdir "output/tables" // Creating output tables folder.
 			
 		
 	* Set as global vars
 	
-	global raw_data "raw_data"				// Use to raw data.
-	global input_data "input_data"			// Use to import data.
+*	global raw_data "raw_data"				// Use to raw data.
+*	global input_data "input_data"			// Use to import data.
 *	global output_graphs "output/graphs"	// Use to export charts.
-	global output_tables "output/tables"	// Use to export tables.
+*	global output_tables "output/tables"	// Use to export tables.
 			
 			
 			
