@@ -89,9 +89,9 @@ cat("Data imported successfully. Dimensions:",
 #*******************************************************************************
 
 df <- r_gdp_revisions_panel %>% 
-  filter(!is.na(horizon) & !is.na(target_period) & horizon >= 1 & horizon < 11)
+  filter(!is.na(horizon) & !is.na(target_period) & horizon >= 1 & horizon < 10)
 
-df$horizon <- factor(df$horizon, levels = as.character(1:11))
+df$horizon <- factor(df$horizon, levels = as.character(1:9))
 
 
 
@@ -104,7 +104,7 @@ generate_boxplot <- function(data, variable, color, legend_position, output_dir)
   png(filename = output_file, width = 16, height = 9, units = "in", res = 300)  # +1 inch vertical para leyenda
   
   # Set plot margins and background
-  par(bg = "white", mar = c(2.25, 3.75, 0.5, 0.5))  # Adjusted margins
+  par(bg = "white", mar = c(2.25, 4.75, 0.5, 0.5))  # Adjusted margins
   
   # Ensure 'horizon' is treated as a factor
   data$horizon <- factor(data$horizon, levels = 1:12)
@@ -120,11 +120,11 @@ generate_boxplot <- function(data, variable, color, legend_position, output_dir)
   )
   
   # Calculate the min and max for the X axis (horizon)
-  x_min <- min(bplt$group) - 0.5
-  x_max <- max(bplt$group) + 0.5
+  x_min <- min(bplt$group) - 0.35
+  x_max <- max(bplt$group) + 0.35
   
   # Create an empty plot with Y-axis limits from -1.0 to 1.5
-  plot(1, type = "n", xlim = c(x_min, x_max), ylim = c(-1.0, 1.5),
+  plot(1, type = "n", xlim = c(x_min, x_max), ylim = c(-0.75, 1.25),
        xaxt = "n", yaxt = "n", xlab = "", ylab = "", bty = "n")
   
   # Add horizontal grid lines for every 0.25 from -0.75 to 1.25 (minor grid)
@@ -161,7 +161,7 @@ generate_boxplot <- function(data, variable, color, legend_position, output_dir)
   axis(1, at = seq_along(bplt$names), labels = bplt$names, cex.axis = 1.70)
   
   # Add Y-axis labels with ticks from -1.0 to 1.5 at 0.5 intervals
-  axis(2, at = y_major_ticks, labels = y_major_ticks, cex.axis = 1.70, las = 1)
+  axis(2, at = y_major_ticks, labels = sprintf("%.2f", y_major_ticks), cex.axis = 1.70, las = 1)
   
   # Calculate and add mean points
   means <- tapply(data[[variable]], data$horizon, mean, na.rm = TRUE)  # Calculate mean for each horizon
@@ -176,7 +176,8 @@ generate_boxplot <- function(data, variable, color, legend_position, output_dir)
   legend("topright", inset = c(0.016, 0.03), legend = "Average", col = color,
          pch = 21, pt.cex = 3.15, cex = 1.55, pt.bg = "#292929",
          text.col = "black", horiz = TRUE, bty = "o", pt.lwd = 2.0,
-         box.lwd = 1.5, xpd = TRUE, x.intersp = 0.6, y.intersp = 0.4)
+         box.lwd = 1.5, xpd = TRUE, x.intersp = 0.6, y.intersp = 0.4,
+         bg = "white")
   
   dev.off()
 }
@@ -195,5 +196,175 @@ cat("Generating plots for variable e\n")
 generate_boxplot(df_filtered_e, "e", "#F5F5F5", "topright", output_dir)
 
 cat("All plots have been generated successfully in:", output_dir, "\n")
-            
+
+
+
+################################################################################
+# Alternative: using ggplot
+################################################################################
+
+library(ggplot2)
+library(dplyr)
+
+# Ensure variables are correct
+df_plot <- df %>%
+  mutate(
+    horizon = as.numeric(horizon),
+    e = as.numeric(e)
+  ) %>%
+  filter(horizon >= 1 & horizon <= 9)
+
+p <- ggplot(df_plot, aes(x = factor(horizon), y = e)) +
+  geom_boxplot(
+    fill = "#3366FF", 
+    alpha = 1, 
+    outlier.colour = "#E6004C",
+    outlier.size = 2.5,   # increase size of outliers
+    width = 0.7           # increase width of the boxes
+  ) +
+  
+  # Add mean as a black hollow point
+  stat_summary(
+    fun = mean,
+    geom = "point",
+    shape = 21,
+    size = 5,
+    stroke = 1.2,
+    color = "#3366FF",
+    fill = "#F5F5F5"
+  ) +
+  
+  labs(x = NULL, y = NULL, title = NULL) +
+  
+  scale_x_discrete(
+    breaks = 1:11,
+    labels = 1:11,
+    expand = c(0.05, 0.05)
+  ) +
+  
+  scale_y_continuous(
+    breaks = seq(-2.0, 2.5, by = 1),
+    labels = scales::number_format(accuracy = 0.1)
+  ) +
+  
+  theme_minimal() +
+  theme(
+    panel.grid.major = element_line(color = "#F5F5F5", linewidth = 0.8),
+    panel.grid.minor = element_line(color = "#F5F5F5", linewidth = 0.8),
+    
+    axis.text = element_text(color = "black", size = 20),
+    axis.text.x = element_text(color = "black", hjust = 0.5, vjust = 0.5),
+    axis.text.y = element_text(color = "black", hjust = 0.5),
+    
+    axis.ticks = element_line(color = "black"),
+    axis.ticks.length = unit(0.1, "inches"),
+    
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 20, color = "black"),
+    
+    legend.position = "none",
+    axis.line = element_line(color = "black", linewidth = 0.45),
+    panel.border = element_rect(color = "black", linewidth = 0.45, fill = NA),
+    plot.margin = margin(9, 10, 9, 4)
+  ) +
+  
+  coord_cartesian(ylim = c(-2.0, 2.5), clip = "off")
+
+print(p)
+
+
+
+
+p <- ggplot(df_plot, aes(x = factor(horizon), y = e)) +
+  geom_boxplot(
+    fill = "#F5F5F5",
+    alpha = 0.75,
+    outlier.shape = NA,   # removes outlier points
+    width = 0.7,
+    linewidth = 0.75
+  ) +
+  
+  # Mean point with legend
+  stat_summary(
+    fun = mean,
+    geom = "point",
+    aes(shape = "Average"),   # map shape to label -> creates legend
+    size = 6.5,
+    stroke = 1.75,            # thicker border for mean point
+    color = "#F5F5F5",
+    fill = "#292929"
+  ) +
+  
+  # Manual legend for shape
+  scale_shape_manual(values = c("Average" = 21)) +
+  
+  labs(x = NULL, y = NULL, title = NULL, shape = NULL) +  # shape legend has no title
+  
+  scale_x_discrete(
+    breaks = 1:10,
+    labels = 1:10,
+    expand = c(0.05, 0.05)
+  ) +
+  
+  scale_y_continuous(
+    breaks = seq(-1.0, 1.5, by = 0.5),
+    labels = scales::number_format(accuracy = 0.1)
+  ) +
+  
+  theme_minimal() +
+  theme(
+    panel.grid.major = element_line(color = "#F5F5F5", linewidth = 0.8),
+    panel.grid.minor.x = element_line(color = "#F5F5F5", linewidth = 0.8),
+    panel.grid.minor.y = element_blank(),
+    axis.text = element_text(color = "black", size = 20),
+    axis.text.x = element_text(color = "black", angle = 0, hjust = 0.5, vjust = 0.5),
+    axis.text.y = element_text(color = "black", angle = 0, hjust = 0.5),
+    axis.ticks = element_line(color = "black"),
+    axis.ticks.length = unit(0.1, "inches"),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 20, color = "black"),
+    plot.title = element_blank(),
+    
+    # Legend inside top-right
+    legend.position = c(0.985, 0.97),
+    legend.justification = c("right", "top"),
+    legend.text = element_text(size = 20, color = "black"),
+    legend.background = element_rect(fill = "white", color = "black", linewidth = 0.45),
+    
+    axis.line = element_line(color = "black", linewidth = 0.45),
+    panel.border = element_rect(color = "black", linewidth = 0.45, fill = NA),
+    plot.margin = margin(9, 10, 9, 4)
+  ) +
+  
+  coord_cartesian(ylim = c(-0.75, 1.25), clip = "off")
+
+print(p)
+
+# Save as PNG
+ggsave(
+  filename = file.path(output_dir, "Fig_Box.png"), 
+  plot = p, 
+  width = 16, 
+  height = 9, 
+  dpi = 300,
+  bg = "white"
+)
+
+# Save as high-resolution PDF
+ggsave(filename = file.path(output_dir, "Fig_Box.pdf"), 
+       plot = plot, 
+       width = 16, 
+       height = 9)
+
+# Export EPS
+ggsave(
+  filename = file.path(output_dir, "Fig_Box.eps"), 
+  plot = p, 
+  width = 16, 
+  height = 9, 
+  device = "eps", 
+  dpi = 300,
+  bg = "white"
+)
+
 
