@@ -183,8 +183,8 @@ plot <- ggplot() +
     data = df_h1,
     aes(x = release_date, y = gdp_release_smooth, color = "1st release"),
     shape = 21,          # círculo con borde
-    size = 0.85,            # tamaño visual del punto
-    stroke = 0.85,          # grosor del borde
+    size = 2.25,         # tamaño visual del punto
+    stroke = 0.85,       # grosor del borde
     fill = NA
   ) +
   
@@ -266,7 +266,7 @@ print(plot)
 
 
 # Save high-resolution PNG (300 DPI)
-ggsave(filename = file.path(output_dir, "Fig_gdp_noodles.png"), 
+ggsave(filename = file.path(output_dir, "Fig_Noodles.png"), 
        plot = plot, 
        width = 16, 
        height = 9, 
@@ -274,13 +274,13 @@ ggsave(filename = file.path(output_dir, "Fig_gdp_noodles.png"),
        bg = "white")
 
 # Save as high-resolution PDF
-ggsave(filename = file.path(output_dir, "Fig_gdp_noodles.pdf"), 
+ggsave(filename = file.path(output_dir, "Fig_Noodles.pdf"), 
        plot = plot, 
        width = 16, 
        height = 9)
 
 # Save plot as EPS file
-ggsave(filename = file.path(output_dir, "Fig_gdp_noodles.eps"), 
+ggsave(filename = file.path(output_dir, "Fig_Noodles.eps"), 
        plot = plot, 
        width = 16, 
        height = 9, 
