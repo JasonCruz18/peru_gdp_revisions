@@ -98,9 +98,9 @@ df$horizon <- factor(df$horizon, levels = as.character(1:9))
 #*******************************************************************************
 # Plotting Function
 #*******************************************************************************
-    
+
 generate_boxplot <- function(data, variable, color, legend_position, output_dir) {
-  output_file <- file.path(output_dir, paste0(variable, "_boxplot_m", ".png"))
+  output_file <- file.path(output_dir, paste0(variable, "Fig_Boxplot", ".png"))
   png(filename = output_file, width = 16, height = 9, units = "in", res = 300)  # +1 inch vertical para leyenda
   
   # Set plot margins and background
@@ -127,20 +127,24 @@ generate_boxplot <- function(data, variable, color, legend_position, output_dir)
   plot(1, type = "n", xlim = c(x_min, x_max), ylim = c(-0.75, 1.25),
        xaxt = "n", yaxt = "n", xlab = "", ylab = "", bty = "n")
   
+  # Define major ticks on Y-axis
+  y_major_ticks <- seq(-0.75, 1.25, by = 0.5)  # Major ticks from -0.75 to 1.25 with 0.5 increments
+  
+  # Remove major and minor grid lines by commenting out these lines
   # Add horizontal grid lines for every 0.25 from -0.75 to 1.25 (minor grid)
-  y_minor_ticks <- seq(-0.75, 1.25, by = 0.25)
-  abline(h = y_minor_ticks, col = "#F5F5F5", lwd = 1.65, lty = 1)
+  # y_minor_ticks <- seq(-0.75, 1.25, by = 0.25)
+  # abline(h = y_minor_ticks, col = "#F5F5F5", lwd = 1.65, lty = 1)
   
   # Add major grid lines at -0.5, 0.0, 0.5, 1.0
-  y_major_ticks <- c(-0.5, 0.0, 0.5, 1.0)
-  abline(h = y_major_ticks, col = "#F5F5F5", lwd = 2, lty = 1)
+  # y_major_ticks <- c(-0.5, 0.0, 0.5, 1.0)
+  # abline(h = y_major_ticks, col = "#F5F5F5", lwd = 2, lty = 1)
   
   # Add vertical grid lines (minor grid lines)
-  x_minor_ticks <- seq(x_min, x_max, by = 0.5)
-  abline(v = x_minor_ticks, col = "#F5F5F5", lwd = 1.65, lty = 1)
+  # x_minor_ticks <- seq(x_min, x_max, by = 0.5)
+  # abline(v = x_minor_ticks, col = "#F5F5F5", lwd = 1.65, lty = 1)
   
   # Draw the boxplot with transparency
-  col_alpha <- adjustcolor(color, alpha.f = 0.75)
+  col_alpha <- adjustcolor(color, alpha.f = 1)
   bplt <- boxplot(
     formula = formula_str,
     data = data,
@@ -181,6 +185,7 @@ generate_boxplot <- function(data, variable, color, legend_position, output_dir)
   
   dev.off()
 }
+
 
 
 

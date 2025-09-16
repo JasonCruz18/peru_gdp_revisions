@@ -194,7 +194,7 @@ plot <- ggplot() +
     aes(x = release_date, y = gdp_release_adjusted, group = vintages_date,
         color = "Ongoing releases"),
     linewidth = 0.85,
-    alpha = 0.70
+    alpha = 0.85
   ) +
   
   # NUEVO: Puntos finales huecos para cada línea roja
@@ -240,8 +240,8 @@ plot <- ggplot() +
   
   theme_minimal() +
   theme(
-    panel.grid.major = element_line(color = "#F5F5F5", linewidth = 0.8),
-    panel.grid.minor.x = element_line(color = "#F5F5F5", linewidth = 0.8),
+    panel.grid.major = element_blank(),
+    panel.grid.minor.x = element_blank(),
     panel.grid.minor.y = element_blank(),
     axis.text = element_text(color = "black", size = 20),
     axis.text.x = element_text(color = "black", angle = 0, hjust = 0.5, vjust = 0.5),
@@ -279,7 +279,7 @@ ggsave(filename = file.path(output_dir, "Fig_Noodles.pdf"),
        width = 16, 
        height = 9)
 
-# Save plot as EPS file
+    # Save plot as EPS file
 ggsave(filename = file.path(output_dir, "Fig_Noodles.eps"), 
        plot = plot, 
        width = 16, 
