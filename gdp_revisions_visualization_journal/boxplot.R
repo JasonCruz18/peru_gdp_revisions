@@ -74,7 +74,7 @@ library(readxl)
 
 # Import Excel file into R
 r_gdp_revisions_panel <- read_excel(
-  path = file.path(user_path, "r_gdp_revisions_panel.xlsx")
+  path = file.path(user_path, "e_gdp_revisions_panel.xlsx")
 )
 
 # Quick check
