@@ -80,7 +80,7 @@ Rationality tests based on errors
 		* Keep common observations
 		** Set common information using regression for the model with the least observations to keep if !missing(residuals)
 		qui {
-		newey e_1 y_1, lag(6) force
+		reg e_1 y_1, robust
 		predict residuals_aux, resid  // Generate the regression residuals.
 		}
 		keep if !missing(residuals_aux)  // Keep only the observations where the residuals are not missing.
@@ -119,27 +119,27 @@ Rationality tests based on errors
 				if r(N) < 5 continue  // Skip if there are less than 5 observations
 						
 				* Unbiasedness
-				newey e_`h', lag(6) force					
+				reg e_`h', robust					
 				eststo e_bias_`h'
 				
 				* Mincer-Zarnowitz
-				newey e_`h' y_h, lag(6) force	
+				reg e_`h' y_h, robust	
 				eststo e_mz_`h'
 
 				* Encompassing
-				newey e_`h' r_h, lag(6) force	
+				reg e_`h' r_h, robust	
 				eststo e_enco_`h'
 				
 				* Augmented Mincer-Zarnowitz
-				newey e_`h' y_h r_h, lag(6) force	
+				reg e_`h' y_h r_h, robust	
 				eststo e_amz_`h'	
 				
 				* Omnibus
-				newey e_`h' y_h r_h r_h_lag, lag(6) force	
+				reg e_`h' y_h r_h r_h_lag, robust	
 				eststo e_omni_`h'
 				
 				* Omnibus with benchmark revisions	
-				newey e_`h' y_h r_h r_h_lag D_h Dy_h Dr_h Dr_h_lag, lag(6) force
+				reg e_`h' y_h r_h r_h_lag D_h Dy_h Dr_h Dr_h_lag, robust
 				eststo e_bench_omni_`h'
 			}				
 		}			
@@ -153,13 +153,13 @@ Rationality tests based on errors
 			replace e_h_lag    	= L1.e_`f'
 
 			if `f' == 1 {
-				newey e_`f' y_h e_h_lag, lag(6) force
+				reg e_`f' y_h e_h_lag, robust
 			}
 			else if `f' == 2 {
-				newey e_`f' r_h y_h e_h_lag, lag(6) force
+				reg e_`f' r_h y_h e_h_lag, robust
 			}
 			else {
-				newey e_`f' y_h r_h r_h_lag e_h_lag, lag(6) force
+				reg e_`f' y_h r_h r_h_lag e_h_lag, robust
 			}
 
 			eststo e_fore_`f'

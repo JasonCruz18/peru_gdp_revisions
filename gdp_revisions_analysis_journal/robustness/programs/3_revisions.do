@@ -80,7 +80,7 @@ Rationality tests based on revisions
 		* Keep common observations
 		** Set common information using regression for the model with the least observations to keep if !missing(residuals)
 		qui {
-			newey e_1 y_1, lag(6) force
+			reg e_1 y_1, robust
 			predict residuals_aux, resid  // Generate the regression residuals.
 		}
 		keep if !missing(residuals_aux)  // Keep only the observations where the residuals are not missing.
@@ -110,23 +110,23 @@ Rationality tests based on revisions
 					if r(N) < 5 continue  // Skip if there are less than 5 observations
 					
 					* Unbiasedness
-					newey r_`h', lag(6) force					
+					reg r_`h', robust					
 					eststo r_bias_`h'
 					
 					* Autocorrelation
-					newey r_`h' r_lag_t, lag(6) force	
+					reg r_`h' r_lag_t, robust	
 					eststo r_auto_`h'
 			
 					* Cross-h correlation
-					newey r_`h' r_lag_h, lag(6) force	
+					reg r_`h' r_lag_h, robust	
 					eststo r_cros_`h'
 					
 					* Omnibus
-					newey r_`h' r_lag_h r_lag_t, lag(6) force	
+					reg r_`h' r_lag_h r_lag_t, robust	
 					eststo r_omni_`h'
 					
 					* Omnibus with benchmark revisions
-					newey r_`h' r_lag_t r_lag_h D_h Dr_lag_t Dr_lag_h, lag(6) force
+					reg r_`h' r_lag_t r_lag_h D_h Dr_lag_t Dr_lag_h, robust
 					eststo r_bench_omni_`h'
 				}				
 			}			

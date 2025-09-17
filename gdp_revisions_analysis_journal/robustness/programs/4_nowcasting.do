@@ -89,7 +89,7 @@ Ex-post nowcasting exercise
 		* Keep common observations
 		** Set common information using regression for the model with the least observations to keep if !missing(residuals)
 		qui {
-			newey e_1 y_1, lag(6) force
+			reg e_1 y_1, robust
 			predict residuals_aux, resid
 		}
 		keep if !missing(residuals_aux)
@@ -97,14 +97,14 @@ Ex-post nowcasting exercise
 
 		forvalues h = 1/11 {
 			if `h' == 1 {
-				newey e_`h' L1.e_`h' y_`h', lag(6) force
+				reg e_`h' L1.e_`h' y_`h', robust
 				matrix b = e(b)
 				gen alpha_`h' = b[1, "_cons"]
 				gen theta_`h' = b[1, "y_`h'"]
 				gen delta_`h' = b[1, "L1.e_`h'"]
 			}
 			else if `h' == 2 {
-				newey e_`h' L1.e_`h' y_`h' r_`h', lag(6) force
+				reg e_`h' L1.e_`h' y_`h' r_`h', robust
 				matrix b = e(b)
 				gen alpha_`h' = b[1, "_cons"]
 				gen theta_`h' = b[1, "y_`h'"]
@@ -112,7 +112,7 @@ Ex-post nowcasting exercise
 				gen gamma_`h' = b[1, "r_`h'"]
 			}
 			else {
-				newey e_`h' L1.e_`h' y_`h' r_`h' L1.r_`h', lag(6) force
+				reg e_`h' L1.e_`h' y_`h' r_`h' L1.r_`h', robust
 				matrix b = e(b)
 				gen alpha_`h' = b[1, "_cons"]
 				gen theta_`h' = b[1, "y_`h'"]
@@ -207,7 +207,7 @@ Ex-post nowcasting exercise
 		* Keep common observations
 		** Set common information using regression for the model with the least observations to keep if !missing(residuals)
 		qui {
-			newey e_1 y_1, lag(6) force
+			reg e_1 y_1, robust
 			predict residuals_aux, resid
 		}
 		keep if !missing(residuals_aux)
