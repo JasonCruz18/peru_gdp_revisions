@@ -74,7 +74,7 @@ library(readxl)
 
 # Import Excel file into R
 r_gdp_revisions_panel <- read_excel(
-  path = file.path(user_path, "jit_r_gdp_revisions_panel.xlsx")
+  path = file.path(user_path, "e_gdp_revisions_panel.xlsx")
 )
 
 # Quick check
@@ -93,9 +93,6 @@ df <- r_gdp_revisions_panel %>%
 
 df$horizon <- factor(df$horizon, levels = as.character(1:9))
 
-# Rename "Rjit" to "e"
-df <- df %>%
-  rename(e = Rjit)
 
 #*******************************************************************************
 # Plotting Function
@@ -222,11 +219,11 @@ df_plot <- df %>%
   filter(horizon >= 1 & horizon <= 9)
 
 
-  
-  p <- ggplot(df_plot, aes(x = factor(horizon), y = e)) +
+
+p <- ggplot(df_plot, aes(x = factor(horizon), y = e)) +
   geom_boxplot(
     fill = "white",
-    colour = "#3366FF",
+    colour = "#E6004C",
     alpha = 1,
     outlier.shape = NA,   # removes outlier points
     width = 0.7,
@@ -241,7 +238,7 @@ df_plot <- df %>%
     size = 6.5,
     stroke = 1.75,            # thicker border for mean point
     color = "white",
-    fill = "#3366FF"
+    fill = "#E6004C"
   ) +
   
   # Manual legend for shape
@@ -256,7 +253,7 @@ df_plot <- df %>%
   ) +
   
   scale_y_continuous(
-    breaks = seq(-0.10, 0.22, by = 0.04),
+    breaks = seq(-0.75, 1.25, by = 0.5),
     labels = scales::number_format(accuracy = 0.01)
   ) +
   
@@ -285,13 +282,13 @@ df_plot <- df %>%
     plot.margin = margin(9, 10, 9, 4)
   ) +
   
-  coord_cartesian(ylim = c(-0.10, 0.22), clip = "off")
+  coord_cartesian(ylim = c(-0.75, 1.25), clip = "off")
 
 print(p)
 
 # Save as PNG
 ggsave(
-  filename = file.path(output_dir, "rFig_Box1.png"), 
+  filename = file.path(output_dir, "eFig_Box1.png"), 
   plot = p, 
   width = 10, 
   height = 10, 
@@ -315,5 +312,3 @@ ggsave(
   dpi = 300,
   bg = "white"
 )
-
-
