@@ -235,7 +235,10 @@ plot <- ggplot() +
   
   # Adjusting legend order
   guides(
-    color = guide_legend(order = 1)  # legend for line colors
+    color = guide_legend(
+      order = 1,
+      override.aes = list(size = 3.5) # example values
+    )
   ) +
   
   theme_minimal() +
@@ -243,18 +246,18 @@ plot <- ggplot() +
     panel.grid.major = element_blank(),
     panel.grid.minor.x = element_blank(),
     panel.grid.minor.y = element_blank(),
-    axis.text = element_text(color = "black", size = 20),
+    axis.text = element_text(color = "black", size = 28),
     axis.text.x = element_text(color = "black", angle = 0, hjust = 0.5, vjust = 0.5),
     axis.text.y = element_text(color = "black", angle = 0, hjust = 0.5),
     axis.ticks = element_line(color = "black"),
     axis.ticks.length = unit(0.1, "inches"),
     axis.title.x = element_blank(),
-    axis.title.y = element_text(size = 20, color = "black"),
+    axis.title.y = element_text(size = 28, color = "black"),
     plot.title = element_blank(),
     legend.position = c(0.985, 0.97),  # Use the new argument for inside legend positioning
     legend.justification = c("right", "top"),  # Ensures it sticks to the top-right corner
     legend.title = element_blank(),
-    legend.text = element_text(size = 20, color = "black"),
+    legend.text = element_text(size = 28, color = "black"),
     legend.background = element_rect(fill = "white", color = "black", linewidth = 0.45),
     axis.line = element_line(color = "black", linewidth = 0.45),
     panel.border = element_rect(color = "black", linewidth = 0.45, fill = NA),
