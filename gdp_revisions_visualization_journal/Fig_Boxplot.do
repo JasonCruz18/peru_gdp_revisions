@@ -111,7 +111,7 @@ Rationality tests based on errors
 			   scatter mean h, msymbol(circle) mcolor(black) msize(small) legend(off) ///
 			   xlabel(1(1)9, nogrid) xtitle("") yscale(range(-0.75 1.25)) ylabel(-0.75(0.25)1.25,  format(%3.2f) nogrid) ///
 			   aspectratio(1) plotregion(lcolor(black) lwidth(thin)) ///
-       xsize(10) ysize(10) graphregion(margin(0 3 0 0)) // left right low top
+       xsize(10) ysize(10) graphregion(margin(0 2 0 0)) // left right low top
 	     
 			   
 		graph export "$output_graphs/Fig_BP_Errors.png", as(png) replace
@@ -160,7 +160,7 @@ Rationality tests based on errors
 			   scatter mean h, msymbol(circle) mcolor(black) msize(small) legend(off) ///
 			   xlabel(1(1)9, nogrid) xtitle("") yscale(range(-0.15 0.25)) ylabel(-0.15(0.05)0.25,  format(%3.2f) nogrid) ///
 			   aspectratio(1) plotregion(lcolor(black) lwidth(thin)) ///
-       xsize(10) ysize(10) graphregion(margin(0 3 0 0)) // left right low top
+       xsize(10) ysize(10) graphregion(margin(0 2 0 0)) // left right low top
 	   
 		graph export "$output_graphs/Fig_BP_Revisions.png", as(png) replace
 		graph export "$output_graphs/Fig_BP_Revisions.pdf", as(pdf) replace
