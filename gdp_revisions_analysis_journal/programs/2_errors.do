@@ -163,9 +163,14 @@ Rationality tests based on errors
 			}
 
 			eststo e_fore_`f'
-			predict e_hat_`f' if e(sample), xb
+			predict res, residuals
+			regress res L.res if e(sample)
+			scalar BG = e(F)
+			scalar BG_2 = e(r2)*e(N)
 			
-			gen y_hat_`f' = y_`f' + e_hat_`f'
+			estadd scalar BG:e_fore_`f'
+			estadd scalar BG_2:e_fore_`f'
+			drop res
 		}
 		
 
@@ -185,7 +190,7 @@ Rationality tests based on errors
 	esttab e_amz_*, order(_cons y_h r_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N)  
 	esttab e_omni_*, order(_cons y_h r_h r_h_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
 	esttab e_bench_omni_*, order(_cons y_h r_h r_h_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
-	esttab e_fore_*, order(_cons) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
+	esttab e_fore_*, order(_cons) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N BG BG_2) 
 	}
 	
 	* Exportable results (.txt)
@@ -195,7 +200,7 @@ Rationality tests based on errors
 	esttab e_amz* using errors.txt, order(_cons y_h r_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 	esttab e_omni_* using errors.txt, order(_cons y_h r_h r_h_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 	esttab e_bench_omni_* using errors.txt, order(_cons y_h r_h r_h_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
-	noisily esttab e_fore_* using errors.txt, order(_cons) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
+	noisily esttab e_fore_* using errors.txt, order(_cons) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N BG BG_2) append
 
 	* Exportable results (.xls)
 	estout e_bias_* using errors.xls, cells(b(fmt(4)) t(fmt(4) abs)) stats(N) replace
@@ -204,7 +209,7 @@ Rationality tests based on errors
 	estout e_amz* using errors.xls, order(_cons y_h r_h) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
 	estout e_omni* using errors.xls, order(_cons y_h r_h) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
 	estout e_bench_omni* using errors.xls, order(_cons y_h r_h r_h_lag) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
-	noisily estout e_fore_* using errors.xls, order(_cons) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
+	noisily estout e_fore_* using errors.xls, order(_cons) cells(b(fmt(4)) t(fmt(4) abs)) stats(N BG BG_2) append
 
 	cd "$path"
 
