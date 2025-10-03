@@ -158,7 +158,6 @@ def download_pdf(driver, pdf_link, wait, download_counter, raw_pdf_folder, downl
     driver.switch_to.window(windows[0])
     return success
 
-
 # Function to download all PDFs (WR) 
 # _________________________________________________________________________
 def download_pdfs(
@@ -167,7 +166,7 @@ def download_pdfs(
     download_record_folder,
     alert_track_folder,
     max_downloads=None,
-    downloads_per_batch=5,
+    downloads_per_batch=12,
     headless=False
 ):
     """
@@ -183,6 +182,10 @@ def download_pdfs(
         downloads_per_batch (int): Number of PDFs between user prompts
         headless (bool): Whether to run browser in headless mode
     """
+    # Start timer for total execution time
+    import time
+    start_time = time.time()
+
     # Start the downloader and prepare audio alerts
     print("\n📥 Starting PDF Downloader for BCRP Weekly Reports...\n")
     pygame.mixer.init()
@@ -277,14 +280,14 @@ def download_pdfs(
         print("\n👋 Browser closed.")
 
     # Final summary of operations
+    elapsed_time = round(time.time() - start_time)
     total_links = len(pdf_links)
     print(f"\n📊 Summary:")
-    print(f"Total monthly links kept: {total_links}")
+    print(f"\n 🔗 Total monthly links kept: {total_links}")
     if skipped_files:
-        print(f"⏩ {len(skipped_files)} already downloaded PDFs were skipped.")
-    print(f"Newly downloaded: {new_counter}")
-
-
+        print(f"🗂️ {len(skipped_files)} already downloaded PDFs were skipped.")
+    print(f"➕ Newly downloaded: {new_counter}")
+    print(f"⏱️ Time: {elapsed_time} seconds")
 
 # Function to organize PDFs by year
 #________________________________________________________________       
@@ -860,7 +863,7 @@ def split_column_by_pattern(df):
 
 
 #+++++++++++++++
-# By NS
+# By WR
 #+++++++++++++++
 
 
@@ -1195,7 +1198,7 @@ def get_quarters_sublist_list(df, year_columns):
 
 
 #+++++++++++++++
-# By NS
+# By WR
 #+++++++++++++++
 
 # 𝑛𝑠_2016_20
