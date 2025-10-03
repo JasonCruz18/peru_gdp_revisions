@@ -18,7 +18,7 @@ import os  # for file and directory manipulation
 import random  # for generating random numbers and random delays
 import time  # to pause execution and manage timing
 import requests  # to make HTTP requests to download PDFs or MP3s
-import pygame  # to handle sound notifications (play/stop .mp3 files)
+import pygame  # to handle alert track notifications (play/stop .mp3 files)
 from selenium import webdriver  # to automate web browser actions
 from selenium.webdriver.common.by import By  # to locate elements on a webpage
 from selenium.webdriver.support.ui import WebDriverWait  # to wait until elements are present
@@ -34,37 +34,37 @@ import shutil # used for high-level file operations, such as copying, moving, re
 # FUNCTIONS
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-# Function to load a sound
+# Function to load a alert track
 # _________________________________________________________________________
-def load_sound(sound_folder):
+def load_alert_track(alert_track_folder):
     """
-    Load a random .mp3 file from the sound folder.
-    If no .mp3 exists, simply continue without sound.
+    Load a random .mp3 file from the alert track folder.
+    If no .mp3 exists, simply continue without alert track.
     
     Returns:
-        str or None: Path to the loaded sound, or None if unavailable
+        str or None: Path to the loaded alert track, or None if unavailable
     """
-    os.makedirs(sound_folder, exist_ok=True)
-    available_sounds = [f for f in os.listdir(sound_folder) if f.lower().endswith(".mp3")]
+    os.makedirs(alert_track_folder, exist_ok=True)
+    available_alert_tracks = [f for f in os.listdir(alert_track_folder) if f.lower().endswith(".mp3")]
 
-    if not available_sounds:
-        print("🔇 No .mp3 files found in 'sound/' folder. Continuing without sound.")
+    if not available_alert_tracks:
+        print("🔇 No .mp3 files found in 'alert_track/' folder. Continuing without alert track.")
         return None
 
-    sound_path = os.path.join(sound_folder, random.choice(available_sounds))
-    pygame.mixer.music.load(sound_path)
-    return sound_path
+    alert_track_path = os.path.join(alert_track_folder, random.choice(available_alert_tracks))
+    pygame.mixer.music.load(alert_track_path)
+    return alert_track_path
 
-# Function to play sound
+# Function to play alert track
 # _________________________________________________________________________
-def play_sound():
-    """Start playing the currently loaded sound."""
+def play_alert_track():
+    """Start playing the currently loaded alert track."""
     pygame.mixer.music.play()
 
-# Function to stop sound
+# Function to stop alert track
 # _________________________________________________________________________
-def stop_sound():
-    """Stop the currently playing sound."""
+def stop_alert_track():
+    """Stop the currently playing alert track."""
     pygame.mixer.music.stop()
 
 # Function to wait random seconds
@@ -107,9 +107,9 @@ def init_driver(browser="chrome", headless=False):
     else:
         raise ValueError("Currently only Chrome is supported. Future versions may add Firefox/Edge.")
 
-# Function to download a single PDF
+# Function to download a single PDF (WR)
 # _________________________________________________________________________
-def download_pdf(driver, pdf_link, wait, download_counter, raw_pdf, download_record):
+def download_pdf(driver, pdf_link, wait, download_counter, raw_pdf_folder, download_record_folder):
     """
     Download a single PDF from the selenium link element.
     
@@ -118,137 +118,179 @@ def download_pdf(driver, pdf_link, wait, download_counter, raw_pdf, download_rec
         pdf_link (WebElement): Selenium element containing PDF link
         wait (WebDriverWait): WebDriverWait object for explicit waits
         download_counter (int): Counter for display purposes
-        raw_pdf (str): Folder to save raw PDFs
-        download_record (str): Folder to save download records
+        raw_pdf_folder (str): Folder to save raw PDFs
+        download_record_folder (str): Folder to save download records
     
     Returns:
         bool: True if download succeeded, False otherwise
     """
+    # Click the PDF link and switch to the new browser tab
     driver.execute_script("arguments[0].click();", pdf_link)
     wait.until(EC.number_of_windows_to_be(2))
-
     windows = driver.window_handles
     driver.switch_to.window(windows[1])
 
+    # Extract file name and define local save path
     new_url = driver.current_url
     file_name = os.path.basename(new_url)
-    destination_path = os.path.join(raw_pdf, file_name)
+    destination_path = os.path.join(raw_pdf_folder, file_name)
 
+    # Download the PDF file and save it locally
     response = requests.get(new_url, stream=True)
     if response.status_code == 200:
         with open(destination_path, 'wb') as pdf_file:
             for chunk in response.iter_content(chunk_size=128):
                 pdf_file.write(chunk)
 
-        with open(os.path.join(download_record, "downloaded_files.txt"), "a") as f:
+        # Record the file in the download log
+        with open(os.path.join(download_record_folder, "downloaded_pdfs.txt"), "a") as f:
             f.write(file_name + "\n")
 
         print(f"{download_counter}. ✅ Downloaded: {file_name}")
         success = True
     else:
+        # Handle failed download attempt
         print(f"{download_counter}. ❌ Error downloading {file_name}. HTTP {response.status_code}")
         success = False
 
+    # Close the tab and return to the main window
     driver.close()
     driver.switch_to.window(windows[0])
     return success
 
-# Function to download all BCRP PDFs
+
+# Function to download all PDFs (WR) 
 # _________________________________________________________________________
-def download_bcrp_pdfs(
+def download_pdfs(
     bcrp_url,
-    raw_pdf,
-    download_record,
-    sound_folder,
+    raw_pdf_folder,
+    download_record_folder,
+    alert_track_folder,
     max_downloads=None,
     downloads_per_batch=5,
     headless=False
 ):
     """
-    Download BCRP Weekly Report PDFs with enumerated output and sound notifications.
+    Download BCRP Weekly Report PDFs (latest link per month) with clean numbering, 
+    batch alerts, and summary reporting.
     
     Args:
         bcrp_url (str): URL of BCRP Weekly Reports
-        raw_pdf (str): Folder to save raw PDFs
-        download_record (str): Folder to save download record file
-        sound_folder (str): Folder containing notification MP3s
+        raw_pdf_folder (str): Folder to save raw PDFs
+        download_record_folder (str): Folder to save download record file
+        alert_track_folder (str): Folder containing notification MP3s
         max_downloads (int, optional): Maximum number of new PDFs to download
         downloads_per_batch (int): Number of PDFs between user prompts
         headless (bool): Whether to run browser in headless mode
     """
+    # Start the downloader and prepare audio alerts
     print("\n📥 Starting PDF Downloader for BCRP Weekly Reports...\n")
-
     pygame.mixer.init()
-    sound_path = load_sound(sound_folder)
+    alert_track_path = load_alert_track(alert_track_folder)
 
-    record_path = os.path.join(download_record, "downloaded_files.txt")
+    # Load record of already downloaded files
+    record_path = os.path.join(download_record_folder, "downloaded_pdfs.txt")
     downloaded_files = set()
     if os.path.exists(record_path):
         with open(record_path, "r") as f:
             downloaded_files = set(f.read().splitlines())
 
+    # Initialize browser session
     driver = init_driver(headless=headless)
     wait = WebDriverWait(driver, 60)
-    download_counter = 0
-    skipped_counter = 0
     new_counter = 0
+    skipped_files = []   # Store names of previously downloaded PDFs
+    new_downloads = []   # Store links to new PDFs for downloading
 
     try:
+        # Open the BCRP webpage
         driver.get(bcrp_url)
         print("🌐 BCRP site opened successfully.")
 
-        pdf_links = list(reversed(wait.until(
-            EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rightside"]//a'))
-        )))
-        print(f"🔎 Found {len(pdf_links)} PDF links on page.\n")
+        # Locate monthly blocks and select the first link (latest per month)
+        month_ul_elems = wait.until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, '#rightside ul.listado-bot-std-claros'))
+        )
+        print(f"🔎 Found {len(month_ul_elems)} WR on page (one per month).\n")
 
-        for i, pdf_link in enumerate(pdf_links, start=1):
-            file_url = pdf_link.get_attribute("href")
-            file_name = os.path.basename(file_url)
-
-            if file_name in downloaded_files:
-                print(f"{i}. ⏩ Already downloaded: {file_name}")
-                skipped_counter += 1
+        # Extract the first anchor from each block
+        pdf_links = []
+        for ul in month_ul_elems:
+            try:
+                anchors = ul.find_elements(By.TAG_NAME, "a")
+            except Exception:
+                anchors = []
+            if not anchors:
                 continue
+            pdf_links.append(anchors[0])
 
-            if download_pdf(driver, pdf_link, wait, i, raw_pdf, download_record):
+        # Reverse order to start downloading from the oldest
+        pdf_links = pdf_links[::-1]
+
+        # Separate already downloaded files from new ones
+        for pdf_link in pdf_links:
+            try:
+                file_url = pdf_link.get_attribute("href")
+                file_name = os.path.basename(file_url)
+            except Exception:
+                continue
+            if file_name in downloaded_files:
+                skipped_files.append(file_name)
+            else:
+                new_downloads.append((pdf_link, file_name))
+
+        # Print skipped files summary
+        if skipped_files:
+            skipped_files.sort()
+            print(f"⏩ {len(skipped_files)} already downloaded PDFs: from {skipped_files[0]} up to {skipped_files[-1]}\n")
+
+        # Process each new download
+        for i, (pdf_link, file_name) in enumerate(new_downloads, start=1):
+            # Attempt the download
+            if download_pdf(driver, pdf_link, wait, i, raw_pdf_folder, download_record_folder):
                 downloaded_files.add(file_name)
-                download_counter += 1
                 new_counter += 1
 
-            # Batch + sound + user input
-            if download_counter % downloads_per_batch == 0 and sound_path:
-                play_sound()
+            # Handle batch alerts and optional user prompt
+            if i % downloads_per_batch == 0 and alert_track_path:
+                play_alert_track()
                 user_input = input("⏸️ Continue? (y = yes, any other key = stop): ")
-                stop_sound()
+                stop_alert_track()
                 if user_input.lower() != 'y':
                     print("🛑 Download stopped by user.")
                     break
 
+            # Stop if maximum number of new downloads reached
             if max_downloads and new_counter >= max_downloads:
                 print(f"🏁 Download limit of {max_downloads} new PDFs reached.")
                 break
 
+            # Wait randomly between downloads
             random_wait(5, 10)
 
     except StaleElementReferenceException:
+        # Retry if selenium loses reference
         print("⚠️ StaleElementReferenceException occurred. Retrying...")
     finally:
+        # Always close the browser
         driver.quit()
         print("\n👋 Browser closed.")
 
-    # Summary
+    # Final summary of operations
     total_links = len(pdf_links)
     print(f"\n📊 Summary:")
-    print(f"Total links found: {total_links}")
-    print(f"Already downloaded: {skipped_counter}")
+    print(f"Total monthly links kept: {total_links}")
+    if skipped_files:
+        print(f"⏩ {len(skipped_files)} already downloaded PDFs were skipped.")
     print(f"Newly downloaded: {new_counter}")
+
+
 
 # Function to organize PDFs by year
 #________________________________________________________________       
-def organize_files_by_year(raw_pdf):
+def organize_files_by_year(raw_pdf_folder):
     # Get the list of files in the directory
-    files = os.listdir(raw_pdf)
+    files = os.listdir(raw_pdf_folder)
 
     # Iterate over each file
     for file in files:
@@ -263,12 +305,12 @@ def organize_files_by_year(raw_pdf):
 
         # If the year was found, move the file to the corresponding folder
         if year:
-            destination_folder = os.path.join(raw_pdf, year)
+            destination_folder = os.path.join(raw_pdf_folder, year)
             # Create the folder if it doesn't exist
             if not os.path.exists(destination_folder):
                 os.makedirs(destination_folder)
             # Move the file to the destination folder
-            shutil.move(os.path.join(raw_pdf, file), destination_folder)
+            shutil.move(os.path.join(raw_pdf_folder, file), destination_folder)
             
             
             
@@ -340,13 +382,13 @@ def trim_pdf(pdf_file, pages, output_folder):
 
 # Function to read input PDF filenames from record file
 # _________________________________________________________________________
-def read_input_pdf_files(input_pdf_record, input_pdf_record_txt):
+def read_input_pdf_files(input_pdf_record_folder, input_pdf_record_txt):
     """Read filenames of previously processed PDFs.
 
     Returns:
         set[str]: Set of filenames.
     """
-    record_path = os.path.join(input_pdf_record, input_pdf_record_txt)
+    record_path = os.path.join(input_pdf_record_folder, input_pdf_record_txt)
     if not os.path.exists(record_path):
         return set()
     with open(record_path, "r") as f:
@@ -355,10 +397,10 @@ def read_input_pdf_files(input_pdf_record, input_pdf_record_txt):
 
 # Function to write input PDF filenames to record file
 # _________________________________________________________________________
-def write_input_pdf_files(input_pdf_files, input_pdf_record, input_pdf_record_txt):
+def write_input_pdf_files(input_pdf_files, input_pdf_record_folder, input_pdf_record_txt):
     """Write processed PDF filenames to record file."""
-    record_path = os.path.join(input_pdf_record, input_pdf_record_txt)
-    os.makedirs(input_pdf_record, exist_ok=True)
+    record_path = os.path.join(input_pdf_record_folder, input_pdf_record_txt)
+    os.makedirs(input_pdf_record_folder, exist_ok=True)
     with open(record_path, "w") as f:
         for fn in sorted(input_pdf_files):
             f.write(fn + "\n")
