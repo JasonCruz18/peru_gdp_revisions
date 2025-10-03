@@ -1,6 +1,6 @@
 
 #*********************************************************************************************
-# Functions for new_gdp_revisions_datasets.ipynb 
+# Functions for new_gdp_dataset.ipynb 
 #*********************************************************************************************
 
 
@@ -34,23 +34,28 @@ import shutil # used for high-level file operations, such as copying, moving, re
 # FUNCTIONS
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-# Function to load a alert track
+# Function to load an alert track
 # _________________________________________________________________________
 def load_alert_track(alert_track_folder):
     """
     Load a random .mp3 file from the alert track folder.
-    If no .mp3 exists, simply continue without alert track.
+    If no .mp3 exists, continue without using alert track.
     
     Returns:
         str or None: Path to the loaded alert track, or None if unavailable
     """
+    # Ensure the folder exists
     os.makedirs(alert_track_folder, exist_ok=True)
+
+    # Collect all available .mp3 files
     available_alert_tracks = [f for f in os.listdir(alert_track_folder) if f.lower().endswith(".mp3")]
 
+    # Handle case with no available tracks
     if not available_alert_tracks:
         print("🔇 No .mp3 files found in 'alert_track/' folder. Continuing without alert track.")
         return None
 
+    # Select one track at random and load it
     alert_track_path = os.path.join(alert_track_folder, random.choice(available_alert_tracks))
     pygame.mixer.music.load(alert_track_path)
     return alert_track_path
@@ -59,12 +64,14 @@ def load_alert_track(alert_track_folder):
 # _________________________________________________________________________
 def play_alert_track():
     """Start playing the currently loaded alert track."""
+    # Trigger playback of the loaded audio
     pygame.mixer.music.play()
 
 # Function to stop alert track
 # _________________________________________________________________________
 def stop_alert_track():
     """Stop the currently playing alert track."""
+    # Stop audio playback immediately
     pygame.mixer.music.stop()
 
 # Function to wait random seconds
@@ -77,7 +84,10 @@ def random_wait(min_time, max_time):
         min_time (float): Minimum wait time in seconds
         max_time (float): Maximum wait time in seconds
     """
+    # Generate a random wait duration
     wait_time = random.uniform(min_time, max_time)
+
+    # Print and apply the delay
     print(f"⏳ Waiting {wait_time:.2f} seconds...")
     time.sleep(wait_time)
 
@@ -94,16 +104,25 @@ def init_driver(browser="chrome", headless=False):
     Returns:
         webdriver.Chrome: Initialized Chrome WebDriver
     """
+    # Handle Chrome driver initialization
     if browser.lower() == "chrome":
         options = Options()
+        
+        # Enable headless mode if requested
         if headless:
             options.add_argument("--headless=new")
+        
+        # Add recommended Chrome options for stability
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
+
+        # Install and start ChromeDriver
         service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=options)
         driver.set_page_load_timeout(30)
         return driver
+    
+    # Raise error if unsupported browser requested
     else:
         raise ValueError("Currently only Chrome is supported. Future versions may add Firefox/Edge.")
 
@@ -283,21 +302,28 @@ def download_pdfs(
     elapsed_time = round(time.time() - start_time)
     total_links = len(pdf_links)
     print(f"\n📊 Summary:")
-    print(f"\n 🔗 Total monthly links kept: {total_links}")
+    print(f"\n🔗 Total monthly links kept: {total_links}")
     if skipped_files:
         print(f"🗂️ {len(skipped_files)} already downloaded PDFs were skipped.")
     print(f"➕ Newly downloaded: {new_counter}")
     print(f"⏱️ Time: {elapsed_time} seconds")
 
 # Function to organize PDFs by year
-#________________________________________________________________       
+# _________________________________________________________________________
 def organize_files_by_year(raw_pdf_folder):
+    """
+    Organize PDF files in the given folder into subfolders by year.
+    The year is extracted from the file name (expects a 4-digit number).
+    
+    Args:
+        raw_pdf_folder (str): Path to the folder containing raw PDFs
+    """
     # Get the list of files in the directory
     files = os.listdir(raw_pdf_folder)
 
-    # Iterate over each file
+    # Iterate over each file in the folder
     for file in files:
-        # Get the year from the file name
+        # Extract year candidate from the file name
         name, extension = os.path.splitext(file)
         year = None
         name_parts = name.split('-')
@@ -306,12 +332,14 @@ def organize_files_by_year(raw_pdf_folder):
                 year = part
                 break
 
-        # If the year was found, move the file to the corresponding folder
+        # If a year is found, move the file into the corresponding year subfolder
         if year:
             destination_folder = os.path.join(raw_pdf_folder, year)
-            # Create the folder if it doesn't exist
+
+            # Create the year subfolder if it does not exist
             if not os.path.exists(destination_folder):
                 os.makedirs(destination_folder)
+
             # Move the file to the destination folder
             shutil.move(os.path.join(raw_pdf_folder, file), destination_folder)
             
@@ -417,6 +445,104 @@ def ask_continue_input(message):
         ans = input(f"{message} (y = yes / n = no): ").strip().lower()
         if ans in ("y", "n"):
             return ans == "y"
+        
+# Function to generate trimmed input PDFs (from raw PDFs)
+# _________________________________________________________________________
+def generate_input_pdfs(
+    raw_pdf_folder,
+    input_pdf_folder,
+    input_pdf_record_folder,
+    input_pdf_record_txt,
+    keywords
+):
+    """
+    Generate input PDFs containing key pages by searching for keywords
+    in raw PDFs. Produces trimmed PDFs and updates a processing record.
+
+    Args:
+        raw_pdf_folder (str): Folder containing yearly subfolders of raw PDFs.
+        input_pdf_folder (str): Folder to save trimmed input PDFs.
+        input_pdf_record_folder (str): Folder for the record file.
+        input_pdf_record_txt (str): Record filename.
+        keywords (list[str]): Keywords to search for.
+    """
+    import time
+    from tqdm.notebook import tqdm
+
+    start_time = time.time()
+
+    # Read previously processed PDFs
+    input_pdf_files = read_input_pdf_files(input_pdf_record_folder, input_pdf_record_txt)
+
+    # Track years with already processed PDFs
+    skipped_years = {}
+    new_counter = 0
+    skipped_counter = 0
+
+    # Loop over yearly folders
+    for folder in sorted(os.listdir(raw_pdf_folder)):
+        folder_path = os.path.join(raw_pdf_folder, folder)
+        if not os.path.isdir(folder_path):
+            continue
+
+        pdf_files = [f for f in os.listdir(folder_path) if f.endswith(".pdf")]
+        if not pdf_files:
+            continue
+
+        # Count how many PDFs in this folder are already processed
+        already = [f for f in pdf_files if f in input_pdf_files]
+        if len(already) == len(pdf_files):
+            skipped_years[folder] = len(already)
+            skipped_counter += len(already)
+            continue
+
+        # Process only new PDFs in this folder
+        print(f"\n📂 Processing folder: {folder}\n")
+        folder_new_count = 0
+        folder_skipped_count = 0
+
+        for filename in tqdm(pdf_files, desc=f"Generating input PDFs in {folder}", unit="PDF",
+                             bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}"):
+            pdf_file = os.path.join(folder_path, filename)
+            if filename in input_pdf_files:
+                folder_skipped_count += 1
+                continue
+
+            pages_with_keywords = search_keywords(pdf_file, keywords)
+            num_pages = trim_pdf(pdf_file, pages_with_keywords, output_folder=input_pdf_folder)
+
+            if num_pages > 0:
+                input_pdf_files.add(filename)
+                folder_new_count += 1
+
+        # Update record
+        write_input_pdf_files(input_pdf_files, input_pdf_record_folder, input_pdf_record_txt)
+
+        # Folder summary
+        print(f"✅ Shortened PDFs saved in '{input_pdf_folder}' "
+              f"({folder_new_count} new, {folder_skipped_count} skipped)")
+
+        new_counter += folder_new_count
+        skipped_counter += folder_skipped_count
+
+        # Ask user if they want to continue
+        if not ask_continue_input(f"Do you want to continue to the next folder after '{folder}'?"):
+            print("🛑 Process stopped by user.")
+            break
+
+    # Print summary of already processed years
+    if skipped_years:
+        years_summary = ", ".join(skipped_years.keys())
+        total_skipped = sum(skipped_years.values())
+        print(f"\n⏩ {total_skipped} input PDFs already generated for years: {years_summary}")
+
+    # Final summary
+    elapsed_time = round(time.time() - start_time)
+    print(f"\n📊 Summary:\n")
+    print(f"📂 {len(os.listdir(raw_pdf_folder))} folders (years) found containing raw PDFs")
+    print(f"🗂️ Already generated input PDFs: {skipped_counter}")
+    print(f"➕ Newly generated input PDFs: {new_counter}")
+    print(f"⏱️ Time: {elapsed_time} seconds")
 
 
 
