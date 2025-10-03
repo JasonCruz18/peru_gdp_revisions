@@ -1,0 +1,7 @@
+digital_pdf\input_pdf\2019:1
+digital_pdf\input_pdf\2020:12
+digital_pdf\input_pdf\2021:12
+digital_pdf\input_pdf\2022:12
+digital_pdf\input_pdf\2023:12
+digital_pdf\input_pdf\2024:12
+digital_pdf\input_pdf\2025:4

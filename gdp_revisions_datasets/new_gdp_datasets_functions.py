@@ -358,11 +358,40 @@ import os  # File/folder manipulation
 import fitz  # PDF manipulation
 import ipywidgets as widgets  # Interactive widgets for Jupyter
 from IPython.display import display  # Display widgets in Jupyter
+import time
+from tqdm.notebook import tqdm
+import pdfplumber
+from PyPDF2 import PdfReader, PdfWriter
 
 
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # FUNCTIONS
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# Function to replace a defective PDF by copying another PDF
+# _________________________________________________________________________
+def fix_defective_pdf(pdf_folder, defective_pdf="ns-08-2017.pdf", source_pdf="ns-04-2017.pdf"):
+    """
+    Replace a defective PDF with a copy of another PDF.
+    Only performs replacement if both defective and source PDFs exist.
+
+    Args:
+        pdf_folder (str): Folder containing the PDFs
+        defective_pdf (str): Filename of the defective PDF to replace
+        source_pdf (str): Filename of the source PDF to duplicate
+    """
+    # Build full file paths for defective and source PDFs
+    defective_path = os.path.join(pdf_folder, defective_pdf)
+    source_path = os.path.join(pdf_folder, source_pdf)
+
+    # Check if both files exist before attempting replacement
+    if os.path.exists(defective_path) and os.path.exists(source_path):
+        # Copy source PDF to replace defective PDF
+        shutil.copy(source_path, defective_path)
+        print(f"✅ {defective_pdf} replaced by a copy of {source_pdf}")
+    else:
+        # Warn if one or both files do not exist
+        print("❌ One of the files does not exist.")
 
 # Function to search for pages containing specified keywords in a PDF file
 # _________________________________________________________________________
@@ -385,18 +414,18 @@ def search_keywords(pdf_file, keywords):
     return pages_with_keywords
 
 
-# Function to trim a PDF based on specified pages
+# Function to shorten a PDF based on specified pages
 # _________________________________________________________________________
-def trim_pdf(pdf_file, pages, output_folder):
-    """Trim PDF to pages of interest and save to output folder.
+def shortened_pdf(pdf_file, pages, output_folder):
+    """Shorten PDF to pages of interest and save to output folder.
 
     Args:
         pdf_file (str): Path to source PDF.
         pages (list[int]): Pages to retain.
-        output_folder (str): Folder to save trimmed PDF.
+        output_folder (str): Folder to save input PDF.
 
     Returns:
-        int: Number of pages in the trimmed PDF (0 if skipped).
+        int: Number of pages in the input PDF (0 if skipped).
     """
     if not pages:
         return 0
@@ -446,7 +475,7 @@ def ask_continue_input(message):
         if ans in ("y", "n"):
             return ans == "y"
         
-# Function to generate trimmed input PDFs (from raw PDFs)
+# Function to generate input PDFs (from raw PDFs)
 # _________________________________________________________________________
 def generate_input_pdfs(
     raw_pdf_folder,
@@ -457,17 +486,15 @@ def generate_input_pdfs(
 ):
     """
     Generate input PDFs containing key pages by searching for keywords
-    in raw PDFs. Produces trimmed PDFs and updates a processing record.
+    in raw PDFs. Produces input PDFs and updates a processing record.
 
     Args:
         raw_pdf_folder (str): Folder containing yearly subfolders of raw PDFs.
-        input_pdf_folder (str): Folder to save trimmed input PDFs.
+        input_pdf_folder (str): Folder to save input input PDFs.
         input_pdf_record_folder (str): Folder for the record file.
         input_pdf_record_txt (str): Record filename.
         keywords (list[str]): Keywords to search for.
     """
-    import time
-    from tqdm.notebook import tqdm
 
     start_time = time.time()
 
@@ -509,8 +536,22 @@ def generate_input_pdfs(
                 continue
 
             pages_with_keywords = search_keywords(pdf_file, keywords)
-            num_pages = trim_pdf(pdf_file, pages_with_keywords, output_folder=input_pdf_folder)
 
+            num_pages = shortened_pdf(pdf_file, pages_with_keywords, output_folder=input_pdf_folder)
+            
+            # keep only first and third pages if PDF has 4 pages (they contain the key tables)            
+            short_pdf_file = os.path.join(input_pdf_folder, os.path.basename(pdf_file))
+            reader = PdfReader(short_pdf_file)
+
+            # Only apply if it has 4 pages
+            if len(reader.pages) == 4:
+                writer = PdfWriter()
+                writer.add_page(reader.pages[0])  # first page
+                writer.add_page(reader.pages[2])  # third page
+                with open(short_pdf_file, "wb") as f_out:
+                    writer.write(f_out)
+                    
+            # Now update processed PDF list        
             if num_pages > 0:
                 input_pdf_files.add(filename)
                 folder_new_count += 1
@@ -552,23 +593,7 @@ def generate_input_pdfs(
 
 
 #**********************************************************************************************
-# Section 3.1. A brief documentation on issus in the table information of the PDFs. 
-#----------------------------------------------------------------------------------------------
-
-#+++++++++++++++
-# LIBRARIES
-#+++++++++++++++
-
-from PIL import Image  # Used for opening, manipulating, and saving image files.
-import matplotlib.pyplot as plt  # Used for creating static, animated, and interactive visualizations.
-
-
-# Function to ... PENDING
-# _________________________________________________________________________
-
-
-#**********************************************************************************************
-# Section 3.2.  Extracting tables and data cleanup 
+# Section 3.1.  Extracting tables and data cleanup 
 #----------------------------------------------------------------------------------------------
 
 #+++++++++++++++
