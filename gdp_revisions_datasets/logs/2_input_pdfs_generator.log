@@ -1,0 +1,17 @@
+2025-10-04 13:12:45,545 | INFO | 
+📂 Processing folder: 2021
+
+2025-10-04 13:12:59,532 | INFO | ✅ Shortened PDFs saved in 'digital_pdf\input_pdf' (12 new, 0 skipped)
+2025-10-04 13:13:01,956 | INFO | 
+📂 Processing folder: 2022
+
+2025-10-04 13:13:15,754 | INFO | ✅ Shortened PDFs saved in 'digital_pdf\input_pdf' (12 new, 0 skipped)
+2025-10-04 13:13:16,870 | INFO | 
+⏩ 96 input PDFs already generated for years: 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020
+2025-10-04 13:13:16,886 | INFO | 
+📊 Summary:
+
+2025-10-04 13:13:16,886 | INFO | 📂 11 folders (years) found containing raw PDFs
+2025-10-04 13:13:16,886 | INFO | 🗂️ Already generated input PDFs: 96
+2025-10-04 13:13:16,886 | INFO | ➕ Newly generated input PDFs: 24
+2025-10-04 13:13:16,886 | INFO | ⏱️ Time: 31 seconds
