@@ -128,7 +128,7 @@ def init_driver(browser="chrome", headless=False):
 
 # Function to download a single PDF (WR)
 # _________________________________________________________________________
-def download_pdf(driver, pdf_link, wait, download_counter, raw_pdf_folder, download_record_folder):
+def download_pdf(driver, pdf_link, wait, download_counter, raw_pdf_folder, download_record_folder, download_record_txt):
     """
     Download a single PDF from the selenium link element.
     
@@ -161,9 +161,28 @@ def download_pdf(driver, pdf_link, wait, download_counter, raw_pdf_folder, downl
             for chunk in response.iter_content(chunk_size=128):
                 pdf_file.write(chunk)
 
-        # Record the file in the download log
-        with open(os.path.join(download_record_folder, "downloaded_pdfs.txt"), "a") as f:
-            f.write(file_name + "\n")
+        # Record the file in the download log (chronologically: year → issue)
+        import re
+        record_path = os.path.join(download_record_folder, download_record_txt)
+        records = []
+        if os.path.exists(record_path):
+            with open(record_path, "r", encoding="utf-8") as f:
+                records = [ln.strip() for ln in f if ln.strip()]
+        if file_name not in records:
+            records.append(file_name)
+
+        def _ns_key(s):
+            base = os.path.splitext(os.path.basename(s))[0]
+            m = re.search(r"ns-(\d{2})-(\d{4})", base, re.I)
+            if not m:  # push unknowns last, stable by name
+                return (9999, 9999, base)
+            issue, year = int(m.group(1)), int(m.group(2))
+            return (year, issue)
+
+        records.sort(key=_ns_key)
+        os.makedirs(download_record_folder, exist_ok=True)
+        with open(record_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(records) + ("\n" if records else ""))
 
         print(f"{download_counter}. ✅ Downloaded: {file_name}")
         success = True
@@ -183,6 +202,7 @@ def download_pdfs(
     bcrp_url,
     raw_pdf_folder,
     download_record_folder,
+    download_record_txt,
     alert_track_folder,
     max_downloads=None,
     downloads_per_batch=12,
@@ -196,13 +216,14 @@ def download_pdfs(
         bcrp_url (str): URL of BCRP Weekly Reports
         raw_pdf_folder (str): Folder to save raw PDFs
         download_record_folder (str): Folder to save download record file
+        download_record_txt (str): Record filename for downloaded PDFs log
         alert_track_folder (str): Folder containing notification MP3s
         max_downloads (int, optional): Maximum number of new PDFs to download
         downloads_per_batch (int): Number of PDFs between user prompts
         headless (bool): Whether to run browser in headless mode
     """
     # Start timer for total execution time
-    import time
+    import time, re
     start_time = time.time()
 
     # Start the downloader and prepare audio alerts
@@ -211,10 +232,10 @@ def download_pdfs(
     alert_track_path = load_alert_track(alert_track_folder)
 
     # Load record of already downloaded files
-    record_path = os.path.join(download_record_folder, "downloaded_pdfs.txt")
+    record_path = os.path.join(download_record_folder, download_record_txt)
     downloaded_files = set()
     if os.path.exists(record_path):
-        with open(record_path, "r") as f:
+        with open(record_path, "r", encoding="utf-8") as f:
             downloaded_files = set(f.read().splitlines())
 
     # Initialize browser session
@@ -261,15 +282,10 @@ def download_pdfs(
             else:
                 new_downloads.append((pdf_link, file_name))
 
-        # Print skipped files summary
-        if skipped_files:
-            skipped_files.sort()
-            print(f"⏩ {len(skipped_files)} already downloaded PDFs: from {skipped_files[0]} up to {skipped_files[-1]}\n")
-
         # Process each new download
         for i, (pdf_link, file_name) in enumerate(new_downloads, start=1):
             # Attempt the download
-            if download_pdf(driver, pdf_link, wait, i, raw_pdf_folder, download_record_folder):
+            if download_pdf(driver, pdf_link, wait, i, raw_pdf_folder, download_record_folder, download_record_txt):
                 downloaded_files.add(file_name)
                 new_counter += 1
 
@@ -297,6 +313,28 @@ def download_pdfs(
         # Always close the browser
         driver.quit()
         print("\n👋 Browser closed.")
+
+    # Ensure the record file is chronologically ordered (year → issue)
+    try:
+        if os.path.exists(record_path):
+            with open(record_path, "r", encoding="utf-8") as f:
+                records = [ln.strip() for ln in f if ln.strip()]
+
+            def _ns_key(s):
+                base = os.path.splitext(os.path.basename(s))[0]
+                m = re.search(r"ns-(\d{2})-(\d{4})", base, re.I)
+                if not m:
+                    return (9999, 9999, base)
+                issue, year = int(m.group(1)), int(m.group(2))
+                return (year, issue)
+
+            records = sorted(set(records), key=_ns_key)
+            os.makedirs(download_record_folder, exist_ok=True)
+            with open(record_path, "w", encoding="utf-8") as f:
+                f.write("\n".join(records) + ("\n" if records else ""))
+    except Exception as _e:
+        # Non-fatal: if sorting fails, keep proceeding
+        pass
 
     # Final summary of operations
     elapsed_time = round(time.time() - start_time)
@@ -368,31 +406,104 @@ from PyPDF2 import PdfReader, PdfWriter
 # FUNCTIONS
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-# Function to replace a defective PDF by copying another PDF
+# Function to replace defective PDFs with specific issues (year-aware)
 # _________________________________________________________________________
-def fix_defective_pdf(pdf_folder, defective_pdf="ns-08-2017.pdf", source_pdf="ns-04-2017.pdf"):
+def replace_ns_pdfs(items, root_folder, record_folder, download_record_txt, quarantine=None):
     """
-    Replace a defective PDF with a copy of another PDF.
-    Only performs replacement if both defective and source PDFs exist.
-
-    Args:
-        pdf_folder (str): Folder containing the PDFs
-        defective_pdf (str): Filename of the defective PDF to replace
-        source_pdf (str): Filename of the source PDF to duplicate
+    Replace defective PDFs stored under year subfolders.
+    items: list of (year, defective_pdf, replacement_code), e.g.
+           [("2017","ns-08-2017.pdf","ns-07-2017"), ("2019","ns-23-2019.pdf","ns-22-2019")]
+    root_folder: base path containing year folders (e.g., raw_pdf)
+    record_folder: path holding the download record TXT
+    download_record_txt: record filename (e.g., 'downloaded_pdfs.txt')
+    quarantine: optional folder to move defective PDFs (else they’re deleted)
     """
-    # Build full file paths for defective and source PDFs
-    defective_path = os.path.join(pdf_folder, defective_pdf)
-    source_path = os.path.join(pdf_folder, source_pdf)
+    # Helpers: normalize code, build URL, update record (keep defective entries!)
+    pat = re.compile(r'^ns-(\d{1,2})-(\d{4})(?:\.pdf)?$', re.I)
+    def norm(c):
+        m = pat.match(os.path.basename(c).lower())
+        if not m: raise ValueError(f"Bad NS code: {c}")
+        return f"ns-{int(m.group(1)):02d}-{m.group(2)}"
+    def url(c): 
+        cc = norm(c); return f"https://www.bcrp.gob.pe/docs/Publicaciones/Nota-Semanal/{cc[-4:]}/{cc}.pdf"
+    def _ns_key(name):
+        base = os.path.splitext(os.path.basename(name))[0]
+        m = re.search(r"ns-(\d{2})-(\d{4})", base, re.I)
+        if not m: return (9999, 9999, base)
+        issue, year = int(m.group(1)), int(m.group(2))
+        return (year, issue, base)
+    def update_record(add=None, remove=None):
+        # Intentionally DO NOT remove defective entries from the TXT, so the downloader won’t fetch them again.
+        p = os.path.join(record_folder, download_record_txt)
+        s = set()
+        if os.path.exists(p):
+            with open(p, "r", encoding="utf-8") as f:
+                s = {x.strip() for x in f if x.strip()}
+        if add:
+            s.add(add)
+        records = sorted(s, key=_ns_key)  # chronological: year → issue
+        os.makedirs(record_folder, exist_ok=True)
+        with open(p, "w", encoding="utf-8") as f:
+            f.write("\n".join(records) + ("\n" if records else ""))
 
-    # Check if both files exist before attempting replacement
-    if os.path.exists(defective_path) and os.path.exists(source_path):
-        # Copy source PDF to replace defective PDF
-        shutil.copy(source_path, defective_path)
-        print(f"✅ {defective_pdf} replaced by a copy of {source_pdf}")
-    else:
-        # Warn if one or both files do not exist
-        print("❌ One of the files does not exist.")
+    # Friendly header
+    print(f"\n🧩 Replacing {len(items)} PDF(s) under: {root_folder}")
+    if quarantine:
+        os.makedirs(quarantine, exist_ok=True)
+        print(f"🦠 Quarantine enabled → {quarantine}")
+    ok, fail = 0, 0
 
+    # Process each (year, defective_pdf, replacement_code)
+    for year, bad_pdf, repl_code in items:
+        year = str(year)
+        ydir = os.path.join(root_folder, year)
+        bad_path = os.path.join(ydir, bad_pdf)
+        new_name = f"{norm(repl_code)}.pdf"
+        new_path = os.path.join(ydir, new_name)
+
+        # Check defective file presence
+        if not os.path.exists(bad_path):
+            print(f"⚠️  {year}: not found → {bad_pdf} (skipped)")
+            fail += 1
+            continue
+
+        # Try downloading replacement first (safer)
+        try:
+            os.makedirs(ydir, exist_ok=True)
+            print(f"⬇️  {year}: downloading {norm(repl_code)} …")
+            with requests.get(url(repl_code), stream=True, timeout=60) as r:
+                r.raise_for_status()
+                with open(new_path, "wb") as fh:
+                    for ch in r.iter_content(131072):
+                        if ch: fh.write(ch)
+        except Exception as e:
+            if os.path.exists(new_path):
+                try: os.remove(new_path)
+                except: pass
+            print(f"❌  {year}: download failed for {norm(repl_code)} → {e}")
+            fail += 1
+            continue
+
+        # Move defective to quarantine or delete
+        try:
+            if quarantine:
+                shutil.move(bad_path, os.path.join(quarantine, bad_pdf))
+                moved_msg = f"moved to {os.path.basename(quarantine)}"
+            else:
+                os.remove(bad_path); moved_msg = "deleted"
+        except Exception as e:
+            print(f"❌  {year}: could not remove old file {bad_pdf} → {e}")
+            fail += 1
+            continue
+
+        # Update record and report (keep defective in TXT; just add the replacement)
+        update_record(add=new_name, remove=bad_pdf)
+        print(f"✅  {year}: {bad_pdf} → {new_name} ({moved_msg})")
+        ok += 1
+
+    # Friendly footer
+    print(f"\n📊 Summary: ✅ {ok} done · ❌ {fail} failed")
+    
 # Function to search for pages containing specified keywords in a PDF file
 # _________________________________________________________________________
 def search_keywords(pdf_file, keywords):
@@ -439,7 +550,6 @@ def shortened_pdf(pdf_file, pages, output_folder):
         new_doc.save(new_pdf_file)
     return new_doc.page_count
 
-
 # Function to read input PDF filenames from record file
 # _________________________________________________________________________
 def read_input_pdf_files(input_pdf_record_folder, input_pdf_record_txt):
@@ -454,7 +564,6 @@ def read_input_pdf_files(input_pdf_record_folder, input_pdf_record_txt):
     with open(record_path, "r") as f:
         return set(f.read().splitlines())
 
-
 # Function to write input PDF filenames to record file
 # _________________________________________________________________________
 def write_input_pdf_files(input_pdf_files, input_pdf_record_folder, input_pdf_record_txt):
@@ -464,7 +573,6 @@ def write_input_pdf_files(input_pdf_files, input_pdf_record_folder, input_pdf_re
     with open(record_path, "w") as f:
         for fn in sorted(input_pdf_files):
             f.write(fn + "\n")
-
 
 # Function to ask user yes/no in Jupyter or server
 # _________________________________________________________________________
@@ -508,6 +616,10 @@ def generate_input_pdfs(
 
     # Loop over yearly folders
     for folder in sorted(os.listdir(raw_pdf_folder)):
+        # Skip quarantine folder created by replacement routine
+        if folder == "_quarantine":
+            continue
+
         folder_path = os.path.join(raw_pdf_folder, folder)
         if not os.path.isdir(folder_path):
             continue
@@ -528,8 +640,16 @@ def generate_input_pdfs(
         folder_new_count = 0
         folder_skipped_count = 0
 
-        for filename in tqdm(pdf_files, desc=f"Generating input PDFs in {folder}", unit="PDF",
-                             bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}"):
+        # Progress bar with custom colors: active=#E6004C, finished=#3366FF
+        pbar = tqdm(
+            pdf_files,
+            desc=f"Generating input PDFs in {folder}",
+            unit="PDF",
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}",
+            colour="#E6004C"  # in-progress color
+        )
+
+        for filename in pbar:
             pdf_file = os.path.join(folder_path, filename)
             if filename in input_pdf_files:
                 folder_skipped_count += 1
@@ -556,9 +676,33 @@ def generate_input_pdfs(
                 input_pdf_files.add(filename)
                 folder_new_count += 1
 
-        # Update record
-        write_input_pdf_files(input_pdf_files, input_pdf_record_folder, input_pdf_record_txt)
+        # Set finished color and refresh the bar (leave it visible)
+        try:
+            pbar.colour = "#3366FF"  # finished color
+            pbar.refresh()
+        except Exception:
+            pass
+        finally:
+            pbar.close()
 
+        # Chronological write: sort by (year, issue) and write exactly in that order
+        import re
+        def _ns_key(s):
+            base = os.path.splitext(os.path.basename(s))[0]  # strip .pdf if present
+            m = re.search(r"ns-(\d{2})-(\d{4})", base, re.I)
+            if not m:
+                return (9999, 9999, base)  # push unknowns to the end
+            issue = int(m.group(1))
+            year  = int(m.group(2))
+            return (year, issue)
+
+        ordered_records = sorted(input_pdf_files, key=_ns_key)
+        os.makedirs(input_pdf_record_folder, exist_ok=True)
+        record_path = os.path.join(input_pdf_record_folder, input_pdf_record_txt)
+        with open(record_path, "w", encoding="utf-8") as f_rec:
+            for name in ordered_records:
+                f_rec.write(name + "\n")
+                
         # Folder summary
         print(f"✅ Shortened PDFs saved in '{input_pdf_folder}' "
               f"({folder_new_count} new, {folder_skipped_count} skipped)")
