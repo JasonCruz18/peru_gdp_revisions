@@ -15,3 +15,15 @@
 2025-10-04 13:13:16,886 | INFO | 🗂️ Already generated input PDFs: 96
 2025-10-04 13:13:16,886 | INFO | ➕ Newly generated input PDFs: 24
 2025-10-04 13:13:16,886 | INFO | ⏱️ Time: 31 seconds
+2025-10-04 18:04:48,934 | INFO | 
+⏩ 120 input PDFs already generated for years: 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022
+2025-10-04 18:04:48,934 | INFO | 
+📊 Summary:
+
+2025-10-04 18:04:48,934 | INFO | 📂 11 folders (years) found containing raw PDFs
+2025-10-04 18:04:48,934 | INFO | 🗂️ Already generated input PDFs: 120
+2025-10-04 18:04:48,934 | INFO | ➕ Newly generated input PDFs: 0
+2025-10-04 18:04:48,934 | INFO | ⏱️ Time: 0 seconds
+2025-10-04 18:05:03,195 | INFO | 
+📂 Processing folder: 2022
+
