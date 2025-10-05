@@ -10,8 +10,8 @@
 # LIBRARIES
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-import os                                                                # Path utilities and directory management
-import re                                                                # Filename parsing and natural sorting helpers
+import os                                                               # Path utilities and directory management
+import re                                                               # Filename parsing and natural sorting helpers
 import time                                                             # Execution timing and simple profiling
 import random                                                           # Randomized backoff/wait durations
 import shutil                                                           # High-level file operations (move/copy/rename/delete)
@@ -1754,6 +1754,612 @@ def exchange_roman_nan(df):
 
 
 
+
+
+# =============================================================================================
+# Section 3. pipelines — table 1 and table 2 cleaning runners
+# =============================================================================================
+
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# libraries (top-only imports)
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+import os
+import re
+import time
+import logging
+import pandas as pd
+from tqdm.notebook import tqdm                      # Jupyter-native progress bars (gray background)
+import tabula                                       # PDF table extractor (Java backend)
+
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# constants — colors, bar style, defaults
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+PROG_COLOR_ACTIVE = "#E6004C"                       # in-progress color (magenta/red)
+PROG_COLOR_DONE   = "#3366FF"                       # finished color (blue)
+BAR_FORMAT        = "{l_bar}{bar}| {n_fmt}/{total_fmt}"
+
+DEFAULT_LOG_FOLDER = "logs"                         # default folder for .log
+DEFAULT_LOG_TXT    = "section_3_cleaning.log"       # shared log for table 1 & 2
+RECORD_SUFFIX_1    = "new_generated_dataframes_1.txt"
+RECORD_SUFFIX_2    = "new_generated_dataframes_2.txt"
+
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# logger — write to file only (no console echo; notebook prints are separate)
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+_SECTION3_LOGGER: logging.Logger | None = None
+
+# _________________________________________________________________________
+# Function: init_section3_logger
+def init_section3_logger(log_folder: str = DEFAULT_LOG_FOLDER,
+                         log_txt: str = DEFAULT_LOG_TXT) -> logging.Logger:
+    """
+    Initialize a logger that writes only to a UTF-8 .log file.
+    No console handler is attached. Notebook messages are printed separately.
+
+    Args:
+        log_folder (str): Folder that will contain the .log file.
+        log_txt (str): Log filename.
+
+    Returns:
+        logging.Logger: Configured logger instance.
+    """
+    os.makedirs(log_folder, exist_ok=True)                              # Ensure folder exists
+    log_path = os.path.join(log_folder, log_txt)
+
+    logger = logging.getLogger("section3")
+    logger.setLevel(logging.INFO)
+    logger.handlers.clear()                                             # Avoid duplicate handlers
+    logger.propagate = False                                            # Do not bubble to root logger
+
+    fh = logging.FileHandler(log_path, encoding="utf-8")                # File sink only
+    fmt = logging.Formatter("%(asctime)s — %(levelname)s — %(message)s")
+    fh.setFormatter(fmt)
+    logger.addHandler(fh)
+    return logger
+
+
+# _________________________________________________________________________
+# Function: _ensure_logger
+def _ensure_logger(log_folder: str, log_txt: str) -> logging.Logger:
+    """
+    Lazily create the module logger the first time it is needed.
+
+    Args:
+        log_folder (str): Folder for the log file.
+        log_txt (str): Log filename.
+
+    Returns:
+        logging.Logger: Module logger.
+    """
+    global _SECTION3_LOGGER
+    if _SECTION3_LOGGER is None:
+        _SECTION3_LOGGER = init_section3_logger(log_folder, log_txt)
+    return _SECTION3_LOGGER
+
+
+# _________________________________________________________________________
+# Function: log_info
+def log_info(msg: str) -> None:
+    """
+    Log an informational message to file and print a concise line to the notebook.
+
+    Args:
+        msg (str): Message to record.
+    """
+    if _SECTION3_LOGGER:
+        _SECTION3_LOGGER.info(msg)                                      # File only
+    print(msg)                                                          # Notebook-friendly line
+
+
+# _________________________________________________________________________
+# Function: log_warn
+def log_warn(msg: str) -> None:
+    """
+    Log a warning message to file and print a concise line to the notebook.
+
+    Args:
+        msg (str): Message to record.
+    """
+    if _SECTION3_LOGGER:
+        _SECTION3_LOGGER.warning(msg)                                   # File only
+    print(msg)                                                          # Notebook-friendly line
+
+
+# =============================================================================================
+# utilities — parsing, sorting, records, extraction
+# =============================================================================================
+
+# _________________________________________________________________________
+# Function: parse_ns_meta
+def parse_ns_meta(file_name: str) -> tuple[str | None, str | None]:
+    """
+    Extract (issue, year) from file name like 'ns-07-2017.pdf'.
+
+    Args:
+        file_name (str): Filename.
+
+    Returns:
+        tuple[str | None, str | None]: (issue, year) if matched, else (None, None).
+    """
+    m = re.search(r"ns-(\d{1,2})-(\d{4})", os.path.basename(file_name).lower())
+    return (m.group(1), m.group(2)) if m else (None, None)
+
+
+# _________________________________________________________________________
+# Function: _ns_sort_key
+def _ns_sort_key(s: str) -> tuple[int, int, str]:
+    """
+    Build a chronological sort key (year, issue) for filenames 'ns-xx-yyyy(.pdf)'.
+
+    Args:
+        s (str): Filename or basename.
+
+    Returns:
+        tuple[int, int, str]: (year, issue, basename) for stable ordering.
+    """
+    base = os.path.splitext(os.path.basename(s))[0]
+    m = re.search(r"ns-(\d{1,2})-(\d{4})", base, re.I)
+    if not m:
+        return (9999, 9999, base)
+    issue, year = int(m.group(1)), int(m.group(2))
+    return (year, issue, base)
+
+
+# _________________________________________________________________________
+# Function: _read_records
+def _read_records(record_folder: str, record_txt: str) -> list[str]:
+    """
+    Read existing records, return a unique, chronological list.
+
+    Args:
+        record_folder (str): Folder of the record file.
+        record_txt (str): Filename of the record.
+
+    Returns:
+        list[str]: Filenames ordered by (year, issue).
+    """
+    path = os.path.join(record_folder, record_txt)
+    if not os.path.exists(path):
+        return []
+    with open(path, "r", encoding="utf-8") as f:
+        items = [ln.strip() for ln in f if ln.strip()]
+    return sorted(set(items), key=_ns_sort_key)
+
+
+# _________________________________________________________________________
+# Function: _write_records
+def _write_records(record_folder: str, record_txt: str, items: list[str]) -> None:
+    """
+    Persist records chronologically with a trailing newline.
+
+    Args:
+        record_folder (str): Folder of the record file.
+        record_txt (str): Filename of the record.
+        items (list[str]): Filenames to persist.
+    """
+    os.makedirs(record_folder, exist_ok=True)                            # Ensure folder exists
+    items = sorted(set(items), key=_ns_sort_key)                         # De-dup + sort
+    path = os.path.join(record_folder, record_txt)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("\n".join(items) + ("\n" if items else ""))              # Trailing newline
+
+
+# _________________________________________________________________________
+# Function: _extract_table
+def _extract_table(pdf_path: str, page: int) -> pd.DataFrame | None:
+    """
+    Extract a single table from a given PDF page.
+
+    Args:
+        pdf_path (str): Full path to the PDF.
+        page (int): 1-based page index to read.
+
+    Returns:
+        pd.DataFrame | None: Extracted table or None if not found.
+    """
+    tables = tabula.read_pdf(pdf_path, pages=page, multiple_tables=False, stream=True)
+    if tables is None:
+        return None
+    if isinstance(tables, list) and len(tables) == 0:
+        return None
+    return tables[0] if isinstance(tables, list) else tables
+
+
+# =============================================================================================
+# pipelines — wrapper class that uses your cleaning helpers (already defined elsewhere)
+# =============================================================================================
+
+# _________________________________________________________________________
+# Class: gdpwr_cleaner
+class gdpwr_cleaner:
+    """
+    Pipelines for WR tables.
+
+    Exposes:
+        - clean_table1(df): Monthly (table 1) pipeline.
+        - clean_table2(df): Quarterly/annual (table 2) pipeline.
+
+    Note:
+        The helper functions referenced below (e.g., drop_nan_rows, split_column_by_pattern, …)
+        must exist in this module as provided in your cleaning section.
+    """
+
+    # _____________________________________________________________________
+    # Function: clean_table1
+    def clean_table1(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Clean a raw DataFrame extracted from WR Table 1 (monthly growth).
+
+        Args:
+            df (pd.DataFrame): Raw table 1 dataframe.
+
+        Returns:
+            pd.DataFrame: Cleaned table 1 dataframe.
+        """
+        d = df.copy()                                                      # Work on a copy
+        # Branch A — at least one column already looks like 'YYYY'
+        if any(isinstance(c, str) and c.isdigit() and len(c) == 4 for c in d.columns):
+            d = swap_nan_se(d)                                             # Fix 'SECTORES ECONÓMICOS' displacement
+            d = split_column_by_pattern(d)                                 # Split 'Word. Word' headers
+            d = drop_rare_caracter_row(d)                                  # Remove rows containing '}'
+            d = drop_nan_rows(d)                                           # Drop fully-NaN rows
+            d = drop_nan_columns(d)                                        # Drop fully-NaN columns
+            d = relocate_last_columns(d)                                   # Relocate trailing text cells
+            d = replace_first_dot(d)                                       # 'word. word' → 'word-word' in row 2
+            d = swap_first_second_row(d)                                   # Swap first/second edge cells
+            d = drop_nan_rows(d)                                           # Clean residual blanks
+            d = reset_index(d)                                             # Reset DataFrame index
+            d = remove_digit_slash(d)                                      # Remove 'd*/' on edge columns
+            d = replace_var_perc_first_column(d)                           # Normalize 'Var. %' labels (first col)
+            d = replace_var_perc_last_columns(d)                           # Normalize 'Var. %' labels (last cols)
+            d = replace_number_moving_average(d)                           # Unify moving-average text
+            d = separate_text_digits(d)                                    # Split text vs numeric parts
+            d = exchange_values(d)                                         # Swap last two columns if needed
+            d = relocate_last_column(d)                                    # Move last column to position 2
+            d = clean_first_row(d)                                         # Normalize header row text
+            d = find_year_column(d)                                        # Align 'year' vs numeric year
+            years = extract_years(d)                                       # Collect year columns
+            d = get_months_sublist_list(d, years)                          # Build month headers per year
+            d = first_row_columns(d)                                       # Promote first row to headers
+            d = clean_columns_values(d)                                    # Normalize columns & values
+            d = convert_float(d)                                           # Coerce numeric
+            d = replace_set_sep(d)                                         # 'set' → 'sep'
+            d = spaces_se_es(d)                                            # Trim spaces
+            d = replace_services(d)                                        # Harmonize services labels
+            d = replace_mineria(d)                                         # Harmonize mining (ES)
+            d = replace_mining(d)                                          # Harmonize mining (EN)
+            d = rounding_values(d, decimals=1)                             # Round floats to 1 decimal
+            return d
+
+        # Branch B — no 'YYYY' columns visible yet
+        d = check_first_row(d)                                             # Split 'YYYY YYYY' in row 0
+        d = check_first_row_1(d)                                           # Fill missing edge years
+        d = replace_first_row_with_columns(d)                              # Fill NaN headers with placeholders
+        d = swap_nan_se(d)                                                 # Fix 'SECTORES ECONÓMICOS' displacement
+        d = split_column_by_pattern(d)                                     # Split 'Word. Word' headers
+        d = drop_rare_caracter_row(d)                                      # Remove rows containing '}'
+        d = drop_nan_rows(d)                                               # Drop fully-NaN rows
+        d = drop_nan_columns(d)                                            # Drop fully-NaN columns
+        d = relocate_last_columns(d)                                       # Relocate trailing text cells
+        d = swap_first_second_row(d)                                       # Swap first/second edge cells
+        d = drop_nan_rows(d)                                               # Clean residual blanks
+        d = reset_index(d)                                                 # Reset DataFrame index
+        d = remove_digit_slash(d)                                          # Remove 'd*/' on edge columns
+        d = replace_var_perc_first_column(d)                               # Normalize 'Var. %' (first col)
+        d = replace_var_perc_last_columns(d)                               # Normalize 'Var. %' (last cols)
+        d = replace_number_moving_average(d)                               # Unify moving-average text
+        d = expand_column(d)                                               # Expand hyphenated text
+        d = split_values_1(d)                                              # Split expanded column (v1)
+        d = split_values_2(d)                                              # Split expanded column (v2)
+        d = split_values_3(d)                                              # Split expanded column (v3)
+        d = separate_text_digits(d)                                        # Split text vs numeric parts
+        d = exchange_values(d)                                             # Swap last two columns if needed
+        d = relocate_last_column(d)                                        # Move last column to position 2
+        d = clean_first_row(d)                                             # Normalize header row text
+        d = find_year_column(d)                                            # Align 'year' vs numeric year
+        years = extract_years(d)                                           # Collect year columns
+        d = get_months_sublist_list(d, years)                              # Build month headers per year
+        d = first_row_columns(d)                                           # Promote first row to headers
+        d = clean_columns_values(d)                                        # Normalize columns & values
+        d = convert_float(d)                                               # Coerce numeric
+        d = replace_nan_with_previous_column_1(d)                          # Fill NaN from neighbor (v1)
+        d = replace_nan_with_previous_column_2(d)                          # Fill NaN from neighbor (v2)
+        d = replace_nan_with_previous_column_3(d)                          # Fill NaN from neighbor (v3)
+        d = replace_set_sep(d)                                             # 'set' → 'sep'
+        d = spaces_se_es(d)                                                # Trim spaces
+        d = replace_services(d)                                            # Harmonize services
+        d = replace_mineria(d)                                             # Harmonize mining (ES)
+        d = replace_mining(d)                                              # Harmonize mining (EN)
+        d = rounding_values(d, decimals=1)                                 # Round floats to 1 decimal
+        return d
+
+    # _____________________________________________________________________
+    # Function: clean_table2
+    def clean_table2(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Clean a raw DataFrame extracted from WR Table 2 (quarterly/annual).
+
+        Args:
+            df (pd.DataFrame): Raw table 2 dataframe.
+
+        Returns:
+            pd.DataFrame: Cleaned table 2 dataframe.
+        """
+        d = df.copy()                                                      # Work on a copy
+        # Branch A — header starts with NaN
+        if pd.isna(d.iloc[0, 0]):
+            d = drop_nan_columns(d)                                        # Drop fully-NaN columns
+            d = separate_years(d)                                          # Split 'YYYY YYYY'
+            d = relocate_roman_numerals(d)                                 # Move Roman numerals out
+            d = extract_mixed_values(d)                                    # Move mixed numeric/text
+            d = replace_first_row_nan(d)                                   # Fill NaN headers
+            d = first_row_columns(d)                                       # Promote first row to header
+            d = swap_first_second_row(d)                                   # Swap edge cells
+            d = reset_index(d)                                             # Reset index
+            d = drop_nan_row(d)                                            # Drop empty first row if present
+            years = extract_years(d)                                       # Collect year columns
+            d = split_values(d)                                            # Split target column
+            d = separate_text_digits(d)                                    # Split text vs numeric parts
+            d = roman_arabic(d)                                            # Roman → Arabic
+            d = fix_duplicates(d)                                          # Fix duplicate numeric headers
+            d = relocate_last_column(d)                                    # Move last column to position 2
+            d = clean_first_row(d)                                         # Normalize header text
+            d = get_quarters_sublist_list(d, years)                        # Build quarter headers
+            d = first_row_columns(d)                                       # Promote first row again
+            d = clean_columns_values(d)                                    # Normalize columns & values
+            d = reset_index(d)                                             # Reset index
+            d = convert_float(d)                                           # Coerce numeric
+            d = replace_set_sep(d)                                         # 'set' → 'sep'
+            d = spaces_se_es(d)                                            # Trim spaces
+            d = replace_services(d)                                        # Harmonize services
+            d = replace_mineria(d)                                         # Harmonize mining (ES)
+            d = replace_mining(d)                                          # Harmonize mining (EN)
+            d = rounding_values(d, decimals=1)                             # Round floats to 1 decimal
+            return d
+
+        # Branch B — standard layout
+        d = exchange_roman_nan(d)                                          # Swap Roman vs NaN when needed
+        d = exchange_columns(d)                                            # Swap year vs non-year columns
+        d = drop_nan_columns(d)                                            # Drop fully-NaN columns
+        d = remove_digit_slash(d)                                          # Remove 'd*/' on edges
+        d = last_column_es(d)                                              # Fix last-column label placement
+        d = swap_first_second_row(d)                                       # Swap edge cells
+        d = drop_nan_rows(d)                                               # Drop fully-NaN rows
+        d = reset_index(d)                                                 # Reset index
+        years = extract_years(d)                                           # Collect year columns
+        d = separate_text_digits(d)                                        # Split text vs numeric parts
+        d = roman_arabic(d)                                                # Roman → Arabic
+        d = fix_duplicates(d)                                              # Fix duplicate numeric headers
+        d = relocate_last_column(d)                                        # Move last column to position 2
+        d = clean_first_row(d)                                             # Normalize header text
+        d = get_quarters_sublist_list(d, years)                            # Build quarter headers
+        d = first_row_columns(d)                                           # Promote first row to headers
+        d = clean_columns_values(d)                                        # Normalize columns & values
+        d = reset_index(d)                                                 # Reset index
+        d = convert_float(d)                                               # Coerce numeric
+        d = replace_set_sep(d)                                             # 'set' → 'sep'
+        d = spaces_se_es(d)                                                # Trim spaces
+        d = replace_services(d)                                            # Harmonize services
+        d = replace_mineria(d)                                             # Harmonize mining (ES)
+        d = replace_mining(d)                                              # Harmonize mining (EN)
+        d = rounding_values(d, decimals=1)                                 # Round floats to 1 decimal
+        return d
+
+
+# =============================================================================================
+# runners — single-call functions per table, with raw+clean dicts, records, logs and summary
+# =============================================================================================
+
+# _________________________________________________________________________
+# Function: table_1_cleaner
+def table_1_cleaner(
+    input_pdf_folder: str,
+    record_folder: str,
+    record_txt: str = RECORD_SUFFIX_1,
+    log_folder: str = DEFAULT_LOG_FOLDER,
+    log_txt: str = DEFAULT_LOG_TXT,
+) -> tuple[dict[str, pd.DataFrame], dict[str, pd.DataFrame]]:
+    """
+    Extract page 1 from each WR PDF, run the table 1 pipeline, update the record,
+    and print + log a concise summary (log file only; notebook prints are clean).
+
+    Args:
+        input_pdf_folder (str): Root folder containing year subfolders (skips '_quarantine').
+        record_folder (str): Folder where the record text file is stored.
+        record_txt (str): Record filename (chronological), default 'new_generated_dataframes_1.txt'.
+        log_folder (str): Folder where the .log file will be written.
+        log_txt (str): Log filename (shared across section 3).
+
+    Returns:
+        tuple:
+            - raw_tables_dict_1 (dict[str, pd.DataFrame]): Raw tables keyed as 'ns_xx_yyyy_1'.
+            - new_dataframes_dict_1 (dict[str, pd.DataFrame]): Cleaned tables keyed as 'ns_xx_yyyy_1'.
+    """
+    _ = _ensure_logger(log_folder, log_txt)                              # Ensure file logger exists
+    start_time = time.time()                                             # Timer start
+
+    log_info("\n🧹 Starting Table 1 cleaning...\n")
+
+    cleaner = gdpwr_cleaner()                                            # Pipeline runner
+    records = _read_records(record_folder, record_txt)                   # Load existing records
+    processed = set(records)                                             # Fast membership test
+
+    raw_tables_dict_1: dict[str, pd.DataFrame] = {}                      # Raw tables dict (for inspection)
+    new_dataframes_dict_1: dict[str, pd.DataFrame] = {}                  # Cleaned tables dict
+
+    done, skipped = 0, 0                                                 # Counters
+
+    # Enumerate year folders (skip quarantine)
+    years = [d for d in sorted(os.listdir(input_pdf_folder))
+             if os.path.isdir(os.path.join(input_pdf_folder, d)) and d != "_quarantine"]
+
+    for year in years:
+        folder_path = os.path.join(input_pdf_folder, year)
+        pdf_files = sorted([f for f in os.listdir(folder_path) if f.endswith(".pdf")], key=_ns_sort_key)
+        if not pdf_files:
+            continue
+
+        log_info(f"📂 Processing Table 1 in {year}")
+        pbar = tqdm(pdf_files, desc=f"🚧 {year}", unit="PDF",
+                    bar_format=BAR_FORMAT, colour=PROG_COLOR_ACTIVE, leave=False)
+
+        for filename in pbar:
+            if filename in processed:                                    # Skip already processed
+                skipped += 1
+                continue
+
+            ns_id, ns_year = parse_ns_meta(filename)                      # Parse identifiers
+            if not ns_id:
+                skipped += 1
+                continue
+
+            pdf_path = os.path.join(folder_path, filename)                # Full path to PDF
+            try:
+                raw = _extract_table(pdf_path, page=1)                    # Extract table from page 1
+                if raw is None:
+                    skipped += 1
+                    continue
+
+                key = f"{os.path.splitext(filename)[0].replace('-', '_')}_1"  # Dict key
+                raw_tables_dict_1[key] = raw.copy()                       # Store raw snapshot
+
+                clean = cleaner.clean_table1(raw)                         # Run pipeline
+                clean.insert(0, "year", ns_year)                          # Add metadata: year
+                clean.insert(1, "id_ns", ns_id)                           # Add metadata: id
+                new_dataframes_dict_1[key] = clean                        # Store cleaned result
+
+                processed.add(filename)                                   # Mark processed
+                done += 1
+            except Exception as e:
+                log_warn(f"⚠️  {filename}: {e}")                          # Log non-fatal error
+                skipped += 1
+
+        pbar.close()                                                      # Close active (magenta) bar
+
+        # Finished overlay bar (blue)
+        fb = tqdm(total=len(pdf_files), desc=f"✔️ {year}", unit="PDF",
+                  bar_format=BAR_FORMAT, colour=PROG_COLOR_DONE, leave=True)
+        fb.update(len(pdf_files)); fb.close()
+
+    # Persist updated record (chronological)
+    _write_records(record_folder, record_txt, list(processed))
+
+    # Summary — benchmark style
+    elapsed_time = round(time.time() - start_time)
+    log_info("\n📊 Summary:")
+    log_info(f"\n🗃️ Record file: {os.path.join(record_folder, record_txt)}")
+    log_info(f"✨ Cleaned: {done}  .  ⏩ Skipped: {skipped}")
+    log_info(f"⏱️ Time: {elapsed_time} seconds\n")
+
+    return raw_tables_dict_1, new_dataframes_dict_1
+
+
+# _________________________________________________________________________
+# Function: table_2_cleaner
+def table_2_cleaner(
+    input_pdf_folder: str,
+    record_folder: str,
+    record_txt: str = RECORD_SUFFIX_2,
+    log_folder: str = DEFAULT_LOG_FOLDER,
+    log_txt: str = DEFAULT_LOG_TXT,
+) -> tuple[dict[str, pd.DataFrame], dict[str, pd.DataFrame]]:
+    """
+    Extract page 2 from each WR PDF, run the table 2 pipeline, update the record,
+    and print + log a concise summary (log file only; notebook prints are clean).
+
+    Args:
+        input_pdf_folder (str): Root folder containing year subfolders (skips '_quarantine').
+        record_folder (str): Folder where the record text file is stored.
+        record_txt (str): Record filename (chronological), default 'new_generated_dataframes_2.txt'.
+        log_folder (str): Folder where the .log file will be written.
+        log_txt (str): Log filename (shared across section 3).
+
+    Returns:
+        tuple:
+            - raw_tables_dict_2 (dict[str, pd.DataFrame]): Raw tables keyed as 'ns_xx_yyyy_2'.
+            - new_dataframes_dict_2 (dict[str, pd.DataFrame]): Cleaned tables keyed as 'ns_xx_yyyy_2'.
+    """
+    _ = _ensure_logger(log_folder, log_txt)                              # Ensure file logger exists
+    start_time = time.time()                                             # Timer start
+
+    log_info("\n🧹 Starting Table 2 cleaning...\n")
+
+    cleaner = gdpwr_cleaner()                                            # Pipeline runner
+    records = _read_records(record_folder, record_txt)                   # Load existing records
+    processed = set(records)                                             # Fast membership test
+
+    raw_tables_dict_2: dict[str, pd.DataFrame] = {}                      # Raw tables dict (for inspection)
+    new_dataframes_dict_2: dict[str, pd.DataFrame] = {}                  # Cleaned tables dict
+
+    done, skipped = 0, 0                                                 # Counters
+
+    # Enumerate year folders (skip quarantine)
+    years = [d for d in sorted(os.listdir(input_pdf_folder))
+             if os.path.isdir(os.path.join(input_pdf_folder, d)) and d != "_quarantine"]
+
+    for year in years:
+        folder_path = os.path.join(input_pdf_folder, year)
+        pdf_files = sorted([f for f in os.listdir(folder_path) if f.endswith(".pdf")], key=_ns_sort_key)
+        if not pdf_files:
+            continue
+
+        log_info(f"📂 Processing Table 2 in {year}")
+        pbar = tqdm(pdf_files, desc=f"🚧 {year}", unit="PDF",
+                    bar_format=BAR_FORMAT, colour=PROG_COLOR_ACTIVE, leave=False)
+
+        for filename in pbar:
+            if filename in processed:                                    # Skip already processed
+                skipped += 1
+                continue
+
+            ns_id, ns_year = parse_ns_meta(filename)                      # Parse identifiers
+            if not ns_id:
+                skipped += 1
+                continue
+
+            pdf_path = os.path.join(folder_path, filename)                # Full path to PDF
+            try:
+                raw = _extract_table(pdf_path, page=2)                    # Extract table from page 2
+                if raw is None:
+                    skipped += 1
+                    continue
+
+                key = f"{os.path.splitext(filename)[0].replace('-', '_')}_2"  # Dict key
+                raw_tables_dict_2[key] = raw.copy()                       # Store raw snapshot
+
+                clean = cleaner.clean_table2(raw)                         # Run pipeline
+                clean.insert(0, "year", ns_year)                          # Add metadata: year
+                clean.insert(1, "id_ns", ns_id)                           # Add metadata: id
+                new_dataframes_dict_2[key] = clean                        # Store cleaned result
+
+                processed.add(filename)                                   # Mark processed
+                done += 1
+            except Exception as e:
+                log_warn(f"⚠️  {filename}: {e}")                          # Log non-fatal error
+                skipped += 1
+
+        pbar.close()                                                      # Close active (magenta) bar
+
+        # Finished overlay bar (blue)
+        fb = tqdm(total=len(pdf_files), desc=f"✔️ {year}", unit="PDF",
+                  bar_format=BAR_FORMAT, colour=PROG_COLOR_DONE, leave=True)
+        fb.update(len(pdf_files)); fb.close()
+
+    # Persist updated record (chronological)
+    _write_records(record_folder, record_txt, list(processed))
+
+    # Summary — benchmark style
+    elapsed_time = round(time.time() - start_time)
+    log_info("\n📊 Summary:")
+    log_info(f"\n🗃️  Record file: {os.path.join(record_folder, record_txt)}")
+    log_info(f"✨ Cleaned: {done}  .  ⏩ Skipped: {skipped}")
+    log_info(f"⏱️ Time: {elapsed_time} seconds\n")
+
+    return raw_tables_dict_2, new_dataframes_dict_2
+
+
+
+
 ################################################################################################
 # Section 4. SQL Tables
 ################################################################################################
@@ -1765,7 +2371,6 @@ def exchange_roman_nan(df):
 
 import tkinter as tk  # Import the tkinter library for creating the GUI
 from tkinter import simpledialog  # Import the simpledialog module from tkinter for creating dialog boxes
-
 
 
 # Define the options and their mappings

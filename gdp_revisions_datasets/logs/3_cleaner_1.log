@@ -1,0 +1,156 @@
+2025-10-05 00:32:20,429 — INFO — 
+🧹 Starting Table 1 cleaning...
+
+2025-10-05 00:32:20,429 — INFO — 📂 Processing Table 1 in 2013
+2025-10-05 00:32:20,444 — INFO — 📂 Processing Table 1 in 2014
+2025-10-05 00:32:20,460 — INFO — 📂 Processing Table 1 in 2015
+2025-10-05 00:32:20,476 — INFO — 📂 Processing Table 1 in 2016
+2025-10-05 00:32:20,491 — INFO — 📂 Processing Table 1 in 2017
+2025-10-05 00:32:20,507 — INFO — 📂 Processing Table 1 in 2018
+2025-10-05 00:32:20,528 — INFO — 📂 Processing Table 1 in 2019
+2025-10-05 00:32:20,543 — INFO — 📂 Processing Table 1 in 2020
+2025-10-05 00:32:20,543 — INFO — 📂 Processing Table 1 in 2021
+2025-10-05 00:32:20,559 — INFO — 📂 Processing Table 1 in 2022
+2025-10-05 00:32:20,575 — INFO — 
+📊 Summary:
+2025-10-05 00:32:20,575 — INFO — 🗃️ Record file: record\new_generated_dataframes_1.txt
+2025-10-05 00:32:20,575 — INFO — ✨ Cleaned: 0  ·  ⏭ Skippe  d: 120
+2025-10-05 00:32:20,575 — INFO — ⏱️ Time: 0 seconds
+
+2025-10-05 00:43:19,770 — INFO — 
+🧹 Starting Table 1 cleaning...
+
+2025-10-05 00:43:19,786 — INFO — 📂 Processing Table 1 in 2013
+2025-10-05 00:43:19,808 — INFO — 📂 Processing Table 1 in 2014
+2025-10-05 00:43:19,808 — INFO — 📂 Processing Table 1 in 2015
+2025-10-05 00:43:19,824 — INFO — 📂 Processing Table 1 in 2016
+2025-10-05 00:43:19,855 — INFO — 📂 Processing Table 1 in 2017
+2025-10-05 00:43:19,868 — INFO — 📂 Processing Table 1 in 2018
+2025-10-05 00:43:19,873 — INFO — 📂 Processing Table 1 in 2019
+2025-10-05 00:43:19,893 — INFO — 📂 Processing Table 1 in 2020
+2025-10-05 00:43:19,908 — INFO — 📂 Processing Table 1 in 2021
+2025-10-05 00:43:19,924 — INFO — 📂 Processing Table 1 in 2022
+2025-10-05 00:43:25,853 — INFO — 
+📊 Summary:
+2025-10-05 00:43:25,853 — INFO — 🗃️ Record file: record\new_generated_dataframes_1.txt
+2025-10-05 00:43:25,853 — INFO — ✨ Cleaned: 12  ·  ⏩ Skipped: 108
+2025-10-05 00:43:25,853 — INFO — ⏱️ Time: 6 seconds
+
+2025-10-05 00:49:41,286 — INFO — 
+🧹 Starting Table 2 cleaning...
+
+2025-10-05 00:49:41,286 — INFO — 📂 Processing Table 2 in 2013
+2025-10-05 00:49:44,529 — INFO — 📂 Processing Table 2 in 2014
+2025-10-05 00:49:48,470 — INFO — 📂 Processing Table 2 in 2015
+2025-10-05 00:49:51,989 — INFO — 📂 Processing Table 2 in 2016
+2025-10-05 00:49:55,473 — INFO — 📂 Processing Table 2 in 2017
+2025-10-05 00:49:58,990 — INFO — 📂 Processing Table 2 in 2018
+2025-10-05 00:50:02,315 — INFO — 📂 Processing Table 2 in 2019
+2025-10-05 00:50:06,284 — INFO — 📂 Processing Table 2 in 2020
+2025-10-05 00:50:09,810 — INFO — 📂 Processing Table 2 in 2021
+2025-10-05 00:50:13,566 — INFO — 📂 Processing Table 2 in 2022
+2025-10-05 00:50:17,144 — INFO — 
+📊 Summary:
+2025-10-05 00:50:17,144 — INFO — 🗃️  Record file: record\new_generated_dataframes_2.txt
+2025-10-05 00:50:17,144 — INFO — 🧹 Cleaned: 120  ·  ⏩ Skipped: 0
+2025-10-05 00:50:17,144 — INFO — ⏱️ Time: 36 seconds
+
+2025-10-05 00:50:34,419 — INFO — 
+🧹 Starting Table 2 cleaning...
+
+2025-10-05 00:50:34,434 — INFO — 📂 Processing Table 2 in 2013
+2025-10-05 00:50:34,434 — INFO — 📂 Processing Table 2 in 2014
+2025-10-05 00:50:34,450 — INFO — 📂 Processing Table 2 in 2015
+2025-10-05 00:50:34,465 — INFO — 📂 Processing Table 2 in 2016
+2025-10-05 00:50:34,481 — INFO — 📂 Processing Table 2 in 2017
+2025-10-05 00:50:34,501 — INFO — 📂 Processing Table 2 in 2018
+2025-10-05 00:50:34,513 — INFO — 📂 Processing Table 2 in 2019
+2025-10-05 00:50:34,528 — INFO — 📂 Processing Table 2 in 2020
+2025-10-05 00:50:34,544 — INFO — 📂 Processing Table 2 in 2021
+2025-10-05 00:50:34,557 — INFO — 📂 Processing Table 2 in 2022
+2025-10-05 00:50:38,130 — INFO — 
+📊 Summary:
+2025-10-05 00:50:38,130 — INFO — 🗃️  Record file: record\new_generated_dataframes_2.txt
+2025-10-05 00:50:38,130 — INFO — 🧹 Cleaned: 12  ·  ⏩ Skipped: 108
+2025-10-05 00:50:38,130 — INFO — ⏱️ Time: 4 seconds
+
+2025-10-05 00:53:04,600 — INFO — 
+🧹 Starting Table 1 cleaning...
+
+2025-10-05 00:53:04,600 — INFO — 📂 Processing Table 1 in 2013
+2025-10-05 00:53:04,615 — INFO — 📂 Processing Table 1 in 2014
+2025-10-05 00:53:04,637 — INFO — 📂 Processing Table 1 in 2015
+2025-10-05 00:53:04,637 — INFO — 📂 Processing Table 1 in 2016
+2025-10-05 00:53:04,668 — INFO — 📂 Processing Table 1 in 2017
+2025-10-05 00:53:04,684 — INFO — 📂 Processing Table 1 in 2018
+2025-10-05 00:53:04,701 — INFO — 📂 Processing Table 1 in 2019
+2025-10-05 00:53:04,701 — INFO — 📂 Processing Table 1 in 2020
+2025-10-05 00:53:04,716 — INFO — 📂 Processing Table 1 in 2021
+2025-10-05 00:53:04,737 — INFO — 📂 Processing Table 1 in 2022
+2025-10-05 00:53:10,587 — INFO — 
+📊 Summary:
+2025-10-05 00:53:10,587 — INFO — 
+🗃️ Record file: record\new_generated_dataframes_1.txt
+2025-10-05 00:53:10,587 — INFO — ✨ Cleaned: 12  ·  ⏩ Skipped: 108
+2025-10-05 00:53:10,587 — INFO — ⏱️ Time: 6 seconds
+
+2025-10-05 00:53:27,670 — INFO — 
+🧹 Starting Table 2 cleaning...
+
+2025-10-05 00:53:27,670 — INFO — 📂 Processing Table 2 in 2013
+2025-10-05 00:53:27,685 — INFO — 📂 Processing Table 2 in 2014
+2025-10-05 00:53:27,701 — INFO — 📂 Processing Table 2 in 2015
+2025-10-05 00:53:27,716 — INFO — 📂 Processing Table 2 in 2016
+2025-10-05 00:53:27,716 — INFO — 📂 Processing Table 2 in 2017
+2025-10-05 00:53:27,732 — INFO — 📂 Processing Table 2 in 2018
+2025-10-05 00:53:27,748 — INFO — 📂 Processing Table 2 in 2019
+2025-10-05 00:53:27,766 — INFO — 📂 Processing Table 2 in 2020
+2025-10-05 00:53:27,773 — INFO — 📂 Processing Table 2 in 2021
+2025-10-05 00:53:27,789 — INFO — 📂 Processing Table 2 in 2022
+2025-10-05 00:53:31,752 — INFO — 
+📊 Summary:
+2025-10-05 00:53:31,752 — INFO — 
+🗃️  Record file: record\new_generated_dataframes_2.txt
+2025-10-05 00:53:31,752 — INFO — 🧹 Cleaned: 12  ·  ⏩ Skipped: 108
+2025-10-05 00:53:31,752 — INFO — ⏱️ Time: 4 seconds
+
+2025-10-05 00:57:28,822 — INFO — 
+🧹 Starting Table 1 cleaning...
+
+2025-10-05 00:57:28,822 — INFO — 📂 Processing Table 1 in 2013
+2025-10-05 00:57:28,838 — INFO — 📂 Processing Table 1 in 2014
+2025-10-05 00:57:28,853 — INFO — 📂 Processing Table 1 in 2015
+2025-10-05 00:57:28,881 — INFO — 📂 Processing Table 1 in 2016
+2025-10-05 00:57:28,885 — INFO — 📂 Processing Table 1 in 2017
+2025-10-05 00:57:28,901 — INFO — 📂 Processing Table 1 in 2018
+2025-10-05 00:57:28,916 — INFO — 📂 Processing Table 1 in 2019
+2025-10-05 00:57:28,922 — INFO — 📂 Processing Table 1 in 2020
+2025-10-05 00:57:28,938 — INFO — 📂 Processing Table 1 in 2021
+2025-10-05 00:57:28,953 — INFO — 📂 Processing Table 1 in 2022
+2025-10-05 00:57:34,814 — INFO — 
+📊 Summary:
+2025-10-05 00:57:34,814 — INFO — 
+🗃️ Record file: record\new_generated_dataframes_1.txt
+2025-10-05 00:57:34,814 — INFO — ✨ Cleaned: 12  --  ⏩ Skipped: 108
+2025-10-05 00:57:34,814 — INFO — ⏱️ Time: 6 seconds
+
+2025-10-05 01:00:07,141 — INFO — 
+🧹 Starting Table 2 cleaning...
+
+2025-10-05 01:00:07,141 — INFO — 📂 Processing Table 2 in 2013
+2025-10-05 01:00:07,157 — INFO — 📂 Processing Table 2 in 2014
+2025-10-05 01:00:07,172 — INFO — 📂 Processing Table 2 in 2015
+2025-10-05 01:00:07,188 — INFO — 📂 Processing Table 2 in 2016
+2025-10-05 01:00:07,204 — INFO — 📂 Processing Table 2 in 2017
+2025-10-05 01:00:07,210 — INFO — 📂 Processing Table 2 in 2018
+2025-10-05 01:00:07,226 — INFO — 📂 Processing Table 2 in 2019
+2025-10-05 01:00:07,246 — INFO — 📂 Processing Table 2 in 2020
+2025-10-05 01:00:07,253 — INFO — 📂 Processing Table 2 in 2021
+2025-10-05 01:00:07,268 — INFO — 📂 Processing Table 2 in 2022
+2025-10-05 01:00:11,168 — INFO — 
+📊 Summary:
+2025-10-05 01:00:11,168 — INFO — 
+🗃️  Record file: record\new_generated_dataframes_2.txt
+2025-10-05 01:00:11,168 — INFO — 🧹 Cleaned: 12  --  ⏩ Skipped: 108
+2025-10-05 01:00:11,168 — INFO — ⏱️ Time: 4 seconds
+
