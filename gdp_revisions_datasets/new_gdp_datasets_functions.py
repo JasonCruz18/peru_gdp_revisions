@@ -462,7 +462,7 @@ def pdf_downloader(
     if skipped_files:
         log_info(f"🗂️ {len(skipped_files)} already downloaded PDFs were skipped.")
     log_info(f"➕ Newly downloaded: {new_counter}")
-    log_info(f"⏱️ Time: {elapsed_time} seconds")
+    log_info(f"⏱️ {elapsed_time} seconds")
 
 
 # _________________________________________________________________________
@@ -898,9 +898,9 @@ def input_pdfs_generator(
     elapsed_time = round(time.time() - start_time)
     log2_info(f"\n📊 Summary:\n")
     log2_info(f"📂 {len(os.listdir(raw_pdf_folder))} folders (years) found containing raw PDFs")
-    log2_info(f"🗂️ Already generated input PDFs: {skipped_counter}")
+    log2_info(f"🗃️ Already generated input PDFs: {skipped_counter}")
     log2_info(f"➕ Newly generated input PDFs: {new_counter}")
-    log2_info(f"⏱️ Time: {elapsed_time} seconds")
+    log2_info(f"⏱️ {elapsed_time} seconds")
 
 
 
@@ -1755,7 +1755,6 @@ def exchange_roman_nan(df):
 
 
 
-
 # =============================================================================================
 # Section 3. pipelines — table 1 and table 2 cleaning runners
 # =============================================================================================
@@ -1766,6 +1765,8 @@ def exchange_roman_nan(df):
 import os
 import re
 import time
+import csv
+import hashlib
 import logging
 import pandas as pd
 from tqdm.notebook import tqdm                      # Jupyter-native progress bars (gray background)
@@ -1778,108 +1779,111 @@ PROG_COLOR_ACTIVE = "#E6004C"                       # in-progress color (magenta
 PROG_COLOR_DONE   = "#3366FF"                       # finished color (blue)
 BAR_FORMAT        = "{l_bar}{bar}| {n_fmt}/{total_fmt}"
 
-DEFAULT_LOG_FOLDER = "logs"                         # default folder for .log
-DEFAULT_LOG_TXT    = "section_3_cleaning.log"       # shared log for table 1 & 2
-RECORD_SUFFIX_1    = "new_generated_dataframes_1.txt"
-RECORD_SUFFIX_2    = "new_generated_dataframes_2.txt"
+DEFAULT_LOG_FOLDER = "logs"                         # default folder for .log files
+LOG_TXT_T1         = "3_cleaner_1.log"              # table 1 log filename
+LOG_TXT_T2         = "3_cleaner_2.log"              # table 2 log filename
+
+RECORD_SUFFIX_1    = "new_generated_dataframes_1.txt"  # record txt for table 1
+RECORD_SUFFIX_2    = "new_generated_dataframes_2.txt"  # record txt for table 2
 
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# logger — write to file only (no console echo; notebook prints are separate)
+# logger — file-only loggers per table (no console echo from logger)
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-_SECTION3_LOGGER: logging.Logger | None = None
+_SECTION3_LOGGERS: dict[str, logging.Logger] = {}   # cache of named loggers
+
 
 # _________________________________________________________________________
 # Function: init_section3_logger
-def init_section3_logger(log_folder: str = DEFAULT_LOG_FOLDER,
-                         log_txt: str = DEFAULT_LOG_TXT) -> logging.Logger:
+def init_section3_logger(name: str,
+                         log_folder: str,
+                         log_txt: str) -> logging.Logger:
     """
-    Initialize a logger that writes only to a UTF-8 .log file.
-    No console handler is attached. Notebook messages are printed separately.
+    Create a file-only logger for Section 3 (per table).
 
     Args:
-        log_folder (str): Folder that will contain the .log file.
-        log_txt (str): Log filename.
+        name (str): Internal logger key (e.g., 't1' or 't2').
+        log_folder (str): Folder for log files.
+        log_txt (str): Log filename (e.g., '3_cleaner_1.log').
 
     Returns:
-        logging.Logger: Configured logger instance.
+        logging.Logger: Configured file-only logger.
     """
-    os.makedirs(log_folder, exist_ok=True)                              # Ensure folder exists
+    os.makedirs(log_folder, exist_ok=True)                                   # Ensure folder exists
     log_path = os.path.join(log_folder, log_txt)
 
-    logger = logging.getLogger("section3")
+    logger = logging.getLogger(f"section3.{name}")
     logger.setLevel(logging.INFO)
-    logger.handlers.clear()                                             # Avoid duplicate handlers
-    logger.propagate = False                                            # Do not bubble to root logger
+    logger.handlers.clear()
+    logger.propagate = False                                                 # No parent echo
 
-    fh = logging.FileHandler(log_path, encoding="utf-8")                # File sink only
-    fmt = logging.Formatter("%(asctime)s — %(levelname)s — %(message)s")
-    fh.setFormatter(fmt)
+    fh = logging.FileHandler(log_path, encoding="utf-8")                     # File sink
+    fh.setFormatter(logging.Formatter("%(asctime)s — %(levelname)s — %(message)s"))
     logger.addHandler(fh)
     return logger
 
 
 # _________________________________________________________________________
 # Function: _ensure_logger
-def _ensure_logger(log_folder: str, log_txt: str) -> logging.Logger:
+def _ensure_logger(name: str, log_folder: str, log_txt: str) -> logging.Logger:
     """
-    Lazily create the module logger the first time it is needed.
+    Return a cached logger per table; initialize if missing.
 
     Args:
+        name (str): Logger key ('t1' or 't2').
         log_folder (str): Folder for the log file.
         log_txt (str): Log filename.
 
     Returns:
-        logging.Logger: Module logger.
+        logging.Logger: Ready-to-use logger.
     """
-    global _SECTION3_LOGGER
-    if _SECTION3_LOGGER is None:
-        _SECTION3_LOGGER = init_section3_logger(log_folder, log_txt)
-    return _SECTION3_LOGGER
+    if name not in _SECTION3_LOGGERS:
+        _SECTION3_LOGGERS[name] = init_section3_logger(name, log_folder, log_txt)
+    return _SECTION3_LOGGERS[name]
 
 
 # _________________________________________________________________________
 # Function: log_info
-def log_info(msg: str) -> None:
+def log_info(logger: logging.Logger, msg: str) -> None:
     """
-    Log an informational message to file and print a concise line to the notebook.
+    Write info into .log and show the same line in the notebook output.
 
     Args:
+        logger (logging.Logger): Logger instance.
         msg (str): Message to record.
     """
-    if _SECTION3_LOGGER:
-        _SECTION3_LOGGER.info(msg)                                      # File only
-    print(msg)                                                          # Notebook-friendly line
+    logger.info(msg)                                                         # File only
+    print(msg)                                                               # Notebook line
 
 
 # _________________________________________________________________________
 # Function: log_warn
-def log_warn(msg: str) -> None:
+def log_warn(logger: logging.Logger, msg: str) -> None:
     """
-    Log a warning message to file and print a concise line to the notebook.
+    Write warning into .log and show the same line in the notebook output.
 
     Args:
+        logger (logging.Logger): Logger instance.
         msg (str): Message to record.
     """
-    if _SECTION3_LOGGER:
-        _SECTION3_LOGGER.warning(msg)                                   # File only
-    print(msg)                                                          # Notebook-friendly line
+    logger.warning(msg)                                                      # File only
+    print(msg)                                                               # Notebook line
 
 
 # =============================================================================================
-# utilities — parsing, sorting, records, extraction
+# utilities — parsing, sorting, records, extraction, persistence
 # =============================================================================================
 
 # _________________________________________________________________________
 # Function: parse_ns_meta
 def parse_ns_meta(file_name: str) -> tuple[str | None, str | None]:
     """
-    Extract (issue, year) from file name like 'ns-07-2017.pdf'.
+    Extract (issue, year) from filename like 'ns-07-2017.pdf'.
 
     Args:
-        file_name (str): Filename.
+        file_name (str): Filename or path.
 
     Returns:
-        tuple[str | None, str | None]: (issue, year) if matched, else (None, None).
+        tuple[str | None, str | None]: (issue, year) if matched; else (None, None).
     """
     m = re.search(r"ns-(\d{1,2})-(\d{4})", os.path.basename(file_name).lower())
     return (m.group(1), m.group(2)) if m else (None, None)
@@ -1889,7 +1893,7 @@ def parse_ns_meta(file_name: str) -> tuple[str | None, str | None]:
 # Function: _ns_sort_key
 def _ns_sort_key(s: str) -> tuple[int, int, str]:
     """
-    Build a chronological sort key (year, issue) for filenames 'ns-xx-yyyy(.pdf)'.
+    Chronological sort key (year, issue) for names 'ns-xx-yyyy(.pdf)'.
 
     Args:
         s (str): Filename or basename.
@@ -1909,11 +1913,11 @@ def _ns_sort_key(s: str) -> tuple[int, int, str]:
 # Function: _read_records
 def _read_records(record_folder: str, record_txt: str) -> list[str]:
     """
-    Read existing records, return a unique, chronological list.
+    Read existing records and return a unique, chronological list.
 
     Args:
-        record_folder (str): Folder of the record file.
-        record_txt (str): Filename of the record.
+        record_folder (str): Folder for the record file.
+        record_txt (str): Record filename.
 
     Returns:
         list[str]: Filenames ordered by (year, issue).
@@ -1937,18 +1941,18 @@ def _write_records(record_folder: str, record_txt: str, items: list[str]) -> Non
         record_txt (str): Filename of the record.
         items (list[str]): Filenames to persist.
     """
-    os.makedirs(record_folder, exist_ok=True)                            # Ensure folder exists
-    items = sorted(set(items), key=_ns_sort_key)                         # De-dup + sort
+    os.makedirs(record_folder, exist_ok=True)                                 # Ensure folder exists
+    items = sorted(set(items), key=_ns_sort_key)                              # De-dup + sort
     path = os.path.join(record_folder, record_txt)
     with open(path, "w", encoding="utf-8") as f:
-        f.write("\n".join(items) + ("\n" if items else ""))              # Trailing newline
+        f.write("\n".join(items) + ("\n" if items else ""))                   # Trailing newline
 
 
 # _________________________________________________________________________
 # Function: _extract_table
 def _extract_table(pdf_path: str, page: int) -> pd.DataFrame | None:
     """
-    Extract a single table from a given PDF page.
+    Extract a single table from the specified PDF page.
 
     Args:
         pdf_path (str): Full path to the PDF.
@@ -1965,12 +1969,110 @@ def _extract_table(pdf_path: str, page: int) -> pd.DataFrame | None:
     return tables[0] if isinstance(tables, list) else tables
 
 
-# =============================================================================================
-# pipelines — wrapper class that uses your cleaning helpers (already defined elsewhere)
-# =============================================================================================
+# _________________________________________________________________________
+# Function: _compute_sha256
+def _compute_sha256(file_path: str, chunk: int = 1 << 20) -> str:
+    """
+    Compute SHA-256 of a file in chunks (default 1MB).
+
+    Args:
+        file_path (str): Path to file.
+        chunk (int): Chunk size.
+
+    Returns:
+        str: Hex digest of SHA-256.
+    """
+    h = hashlib.sha256()
+    with open(file_path, "rb") as fh:
+        while True:
+            b = fh.read(chunk)
+            if not b:
+                break
+            h.update(b)
+    return h.hexdigest()
+
 
 # _________________________________________________________________________
-# Class: gdpwr_cleaner
+# Function: _save_df
+def _save_df(df: pd.DataFrame, out_path: str) -> tuple[str, int, int]:
+    """
+    Save a DataFrame to Parquet (preferred) or CSV (fallback).
+
+    Args:
+        df (pd.DataFrame): DataFrame to persist.
+        out_path (str): Suggested full path (extension adjusted if needed).
+
+    Returns:
+        tuple[str, int, int]: (saved_path, n_rows, n_cols).
+    """
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)                      # Ensure folder exists
+    try:
+        if not out_path.endswith(".parquet"):
+            out_path = os.path.splitext(out_path)[0] + ".parquet"             # Force .parquet
+        df.to_parquet(out_path, index=False)                                   # Requires pyarrow/fastparquet
+    except Exception:
+        out_path = os.path.splitext(out_path)[0] + ".csv"                      # Fallback to CSV
+        df.to_csv(out_path, index=False)
+    return out_path, int(df.shape[0]), int(df.shape[1])
+
+
+# _________________________________________________________________________
+# Function: _append_manifest
+def _append_manifest(manifest_path: str,
+                     ns_code: str,
+                     table_name: str,
+                     year: str,
+                     issue: str,
+                     file_path: str,
+                     n_rows: int,
+                     n_cols: int,
+                     pipeline_version: str) -> None:
+    """
+    Append or update a row in 'manifest.csv' for ns_code.
+
+    Columns:
+        ns, table, year, issue, path, rows, cols, sha256, pipeline_version, timestamp
+    """
+    os.makedirs(os.path.dirname(manifest_path), exist_ok=True)                 # Ensure folder exists
+
+    rows: list[dict] = []
+    if os.path.exists(manifest_path):
+        with open(manifest_path, "r", encoding="utf-8", newline="") as fh:
+            reader = csv.DictReader(fh)
+            rows = list(reader)
+
+    now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+    sha = _compute_sha256(file_path)
+    new_row = {
+        "ns": ns_code,
+        "table": table_name,
+        "year": year,
+        "issue": issue,
+        "path": file_path,
+        "rows": str(n_rows),
+        "cols": str(n_cols),
+        "sha256": sha,
+        "pipeline_version": pipeline_version,
+        "timestamp": now_str,
+    }
+
+    idx = next((i for i, r in enumerate(rows)
+                if r.get("ns") == ns_code and r.get("table") == table_name), None)
+    if idx is None:
+        rows.append(new_row)                                                  # Append
+    else:
+        rows[idx] = new_row                                                   # Replace
+
+    with open(manifest_path, "w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=list(new_row.keys()))
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+
+# =============================================================================================
+# pipelines — class wrapper for Table 1 and Table 2 cleaning
+# =============================================================================================
 class gdpwr_cleaner:
     """
     Pipelines for WR tables.
@@ -1980,8 +2082,8 @@ class gdpwr_cleaner:
         - clean_table2(df): Quarterly/annual (table 2) pipeline.
 
     Note:
-        The helper functions referenced below (e.g., drop_nan_rows, split_column_by_pattern, …)
-        must exist in this module as provided in your cleaning section.
+        The helper functions referenced below (drop_nan_rows, split_column_by_pattern, …)
+        must exist in this module (your Section 3 cleaning helpers).
     """
 
     # _____________________________________________________________________
@@ -1996,81 +2098,82 @@ class gdpwr_cleaner:
         Returns:
             pd.DataFrame: Cleaned table 1 dataframe.
         """
-        d = df.copy()                                                      # Work on a copy
+        d = df.copy()                                                            # Work on a copy
+
         # Branch A — at least one column already looks like 'YYYY'
         if any(isinstance(c, str) and c.isdigit() and len(c) == 4 for c in d.columns):
-            d = swap_nan_se(d)                                             # Fix 'SECTORES ECONÓMICOS' displacement
-            d = split_column_by_pattern(d)                                 # Split 'Word. Word' headers
-            d = drop_rare_caracter_row(d)                                  # Remove rows containing '}'
-            d = drop_nan_rows(d)                                           # Drop fully-NaN rows
-            d = drop_nan_columns(d)                                        # Drop fully-NaN columns
-            d = relocate_last_columns(d)                                   # Relocate trailing text cells
-            d = replace_first_dot(d)                                       # 'word. word' → 'word-word' in row 2
-            d = swap_first_second_row(d)                                   # Swap first/second edge cells
-            d = drop_nan_rows(d)                                           # Clean residual blanks
-            d = reset_index(d)                                             # Reset DataFrame index
-            d = remove_digit_slash(d)                                      # Remove 'd*/' on edge columns
-            d = replace_var_perc_first_column(d)                           # Normalize 'Var. %' labels (first col)
-            d = replace_var_perc_last_columns(d)                           # Normalize 'Var. %' labels (last cols)
-            d = replace_number_moving_average(d)                           # Unify moving-average text
-            d = separate_text_digits(d)                                    # Split text vs numeric parts
-            d = exchange_values(d)                                         # Swap last two columns if needed
-            d = relocate_last_column(d)                                    # Move last column to position 2
-            d = clean_first_row(d)                                         # Normalize header row text
-            d = find_year_column(d)                                        # Align 'year' vs numeric year
-            years = extract_years(d)                                       # Collect year columns
-            d = get_months_sublist_list(d, years)                          # Build month headers per year
-            d = first_row_columns(d)                                       # Promote first row to headers
-            d = clean_columns_values(d)                                    # Normalize columns & values
-            d = convert_float(d)                                           # Coerce numeric
-            d = replace_set_sep(d)                                         # 'set' → 'sep'
-            d = spaces_se_es(d)                                            # Trim spaces
-            d = replace_services(d)                                        # Harmonize services labels
-            d = replace_mineria(d)                                         # Harmonize mining (ES)
-            d = replace_mining(d)                                          # Harmonize mining (EN)
-            d = rounding_values(d, decimals=1)                             # Round floats to 1 decimal
+            d = swap_nan_se(d)                                                   # Fix misplaced 'SECTORES ECONÓMICOS'
+            d = split_column_by_pattern(d)                                       # Split 'Word. Word' headers
+            d = drop_rare_caracter_row(d)                                        # Remove rows with rare char '}'
+            d = drop_nan_rows(d)                                                 # Drop fully-NaN rows
+            d = drop_nan_columns(d)                                              # Drop fully-NaN columns
+            d = relocate_last_columns(d)                                         # Move trailing text if needed
+            d = replace_first_dot(d)                                             # Replace first dot with hyphen in row 2
+            d = swap_first_second_row(d)                                         # Swap first/second rows at edges
+            d = drop_nan_rows(d)                                                 # Clean residual empty rows
+            d = reset_index(d)                                                   # Reset DataFrame index
+            d = remove_digit_slash(d)                                            # Clean 'digits/' on edge columns
+            d = replace_var_perc_first_column(d)                                 # Normalize 'Var. %' in first column
+            d = replace_var_perc_last_columns(d)                                 # Normalize 'Var. %' in last columns
+            d = replace_number_moving_average(d)                                 # Normalize moving-average label
+            d = separate_text_digits(d)                                          # Separate text and digits in penultimate col
+            d = exchange_values(d)                                               # Swap last two columns when needed
+            d = relocate_last_column(d)                                          # Move last column to position 2
+            d = clean_first_row(d)                                               # Normalize header row text (lowercase, etc.)
+            d = find_year_column(d)                                              # Align 'year' vs numeric-year column
+            years = extract_years(d)                                             # Collect year columns
+            d = get_months_sublist_list(d, years)                                # Build month headers per year
+            d = first_row_columns(d)                                             # Promote first row to headers
+            d = clean_columns_values(d)                                          # Normalize columns and values
+            d = convert_float(d)                                                 # Coerce numeric columns
+            d = replace_set_sep(d)                                               # 'set' → 'sep' in headers
+            d = spaces_se_es(d)                                                  # Trim spaces in ES/EN sector columns
+            d = replace_services(d)                                              # Harmonize 'services' labels
+            d = replace_mineria(d)                                               # Harmonize 'mineria' labels (ES)
+            d = replace_mining(d)                                                # Harmonize 'mining' labels (EN)
+            d = rounding_values(d, decimals=1)                                   # Round float columns to 1 decimal
             return d
 
-        # Branch B — no 'YYYY' columns visible yet
-        d = check_first_row(d)                                             # Split 'YYYY YYYY' in row 0
-        d = check_first_row_1(d)                                           # Fill missing edge years
-        d = replace_first_row_with_columns(d)                              # Fill NaN headers with placeholders
-        d = swap_nan_se(d)                                                 # Fix 'SECTORES ECONÓMICOS' displacement
-        d = split_column_by_pattern(d)                                     # Split 'Word. Word' headers
-        d = drop_rare_caracter_row(d)                                      # Remove rows containing '}'
-        d = drop_nan_rows(d)                                               # Drop fully-NaN rows
-        d = drop_nan_columns(d)                                            # Drop fully-NaN columns
-        d = relocate_last_columns(d)                                       # Relocate trailing text cells
-        d = swap_first_second_row(d)                                       # Swap first/second edge cells
-        d = drop_nan_rows(d)                                               # Clean residual blanks
-        d = reset_index(d)                                                 # Reset DataFrame index
-        d = remove_digit_slash(d)                                          # Remove 'd*/' on edge columns
-        d = replace_var_perc_first_column(d)                               # Normalize 'Var. %' (first col)
-        d = replace_var_perc_last_columns(d)                               # Normalize 'Var. %' (last cols)
-        d = replace_number_moving_average(d)                               # Unify moving-average text
-        d = expand_column(d)                                               # Expand hyphenated text
-        d = split_values_1(d)                                              # Split expanded column (v1)
-        d = split_values_2(d)                                              # Split expanded column (v2)
-        d = split_values_3(d)                                              # Split expanded column (v3)
-        d = separate_text_digits(d)                                        # Split text vs numeric parts
-        d = exchange_values(d)                                             # Swap last two columns if needed
-        d = relocate_last_column(d)                                        # Move last column to position 2
-        d = clean_first_row(d)                                             # Normalize header row text
-        d = find_year_column(d)                                            # Align 'year' vs numeric year
-        years = extract_years(d)                                           # Collect year columns
-        d = get_months_sublist_list(d, years)                              # Build month headers per year
-        d = first_row_columns(d)                                           # Promote first row to headers
-        d = clean_columns_values(d)                                        # Normalize columns & values
-        d = convert_float(d)                                               # Coerce numeric
-        d = replace_nan_with_previous_column_1(d)                          # Fill NaN from neighbor (v1)
-        d = replace_nan_with_previous_column_2(d)                          # Fill NaN from neighbor (v2)
-        d = replace_nan_with_previous_column_3(d)                          # Fill NaN from neighbor (v3)
-        d = replace_set_sep(d)                                             # 'set' → 'sep'
-        d = spaces_se_es(d)                                                # Trim spaces
-        d = replace_services(d)                                            # Harmonize services
-        d = replace_mineria(d)                                             # Harmonize mining (ES)
-        d = replace_mining(d)                                              # Harmonize mining (EN)
-        d = rounding_values(d, decimals=1)                                 # Round floats to 1 decimal
+        # Branch B — no 'YYYY' columns yet
+        d = check_first_row(d)                                                   # Split 'YYYY YYYY' patterns in header
+        d = check_first_row_1(d)                                                 # Fill missing first-row years from edges
+        d = replace_first_row_with_columns(d)                                    # Replace NaNs with placeholder names
+        d = swap_nan_se(d)                                                       # Fix misplaced 'SECTORES ECONÓMICOS'
+        d = split_column_by_pattern(d)                                           # Split 'Word. Word' headers
+        d = drop_rare_caracter_row(d)                                            # Remove rows with rare char '}'
+        d = drop_nan_rows(d)                                                     # Drop fully-NaN rows
+        d = drop_nan_columns(d)                                                  # Drop fully-NaN columns
+        d = relocate_last_columns(d)                                             # Move trailing text if needed
+        d = swap_first_second_row(d)                                             # Swap first/second rows at edges
+        d = drop_nan_rows(d)                                                     # Clean residual empty rows
+        d = reset_index(d)                                                       # Reset DataFrame index
+        d = remove_digit_slash(d)                                                # Clean 'digits/' on edge columns
+        d = replace_var_perc_first_column(d)                                     # Normalize 'Var. %' in first column
+        d = replace_var_perc_last_columns(d)                                     # Normalize 'Var. %' in last columns
+        d = replace_number_moving_average(d)                                     # Normalize moving-average label
+        d = expand_column(d)                                                     # Expand hyphenated text in penultimate col
+        d = split_values_1(d)                                                    # Split expanded col (variant 1)
+        d = split_values_2(d)                                                    # Split expanded col (variant 2)
+        d = split_values_3(d)                                                    # Split expanded col (variant 3)
+        d = separate_text_digits(d)                                              # Separate text and digits in penultimate col
+        d = exchange_values(d)                                                   # Swap last two columns when needed
+        d = relocate_last_column(d)                                              # Move last column to position 2
+        d = clean_first_row(d)                                                   # Normalize header row text
+        d = find_year_column(d)                                                  # Align 'year' vs numeric-year column
+        years = extract_years(d)                                                 # Collect year columns
+        d = get_months_sublist_list(d, years)                                    # Build month headers per year
+        d = first_row_columns(d)                                                 # Promote first row to headers
+        d = clean_columns_values(d)                                              # Normalize columns and values
+        d = convert_float(d)                                                     # Coerce numeric columns
+        d = replace_nan_with_previous_column_1(d)                                # Fill NaNs from neighbor (v1)
+        d = replace_nan_with_previous_column_2(d)                                # Fill NaNs from neighbor (v2)
+        d = replace_nan_with_previous_column_3(d)                                # Fill NaNs from neighbor (v3)
+        d = replace_set_sep(d)                                                   # 'set' → 'sep' in headers
+        d = spaces_se_es(d)                                                      # Trim spaces in ES/EN sector columns
+        d = replace_services(d)                                                  # Harmonize 'services' labels
+        d = replace_mineria(d)                                                   # Harmonize 'mineria' labels (ES)
+        d = replace_mining(d)                                                    # Harmonize 'mining' labels (EN)
+        d = rounding_values(d, decimals=1)                                       # Round float columns to 1 decimal
         return d
 
     # _____________________________________________________________________
@@ -2085,69 +2188,70 @@ class gdpwr_cleaner:
         Returns:
             pd.DataFrame: Cleaned table 2 dataframe.
         """
-        d = df.copy()                                                      # Work on a copy
-        # Branch A — header starts with NaN
+        d = df.copy()                                                            # Work on a copy
+
+        # Branch A — header starts with NaN (specific layout)
         if pd.isna(d.iloc[0, 0]):
-            d = drop_nan_columns(d)                                        # Drop fully-NaN columns
-            d = separate_years(d)                                          # Split 'YYYY YYYY'
-            d = relocate_roman_numerals(d)                                 # Move Roman numerals out
-            d = extract_mixed_values(d)                                    # Move mixed numeric/text
-            d = replace_first_row_nan(d)                                   # Fill NaN headers
-            d = first_row_columns(d)                                       # Promote first row to header
-            d = swap_first_second_row(d)                                   # Swap edge cells
-            d = reset_index(d)                                             # Reset index
-            d = drop_nan_row(d)                                            # Drop empty first row if present
-            years = extract_years(d)                                       # Collect year columns
-            d = split_values(d)                                            # Split target column
-            d = separate_text_digits(d)                                    # Split text vs numeric parts
-            d = roman_arabic(d)                                            # Roman → Arabic
-            d = fix_duplicates(d)                                          # Fix duplicate numeric headers
-            d = relocate_last_column(d)                                    # Move last column to position 2
-            d = clean_first_row(d)                                         # Normalize header text
-            d = get_quarters_sublist_list(d, years)                        # Build quarter headers
-            d = first_row_columns(d)                                       # Promote first row again
-            d = clean_columns_values(d)                                    # Normalize columns & values
-            d = reset_index(d)                                             # Reset index
-            d = convert_float(d)                                           # Coerce numeric
-            d = replace_set_sep(d)                                         # 'set' → 'sep'
-            d = spaces_se_es(d)                                            # Trim spaces
-            d = replace_services(d)                                        # Harmonize services
-            d = replace_mineria(d)                                         # Harmonize mining (ES)
-            d = replace_mining(d)                                          # Harmonize mining (EN)
-            d = rounding_values(d, decimals=1)                             # Round floats to 1 decimal
+            d = drop_nan_columns(d)                                              # Drop fully-NaN columns
+            d = separate_years(d)                                                # Split 'YYYY YYYY' cell into two
+            d = relocate_roman_numerals(d)                                       # Move Roman numerals to new column
+            d = extract_mixed_values(d)                                          # Extract mixed numeric/text values
+            d = replace_first_row_nan(d)                                         # Fill NaNs in first row with col names
+            d = first_row_columns(d)                                             # Promote first row to header
+            d = swap_first_second_row(d)                                         # Swap first/second rows at edges
+            d = reset_index(d)                                                   # Reset DataFrame index
+            d = drop_nan_row(d)                                                  # Drop first row if fully NaN
+            years = extract_years(d)                                             # Collect year columns
+            d = split_values(d)                                                  # Split target mixed column
+            d = separate_text_digits(d)                                          # Separate text and digits in penultimate col
+            d = roman_arabic(d)                                                  # Convert Roman numerals to Arabic
+            d = fix_duplicates(d)                                                # Fix duplicate numeric headers
+            d = relocate_last_column(d)                                          # Move last column to position 2
+            d = clean_first_row(d)                                               # Normalize header row text
+            d = get_quarters_sublist_list(d, years)                              # Build quarter headers per year
+            d = first_row_columns(d)                                             # Promote first row to headers again
+            d = clean_columns_values(d)                                          # Normalize columns and values
+            d = reset_index(d)                                                   # Reset DataFrame index
+            d = convert_float(d)                                                 # Coerce numeric columns
+            d = replace_set_sep(d)                                               # 'set' → 'sep' in headers
+            d = spaces_se_es(d)                                                  # Trim spaces in ES/EN sector columns
+            d = replace_services(d)                                              # Harmonize 'services' labels
+            d = replace_mineria(d)                                               # Harmonize 'mineria' labels (ES)
+            d = replace_mining(d)                                                # Harmonize 'mining' labels (EN)
+            d = rounding_values(d, decimals=1)                                   # Round float columns to 1 decimal
             return d
 
         # Branch B — standard layout
-        d = exchange_roman_nan(d)                                          # Swap Roman vs NaN when needed
-        d = exchange_columns(d)                                            # Swap year vs non-year columns
-        d = drop_nan_columns(d)                                            # Drop fully-NaN columns
-        d = remove_digit_slash(d)                                          # Remove 'd*/' on edges
-        d = last_column_es(d)                                              # Fix last-column label placement
-        d = swap_first_second_row(d)                                       # Swap edge cells
-        d = drop_nan_rows(d)                                               # Drop fully-NaN rows
-        d = reset_index(d)                                                 # Reset index
-        years = extract_years(d)                                           # Collect year columns
-        d = separate_text_digits(d)                                        # Split text vs numeric parts
-        d = roman_arabic(d)                                                # Roman → Arabic
-        d = fix_duplicates(d)                                              # Fix duplicate numeric headers
-        d = relocate_last_column(d)                                        # Move last column to position 2
-        d = clean_first_row(d)                                             # Normalize header text
-        d = get_quarters_sublist_list(d, years)                            # Build quarter headers
-        d = first_row_columns(d)                                           # Promote first row to headers
-        d = clean_columns_values(d)                                        # Normalize columns & values
-        d = reset_index(d)                                                 # Reset index
-        d = convert_float(d)                                               # Coerce numeric
-        d = replace_set_sep(d)                                             # 'set' → 'sep'
-        d = spaces_se_es(d)                                                # Trim spaces
-        d = replace_services(d)                                            # Harmonize services
-        d = replace_mineria(d)                                             # Harmonize mining (ES)
-        d = replace_mining(d)                                              # Harmonize mining (EN)
-        d = rounding_values(d, decimals=1)                                 # Round floats to 1 decimal
+        d = exchange_roman_nan(d)                                                # Swap Roman vs NaN when needed
+        d = exchange_columns(d)                                                  # Swap year vs non-year columns if shifted
+        d = drop_nan_columns(d)                                                  # Drop fully-NaN columns
+        d = remove_digit_slash(d)                                                # Clean 'digits/' on edge columns
+        d = last_column_es(d)                                                    # Fix last-column 'ECONOMIC SECTORS' placement
+        d = swap_first_second_row(d)                                             # Swap first/second rows at edges
+        d = drop_nan_rows(d)                                                     # Drop fully-NaN rows
+        d = reset_index(d)                                                       # Reset DataFrame index
+        years = extract_years(d)                                                 # Collect year columns
+        d = separate_text_digits(d)                                              # Separate text and digits in penultimate col
+        d = roman_arabic(d)                                                      # Convert Roman numerals to Arabic
+        d = fix_duplicates(d)                                                    # Fix duplicate numeric headers
+        d = relocate_last_column(d)                                              # Move last column to position 2
+        d = clean_first_row(d)                                                   # Normalize header row text
+        d = get_quarters_sublist_list(d, years)                                  # Build quarter headers per year
+        d = first_row_columns(d)                                                 # Promote first row to headers
+        d = clean_columns_values(d)                                              # Normalize columns and values
+        d = reset_index(d)                                                       # Reset DataFrame index
+        d = convert_float(d)                                                     # Coerce numeric columns
+        d = replace_set_sep(d)                                                   # 'set' → 'sep' in headers
+        d = spaces_se_es(d)                                                      # Trim spaces in ES/EN sector columns
+        d = replace_services(d)                                                  # Harmonize 'services' labels
+        d = replace_mineria(d)                                                   # Harmonize 'mineria' labels (ES)
+        d = replace_mining(d)                                                    # Harmonize 'mining' labels (EN)
+        d = rounding_values(d, decimals=1)                                       # Round float columns to 1 decimal
         return d
 
 
 # =============================================================================================
-# runners — single-call functions per table, with raw+clean dicts, records, logs and summary
+# runners — single-call functions per table (raw+clean dicts, records, logs, bars, summary)
 # =============================================================================================
 
 # _________________________________________________________________________
@@ -2157,99 +2261,171 @@ def table_1_cleaner(
     record_folder: str,
     record_txt: str = RECORD_SUFFIX_1,
     log_folder: str = DEFAULT_LOG_FOLDER,
-    log_txt: str = DEFAULT_LOG_TXT,
+    log_txt: str = LOG_TXT_T1,
+    persist: bool = False,
+    persist_folder: str | None = None,
+    pipeline_version: str = "s3.0.0",
 ) -> tuple[dict[str, pd.DataFrame], dict[str, pd.DataFrame]]:
     """
     Extract page 1 from each WR PDF, run the table 1 pipeline, update the record,
-    and print + log a concise summary (log file only; notebook prints are clean).
+    optionally persist cleaned tables (Parquet/CSV) + manifest, and show a concise summary.
 
     Args:
         input_pdf_folder (str): Root folder containing year subfolders (skips '_quarantine').
         record_folder (str): Folder where the record text file is stored.
-        record_txt (str): Record filename (chronological), default 'new_generated_dataframes_1.txt'.
+        record_txt (str): Record filename, default 'new_generated_dataframes_1.txt'.
         log_folder (str): Folder where the .log file will be written.
-        log_txt (str): Log filename (shared across section 3).
+        log_txt (str): Log filename (default '3_cleaner_1.log').
+        persist (bool): If True, save cleaned DataFrames + manifest.
+        persist_folder (str | None): Base output folder (default './data/clean').
+        pipeline_version (str): Version tag recorded in manifest.
 
     Returns:
         tuple:
             - raw_tables_dict_1 (dict[str, pd.DataFrame]): Raw tables keyed as 'ns_xx_yyyy_1'.
             - new_dataframes_dict_1 (dict[str, pd.DataFrame]): Cleaned tables keyed as 'ns_xx_yyyy_1'.
     """
-    _ = _ensure_logger(log_folder, log_txt)                              # Ensure file logger exists
-    start_time = time.time()                                             # Timer start
+    logger = _ensure_logger("t1", log_folder, log_txt)                         # File-only logger
+    start_time = time.time()                                                    # Timer start
 
-    log_info("\n🧹 Starting Table 1 cleaning...\n")
+    log_info(logger, "\n🧹 Starting Table 1 cleaning...\n")
 
-    cleaner = gdpwr_cleaner()                                            # Pipeline runner
-    records = _read_records(record_folder, record_txt)                   # Load existing records
-    processed = set(records)                                             # Fast membership test
+    cleaner   = gdpwr_cleaner()                                                # Pipeline runner
+    records   = _read_records(record_folder, record_txt)                        # Load existing records
+    processed = set(records)                                                    # Fast membership test
 
-    raw_tables_dict_1: dict[str, pd.DataFrame] = {}                      # Raw tables dict (for inspection)
-    new_dataframes_dict_1: dict[str, pd.DataFrame] = {}                  # Cleaned tables dict
+    raw_tables_dict_1: dict[str, pd.DataFrame]   = {}                           # Raw tables store
+    new_dataframes_dict_1: dict[str, pd.DataFrame] = {}                         # Cleaned tables store
 
-    done, skipped = 0, 0                                                 # Counters
+    new_counter = 0                                                             # Newly cleaned
+    skipped_counter = 0                                                         # Already cleaned (per file)
+    skipped_years: dict[str, int] = {}                                          # year → count already cleaned
 
-    # Enumerate year folders (skip quarantine)
+    # Year folders (skip quarantine)
     years = [d for d in sorted(os.listdir(input_pdf_folder))
              if os.path.isdir(os.path.join(input_pdf_folder, d)) and d != "_quarantine"]
+    total_year_folders = len(years)                                             # For final summary
+
+    # Persistence layout
+    if persist:
+        base_out      = persist_folder or os.path.join("data", "clean")         # Default base
+        out_root      = os.path.join(base_out, "table_1")                       # e.g., data/clean/table_1
+        manifest_path = os.path.join(out_root, "manifest.csv")                  # table-level manifest
+        os.makedirs(out_root, exist_ok=True)
 
     for year in years:
-        folder_path = os.path.join(input_pdf_folder, year)
-        pdf_files = sorted([f for f in os.listdir(folder_path) if f.endswith(".pdf")], key=_ns_sort_key)
+        folder_path = os.path.join(input_pdf_folder, year)                       # Year folder
+        pdf_files   = sorted([f for f in os.listdir(folder_path) if f.endswith(".pdf")], key=_ns_sort_key)
         if not pdf_files:
             continue
 
-        log_info(f"📂 Processing Table 1 in {year}")
-        pbar = tqdm(pdf_files, desc=f"🚧 {year}", unit="PDF",
-                    bar_format=BAR_FORMAT, colour=PROG_COLOR_ACTIVE, leave=False)
+        # If this year is fully processed, skip bar and remember
+        already = [f for f in pdf_files if f in processed]
+        if len(already) == len(pdf_files):
+            skipped_years[year] = len(already)                                   # Whole year already done
+            skipped_counter += len(already)
+            continue
+
+        log_info(logger, f"\n📂 Processing Table 1 in {year}\n")
+        folder_new_count = 0
+        folder_skipped_count = 0
+
+        pbar = tqdm(
+            pdf_files,
+            desc=f"🚧 {year}",
+            unit="PDF",
+            bar_format=BAR_FORMAT,
+            colour=PROG_COLOR_ACTIVE,
+            leave=False,                 # remove row when finished
+            position=0,                  # use the same row for both bars
+            dynamic_ncols=True
+        )
 
         for filename in pbar:
-            if filename in processed:                                    # Skip already processed
-                skipped += 1
+            if filename in processed:
+                folder_skipped_count += 1
                 continue
 
-            ns_id, ns_year = parse_ns_meta(filename)                      # Parse identifiers
-            if not ns_id:
-                skipped += 1
+            issue, yr = parse_ns_meta(filename)
+            if not issue:
+                folder_skipped_count += 1
                 continue
 
-            pdf_path = os.path.join(folder_path, filename)                # Full path to PDF
+            pdf_path = os.path.join(folder_path, filename)
             try:
-                raw = _extract_table(pdf_path, page=1)                    # Extract table from page 1
+                raw = _extract_table(pdf_path, page=1)
                 if raw is None:
-                    skipped += 1
+                    folder_skipped_count += 1
                     continue
 
-                key = f"{os.path.splitext(filename)[0].replace('-', '_')}_1"  # Dict key
-                raw_tables_dict_1[key] = raw.copy()                       # Store raw snapshot
+                key = f"{os.path.splitext(filename)[0].replace('-', '_')}_1"
+                raw_tables_dict_1[key] = raw.copy()
 
-                clean = cleaner.clean_table1(raw)                         # Run pipeline
-                clean.insert(0, "year", ns_year)                          # Add metadata: year
-                clean.insert(1, "id_ns", ns_id)                           # Add metadata: id
-                new_dataframes_dict_1[key] = clean                        # Store cleaned result
+                clean = cleaner.clean_table1(raw)
+                clean.insert(0, "year", yr)
+                clean.insert(1, "wr", issue)
+                new_dataframes_dict_1[key] = clean
 
-                processed.add(filename)                                   # Mark processed
-                done += 1
+                if persist:
+                    ns_code  = os.path.splitext(filename)[0]
+                    out_dir  = os.path.join(out_root, str(yr))
+                    out_path = os.path.join(out_dir, f"{ns_code}.parquet")
+                    saved_path, n_rows, n_cols = _save_df(clean, out_path)
+                    _append_manifest(
+                        manifest_path=manifest_path,
+                        ns_code=ns_code,
+                        table_name="table_1",
+                        year=yr,
+                        issue=issue,
+                        file_path=saved_path,
+                        n_rows=n_rows,
+                        n_cols=n_cols,
+                        pipeline_version=pipeline_version,
+                    )
+
+                processed.add(filename)
+                folder_new_count += 1
             except Exception as e:
-                log_warn(f"⚠️  {filename}: {e}")                          # Log non-fatal error
-                skipped += 1
+                log_warn(logger, f"⚠️  {filename}: {e}")
+                folder_skipped_count += 1
 
-        pbar.close()                                                      # Close active (magenta) bar
+        # IMPORTANT: no prints/logs between these two blocks
+        pbar.clear(); pbar.close()        # remove the '🚧' row
 
-        # Finished overlay bar (blue)
-        fb = tqdm(total=len(pdf_files), desc=f"✔️ {year}", unit="PDF",
-                  bar_format=BAR_FORMAT, colour=PROG_COLOR_DONE, leave=True)
-        fb.update(len(pdf_files)); fb.close()
+        # Finished bar (blue) — same row, looks like it “replaced” the first
+        fb = tqdm(
+            total=len(pdf_files),
+            desc=f"✔️ {year}",
+            unit="PDF",
+            bar_format=BAR_FORMAT,
+            colour=PROG_COLOR_DONE,
+            leave=True,                   # keep visible
+            position=0,                   # same row as pbar
+            dynamic_ncols=True
+        )
+        fb.update(len(pdf_files))
+        fb.close()
 
-    # Persist updated record (chronological)
-    _write_records(record_folder, record_txt, list(processed))
+        # Update counters after the year is done
+        new_counter += folder_new_count
+        skipped_counter += folder_skipped_count
 
-    # Summary — benchmark style
+        # Persist updated record (chronological) after each year
+        _write_records(record_folder, record_txt, list(processed))
+
+    # Summary of fully skipped years (same style as Section 2)
+    if skipped_years:
+        years_summary = ", ".join(skipped_years.keys())
+        total_skipped = sum(skipped_years.values())
+        log_info(logger, f"\n⏩ {total_skipped} cleaned tables already generated for years: {years_summary}")
+
+    # Final summary — mimic Section 2 format
     elapsed_time = round(time.time() - start_time)
-    log_info("\n📊 Summary:")
-    log_info(f"\n🗃️ Record file: {os.path.join(record_folder, record_txt)}")
-    log_info(f"✨ Cleaned: {done}  .  ⏩ Skipped: {skipped}")
-    log_info(f"⏱️ Time: {elapsed_time} seconds\n")
+    log_info(logger, f"\n📊 Summary:\n")
+    log_info(logger, f"📂 {total_year_folders} folders (years) found containing input PDFs")
+    log_info(logger, f"🗃️ Already cleaned tables: {skipped_counter}")
+    log_info(logger, f"✨ Newly cleaned tables: {new_counter}")
+    log_info(logger, f"⏱️ {elapsed_time} seconds")
 
     return raw_tables_dict_1, new_dataframes_dict_1
 
@@ -2261,129 +2437,202 @@ def table_2_cleaner(
     record_folder: str,
     record_txt: str = RECORD_SUFFIX_2,
     log_folder: str = DEFAULT_LOG_FOLDER,
-    log_txt: str = DEFAULT_LOG_TXT,
+    log_txt: str = LOG_TXT_T2,
+    persist: bool = False,
+    persist_folder: str | None = None,
+    pipeline_version: str = "s3.0.0",
 ) -> tuple[dict[str, pd.DataFrame], dict[str, pd.DataFrame]]:
     """
     Extract page 2 from each WR PDF, run the table 2 pipeline, update the record,
-    and print + log a concise summary (log file only; notebook prints are clean).
+    optionally persist cleaned tables (Parquet/CSV) + manifest, and show a concise summary.
 
     Args:
         input_pdf_folder (str): Root folder containing year subfolders (skips '_quarantine').
         record_folder (str): Folder where the record text file is stored.
-        record_txt (str): Record filename (chronological), default 'new_generated_dataframes_2.txt'.
+        record_txt (str): Record filename, default 'new_generated_dataframes_2.txt'.
         log_folder (str): Folder where the .log file will be written.
-        log_txt (str): Log filename (shared across section 3).
+        log_txt (str): Log filename (default '3_cleaner_2.log').
+        persist (bool): If True, save cleaned DataFrames + manifest.
+        persist_folder (str | None): Base output folder (default './data/clean').
+        pipeline_version (str): Version tag recorded in manifest.
 
     Returns:
         tuple:
             - raw_tables_dict_2 (dict[str, pd.DataFrame]): Raw tables keyed as 'ns_xx_yyyy_2'.
             - new_dataframes_dict_2 (dict[str, pd.DataFrame]): Cleaned tables keyed as 'ns_xx_yyyy_2'.
     """
-    _ = _ensure_logger(log_folder, log_txt)                              # Ensure file logger exists
-    start_time = time.time()                                             # Timer start
+    logger = _ensure_logger("t2", log_folder, log_txt)                          # File-only logger
+    start_time = time.time()                                                    # Timer start
 
-    log_info("\n🧹 Starting Table 2 cleaning...\n")
+    log_info(logger, "\n🧹 Starting Table 2 cleaning...\n")
 
-    cleaner = gdpwr_cleaner()                                            # Pipeline runner
-    records = _read_records(record_folder, record_txt)                   # Load existing records
-    processed = set(records)                                             # Fast membership test
+    cleaner   = gdpwr_cleaner()                                                # Pipeline runner
+    records   = _read_records(record_folder, record_txt)                        # Load existing records
+    processed = set(records)                                                    # Fast membership test
 
-    raw_tables_dict_2: dict[str, pd.DataFrame] = {}                      # Raw tables dict (for inspection)
-    new_dataframes_dict_2: dict[str, pd.DataFrame] = {}                  # Cleaned tables dict
+    raw_tables_dict_2: dict[str, pd.DataFrame]   = {}                           # Raw tables store
+    new_dataframes_dict_2: dict[str, pd.DataFrame] = {}                         # Cleaned tables store
 
-    done, skipped = 0, 0                                                 # Counters
+    new_counter = 0                                                             # Newly cleaned
+    skipped_counter = 0                                                         # Already cleaned (per file)
+    skipped_years: dict[str, int] = {}                                          # year → count already cleaned
 
-    # Enumerate year folders (skip quarantine)
+    # Year folders (skip quarantine)
     years = [d for d in sorted(os.listdir(input_pdf_folder))
              if os.path.isdir(os.path.join(input_pdf_folder, d)) and d != "_quarantine"]
+    total_year_folders = len(years)                                             # For final summary
+
+    # Persistence layout
+    if persist:
+        base_out      = persist_folder or os.path.join("data", "clean")         # Default base
+        out_root      = os.path.join(base_out, "table_2")                       # e.g., data/clean/table_2
+        manifest_path = os.path.join(out_root, "manifest.csv")                  # table-level manifest
+        os.makedirs(out_root, exist_ok=True)
 
     for year in years:
-        folder_path = os.path.join(input_pdf_folder, year)
-        pdf_files = sorted([f for f in os.listdir(folder_path) if f.endswith(".pdf")], key=_ns_sort_key)
+        folder_path = os.path.join(input_pdf_folder, year)                       # Year folder
+        pdf_files   = sorted([f for f in os.listdir(folder_path) if f.endswith(".pdf")], key=_ns_sort_key)
         if not pdf_files:
             continue
 
-        log_info(f"📂 Processing Table 2 in {year}")
-        pbar = tqdm(pdf_files, desc=f"🚧 {year}", unit="PDF",
-                    bar_format=BAR_FORMAT, colour=PROG_COLOR_ACTIVE, leave=False)
+        # If this year is fully processed, skip bar and remember
+        already = [f for f in pdf_files if f in processed]
+        if len(already) == len(pdf_files):
+            skipped_years[year] = len(already)                                   # Whole year already done
+            skipped_counter += len(already)
+            continue
+
+        log_info(logger, f"\n📂 Processing Table 2 in {year}\n")
+        folder_new_count = 0
+        folder_skipped_count = 0
+
+        pbar = tqdm(
+            pdf_files,
+            desc=f"🚧 {year}",
+            unit="PDF",
+            bar_format=BAR_FORMAT,
+            colour=PROG_COLOR_ACTIVE,
+            leave=False,                 # remove row when finished
+            position=0,                  # use the same row for both bars
+            dynamic_ncols=True
+        )
 
         for filename in pbar:
-            if filename in processed:                                    # Skip already processed
-                skipped += 1
+            if filename in processed:
+                folder_skipped_count += 1
                 continue
 
-            ns_id, ns_year = parse_ns_meta(filename)                      # Parse identifiers
-            if not ns_id:
-                skipped += 1
+            issue, yr = parse_ns_meta(filename)
+            if not issue:
+                folder_skipped_count += 1
                 continue
 
-            pdf_path = os.path.join(folder_path, filename)                # Full path to PDF
+            pdf_path = os.path.join(folder_path, filename)
             try:
-                raw = _extract_table(pdf_path, page=2)                    # Extract table from page 2
+                raw = _extract_table(pdf_path, page=2)
                 if raw is None:
-                    skipped += 1
+                    folder_skipped_count += 1
                     continue
 
-                key = f"{os.path.splitext(filename)[0].replace('-', '_')}_2"  # Dict key
-                raw_tables_dict_2[key] = raw.copy()                       # Store raw snapshot
+                key = f"{os.path.splitext(filename)[0].replace('-', '_')}_2"
+                raw_tables_dict_2[key] = raw.copy()
 
-                clean = cleaner.clean_table2(raw)                         # Run pipeline
-                clean.insert(0, "year", ns_year)                          # Add metadata: year
-                clean.insert(1, "id_ns", ns_id)                           # Add metadata: id
-                new_dataframes_dict_2[key] = clean                        # Store cleaned result
+                clean = cleaner.clean_table2(raw)
+                clean.insert(0, "year", yr)
+                clean.insert(1, "wr", issue)
+                new_dataframes_dict_2[key] = clean
 
-                processed.add(filename)                                   # Mark processed
-                done += 1
+                if persist:
+                    ns_code  = os.path.splitext(filename)[0]
+                    out_dir  = os.path.join(out_root, str(yr))
+                    out_path = os.path.join(out_dir, f"{ns_code}.parquet")
+                    saved_path, n_rows, n_cols = _save_df(clean, out_path)
+                    _append_manifest(
+                        manifest_path=manifest_path,
+                        ns_code=ns_code,
+                        table_name="table_2",
+                        year=yr,
+                        issue=issue,
+                        file_path=saved_path,
+                        n_rows=n_rows,
+                        n_cols=n_cols,
+                        pipeline_version=pipeline_version,
+                    )
+
+                processed.add(filename)
+                folder_new_count += 1
             except Exception as e:
-                log_warn(f"⚠️  {filename}: {e}")                          # Log non-fatal error
-                skipped += 1
+                log_warn(logger, f"⚠️  {filename}: {e}")
+                folder_skipped_count += 1
 
-        pbar.close()                                                      # Close active (magenta) bar
+        # IMPORTANT: no prints/logs between these two blocks
+        pbar.clear(); pbar.close()        # remove the '🚧' row
 
-        # Finished overlay bar (blue)
-        fb = tqdm(total=len(pdf_files), desc=f"✔️ {year}", unit="PDF",
-                  bar_format=BAR_FORMAT, colour=PROG_COLOR_DONE, leave=True)
-        fb.update(len(pdf_files)); fb.close()
+        # Finished bar (blue) — same row, looks like it “replaced” the first
+        fb = tqdm(
+            total=len(pdf_files),
+            desc=f"✔️ {year}",
+            unit="PDF",
+            bar_format=BAR_FORMAT,
+            colour=PROG_COLOR_DONE,
+            leave=True,                   # keep visible
+            position=0,                   # same row as pbar
+            dynamic_ncols=True
+        )
+        fb.update(len(pdf_files))
+        fb.close()
 
-    # Persist updated record (chronological)
-    _write_records(record_folder, record_txt, list(processed))
+        # Update counters after the year is done
+        new_counter += folder_new_count
+        skipped_counter += folder_skipped_count
 
-    # Summary — benchmark style
+        # Persist updated record (chronological) after each year
+        _write_records(record_folder, record_txt, list(processed))
+
+    # Summary of fully skipped years (same style as Section 2)
+    if skipped_years:
+        years_summary = ", ".join(skipped_years.keys())
+        total_skipped = sum(skipped_years.values())
+        log_info(logger, f"\n⏩ {total_skipped} cleaned tables already generated for years: {years_summary}")
+
+    # Final summary — mimic Section 2 format
     elapsed_time = round(time.time() - start_time)
-    log_info("\n📊 Summary:")
-    log_info(f"\n🗃️  Record file: {os.path.join(record_folder, record_txt)}")
-    log_info(f"✨ Cleaned: {done}  .  ⏩ Skipped: {skipped}")
-    log_info(f"⏱️ Time: {elapsed_time} seconds\n")
+    log_info(logger, f"\n📊 Summary:\n")
+    log_info(logger, f"📂 {total_year_folders} folders (years) found containing input PDFs")
+    log_info(logger, f"🗃️ Already cleaned tables: {skipped_counter}")
+    log_info(logger, f"✨ Newly cleaned tables: {new_counter}")
+    log_info(logger, f"⏱️ {elapsed_time} seconds")
 
     return raw_tables_dict_2, new_dataframes_dict_2
 
 
 
 
+
 ################################################################################################
-# Section 4. SQL Tables
+# Section 4. Concatenated CSV Export
 ################################################################################################
 
-
-#+++++++++++++++
+# +++++++++++++++
 # LIBRARIES
-#+++++++++++++++
+# +++++++++++++++
 
-import tkinter as tk  # Import the tkinter library for creating the GUI
-from tkinter import simpledialog  # Import the simpledialog module from tkinter for creating dialog boxes
-
+import os
+import pandas as pd
+import tkinter as tk  # GUI for choosing sector/frequency (if you use these helpers)
+from tkinter import simpledialog
 
 # Define the options and their mappings
 options = [
     "gdp", 
     "agriculture",  # agriculture and livestock
     "fishing",
-    "mining",  # mining and fuel
+    "mining",       # mining and fuel
     "manufacturing",
     "electricity",  # electricity and water
     "construction",
     "commerce",
-    "services"  # other services
+    "services"      # other services
 ]
 
 # Mapping each option with its Spanish and English counterparts
@@ -2399,13 +2648,26 @@ option_mapping = {
     "services": ("otros servicios", "other services")
 }
 
+# ------------------------------
+# Small helper to save to CSV
+# ------------------------------
+def _save_concat_to_csv(df: pd.DataFrame, sector: str, frequency: str, out_dir: str = "data/clean/concatenated"):
+    """
+    Saves the provided DataFrame to CSV under:
+        data/clean/concatenated/{frequency}/{sector}_{frequency}_growth_rates.csv
+    """
+    os.makedirs(os.path.join(out_dir, frequency), exist_ok=True)
+    fname = f"{sector}_{frequency}_growth_rates.csv"
+    fpath = os.path.join(out_dir, frequency, fname)
+    df.to_csv(fpath, index=False, encoding="utf-8")
+    print(f"Saved CSV: {fpath}")
+
 # Function to show the option window
 def show_option_window():
     """
     Displays a Tkinter window to select an option, and returns the corresponding 
     selected values for 'selected_spanish', 'selected_english', and 'sector'.
     """
-    # Variables to store the selected options
     selected_spanish = None
     selected_english = None
     sector = None
@@ -2414,273 +2676,182 @@ def show_option_window():
         nonlocal selected_spanish, selected_english, sector
         sector = selected_option.get()
         selected_spanish, selected_english = option_mapping[sector]
-        root.destroy()  # Close the window after selecting an option
+        root.destroy()
 
-    # Create the popup window
     root = tk.Tk()
     root.title("Select Option")
 
-    # Variable to store the selected option
     selected_option = tk.StringVar(root)
-    selected_option.set(options[0])  # Default option
+    selected_option.set(options[0])  # Default
 
-    # Create the option menu
     menu = tk.OptionMenu(root, selected_option, *options)
     menu.pack(pady=10)
 
-    # Button to confirm the selection
     confirm_button = tk.Button(root, text="Confirm", command=save_option)
     confirm_button.pack()
 
-    # Show the window
     root.update_idletasks()
     root.wait_window()
-
-    # Return the selected values
     return selected_spanish, selected_english, sector
 
-# Function to show option window
-#________________________________________________________________
-
-# def show_option_window():
-#     # Define the list of options
-#     options = [
-#         "gdp", 
-#         "agriculture",  # agriculture and livestock
-#         "fishing",
-#         "mining",  # mining and fuel
-#         "manufacturing",
-#         "electricity",  # electricity and water
-#         "construction",
-#         "commerce",
-#         "services"  # other services
-#     ]
-
-#     # Function to save the selected option and close the window
-#     def save_option():
-#         global sector
-#         sector = selected_option.get()
-#         root.destroy()  # Close the window after selecting an option
-
-#     # Create the popup window
-#     root = tk.Tk()
-#     root.title("Select Option")
-
-#     # Variable to store the selected option
-#     selected_option = tk.StringVar(root)
-#     selected_option.set(options[0])  # Default option
-
-#     # Create the option menu
-#     menu = tk.OptionMenu(root, selected_option, *options)
-#     menu.pack(pady=10)
-
-#     # Button to confirm the selection
-#     confirm_button = tk.Button(root, text="Confirm", command=save_option)
-#     confirm_button.pack()
-
-#     # Show the window
-#     root.update_idletasks()
-#     root.wait_window()
-
-#     return selected_option.get()
-
 # Function to show frequency window
-#________________________________________________________________
 def show_frequency_window():
-    # Define the list of options
-    frequencies = [
-        "monthly", 
-        "quarterly",
-        "annual"
-    ]
+    frequencies = ["monthly", "quarterly", "annual"]
 
-    # Function to save the selected option and close the window
     def save_frequency():
-        global frequency
-        frequency = selected_frequency.get()
-        root.destroy()  # Close the window after selecting an option
+        root.destroy()
 
-    # Create the popup window
     root = tk.Tk()
     root.title("Select Frequency")
 
-    # Variable to store the selected option
     selected_frequency = tk.StringVar(root)
-    selected_frequency.set(frequencies[0])  # Default option
+    selected_frequency.set(frequencies[0])
 
-    # Create the option menu
     menu = tk.OptionMenu(root, selected_frequency, *frequencies)
     menu.pack(pady=10)
 
-    # Button to confirm the selection
     confirm_button = tk.Button(root, text="Confirm", command=save_frequency)
     confirm_button.pack()
 
-    # Show the window
     root.update_idletasks()
     root.wait_window()
-    
     return selected_frequency.get()
 
+# **********************************************************************************************
+# Section 4.1. Annual Concatenation (and related helpers)
+# ----------------------------------------------------------------------------------------------
 
-
-#**********************************************************************************************
-# Section 4.1. Annual Concatenation
-#----------------------------------------------------------------------------------------------
-
-
-# Function to concatenate Table 2 (annual)
-# _________________________________________________________________________
+# Concatenate Table 2 (annual)
 def concatenate_annual_df(dataframes_dict, sector_economico, economic_sector):
-    # List to store the names of dataframes that meet the criterion of ending in '_2'
     dataframes_ending_with_2 = []
-
-    # List to store the names of dataframes to be concatenated
     dataframes_to_concatenate = []
 
-    # Iterate over the dataframe names in the all_dataframes dictionary
     for df_name in dataframes_dict.keys():
-        # Check if the dataframe name ends with '_2' and add it to the corresponding list
         if df_name.endswith('_2'):
             dataframes_ending_with_2.append(df_name)
             dataframes_to_concatenate.append(dataframes_dict[df_name])
 
-    # Print the names of dataframes that meet the criterion of ending in '_2'
-    #print("DataFrames ending with '_2' that will be concatenated:")
-    #for df_name in dataframes_ending_with_2:
-    #    print(df_name)
-
-    # Concatenate all dataframes in the 'dataframes_to_concatenate' list
     if dataframes_to_concatenate:
-        # Concatenate only rows that meet the specified conditions
-        annual_growth_rates = pd.concat([df[(df['sectores_economicos'] == sector_economico) | (df['economic_sectors'] == economic_sector)] 
-                                    for df in dataframes_to_concatenate 
-                                    if 'sectores_economicos' in df.columns and 'economic_sectors' in df.columns], 
-                                    ignore_index=True)
+        annual_growth_rates = pd.concat(
+            [
+                df[(df['sectores_economicos'] == sector_economico) | (df['economic_sectors'] == economic_sector)]
+                for df in dataframes_to_concatenate
+                if 'sectores_economicos' in df.columns and 'economic_sectors' in df.columns
+            ],
+            ignore_index=True
+        )
 
-        # Keep only columns that start with 'year' and the 'wr', 'year', and 'date' columns
         columns_to_keep = ['year', 'wr', 'date'] + [col for col in annual_growth_rates.columns if col.endswith('_year')]
-
-        # Drop unwanted columns
         annual_growth_rates = annual_growth_rates[columns_to_keep]
-        
-        # Remove duplicate columns if any
-        annual_growth_rates = annual_growth_rates.loc[:,~annual_growth_rates.columns.duplicated()]
-    
-        # Cambia el nombre de las columnas a partir de la cuarta columna
-        annual_growth_rates.columns = [col.split('_')[1] + '_' + col.split('_')[0] if '_' in col and idx >= 3 else col for idx, col in enumerate(annual_growth_rates.columns)]
-
-        # Print the number of rows in the concatenated dataframe
+        annual_growth_rates = annual_growth_rates.loc[:, ~annual_growth_rates.columns.duplicated()]
+        annual_growth_rates.columns = [
+            (col.split('_')[1] + '_' + col.split('_')[0]) if '_' in col and idx >= 3 else col
+            for idx, col in enumerate(annual_growth_rates.columns)
+        ]
         print("Number of rows in the concatenated dataframe:", len(annual_growth_rates))
-        
         return annual_growth_rates
     else:
         print("No dataframes were found to concatenate.")
         return None
-    
-# Function to concatenate Table 1 (quarterly)
-# _________________________________________________________________________
-    
-def concatenate_quarterly_df(dataframes_dict, sector_economico, economic_sector):
-    # List to store the names of dataframes that meet the criterion of ending in '_2'
-    dataframes_ending_with_2 = []
 
-    # List to store the names of dataframes to be concatenated
+# Concatenate Table 1 (quarterly)
+def concatenate_quarterly_df(dataframes_dict, sector_economico, economic_sector):
+    dataframes_ending_with_2 = []
     dataframes_to_concatenate = []
 
-    # Iterate over the dataframe names in the all_dataframes dictionary
     for df_name in dataframes_dict.keys():
-        # Check if the dataframe name ends with '_2' and add it to the corresponding list
         if df_name.endswith('_2'):
             dataframes_ending_with_2.append(df_name)
             dataframes_to_concatenate.append(dataframes_dict[df_name])
 
-    # Print the names of dataframes that meet the criterion of ending in '_2'
-    #print("DataFrames ending with '_2' that will be concatenated:")
-    #for df_name in dataframes_ending_with_2:
-    #    print(df_name)
-
-    # Concatenate all dataframes in the 'dataframes_to_concatenate' list
     if dataframes_to_concatenate:
-        # Concatenate only rows that meet the specified conditions
-        quarterly_growth_rates = pd.concat([df[(df['sectores_economicos'] == sector_economico) | (df['economic_sectors'] == economic_sector)] 
-                                    for df in dataframes_to_concatenate 
-                                    if 'sectores_economicos' in df.columns and 'economic_sectors' in df.columns], 
-                                    ignore_index=True)
+        quarterly_growth_rates = pd.concat(
+            [
+                df[(df['sectores_economicos'] == sector_economico) | (df['economic_sectors'] == economic_sector)]
+                for df in dataframes_to_concatenate
+                if 'sectores_economicos' in df.columns and 'economic_sectors' in df.columns
+            ],
+            ignore_index=True
+        )
 
-        # Keep all columns except those starting with 'year_', in addition to the 'wr', 'year', and 'date' columns
         columns_to_keep = ['year', 'wr', 'date'] + [col for col in quarterly_growth_rates.columns if not col.endswith('_year')]
-
-        # Select unwanted columns
         quarterly_growth_rates = quarterly_growth_rates[columns_to_keep]
-
-        # Drop the 'sectores_economicos' and 'economic_sectors' columns
         quarterly_growth_rates.drop(columns=['sectores_economicos', 'economic_sectors'], inplace=True)
-
-        # Remove duplicate columns if any
         quarterly_growth_rates = quarterly_growth_rates.loc[:, ~quarterly_growth_rates.columns.duplicated()]
-        
-        # Print the number of rows in the concatenated dataframe
         print("Number of rows in the concatenated dataframe:", len(quarterly_growth_rates))
-        
         return quarterly_growth_rates
     else:
         print("No dataframes were found to concatenate.")
         return None
-    
-# Function to concatenate Table 1 (monthly)
-# _________________________________________________________________________
-    
-def concatenate_monthly_df(dataframes_dict, sector_economico, economic_sector):
-    # List to store the names of dataframes that meet the criterion of ending in '_1'
-    dataframes_ending_with_1 = []
 
-    # List to store the names of dataframes to be concatenated
+# Concatenate Table 1 (monthly)
+def concatenate_monthly_df(dataframes_dict, sector_economico, economic_sector):
+    dataframes_ending_with_1 = []
     dataframes_to_concatenate = []
 
-    # Iterate over the dataframe names in the all_dataframes dictionary
     for df_name in dataframes_dict.keys():
-        # Check if the dataframe name ends with '_1' and add it to the corresponding list
         if df_name.endswith('_1'):
             dataframes_ending_with_1.append(df_name)
             dataframes_to_concatenate.append(dataframes_dict[df_name])
 
-    # Print the names of dataframes that meet the criterion of ending with '_1'
-    #print("DataFrames ending with '_1' that will be concatenated:")
-    #for df_name in dataframes_ending_with_1:
-    #    print(df_name)
-
-    # Concatenate all dataframes in the 'dataframes_to_concatenate' list
     if dataframes_to_concatenate:
-        # Concatenate only rows that meet the specified conditions
-        monthly_growth_rates = pd.concat([df[(df['sectores_economicos'] == sector_economico) | (df['economic_sectors'] == economic_sector)] 
-                                    for df in dataframes_to_concatenate 
-                                    if 'sectores_economicos' in df.columns and 'economic_sectors' in df.columns], 
-                                    ignore_index=True)
+        monthly_growth_rates = pd.concat(
+            [
+                df[(df['sectores_economicos'] == sector_economico) | (df['economic_sectors'] == economic_sector)]
+                for df in dataframes_to_concatenate
+                if 'sectores_economicos' in df.columns and 'economic_sectors' in df.columns
+            ],
+            ignore_index=True
+        )
 
-        # Keep all columns except those starting with 'year_', in addition to the 'wr', 'year', and 'date' columns
-        columns_to_keep = ['year', 'wr', 'date'] + [col for col in monthly_growth_rates.columns if not (col.endswith('_year') or col.endswith('_mean'))]
-
-        # Select unwanted columns
+        columns_to_keep = ['year', 'wr', 'date'] + [
+            col for col in monthly_growth_rates.columns if not (col.endswith('_year') or col.endswith('_mean'))
+        ]
         monthly_growth_rates = monthly_growth_rates[columns_to_keep]
-
-        # Drop the 'sectores_economicos' and 'economic_sectors' columns
         monthly_growth_rates.drop(columns=['sectores_economicos', 'economic_sectors'], inplace=True)
-
-        # Remove duplicate columns if any
-        monthly_growth_rates = monthly_growth_rates.loc[:,~monthly_growth_rates.columns.duplicated()]
+        monthly_growth_rates = monthly_growth_rates.loc[:, ~monthly_growth_rates.columns.duplicated()]
 
         # Drop columns with at least two underscores in their names
         columns_to_drop = [col for col in monthly_growth_rates.columns if col.count('_') >= 2]
         monthly_growth_rates.drop(columns=columns_to_drop, inplace=True)
-        
-        # Cambia el nombre de las columnas a partir de la cuarta columna
-        monthly_growth_rates.columns = [col.split('_')[1] + '_' + col.split('_')[0] if '_' in col and idx >= 3 else col for idx, col in enumerate(monthly_growth_rates.columns)]
-        
-        # Print the number of rows in the concatenated dataframe
-        print("Number of rows in the concatenated dataframe:", len(monthly_growth_rates))
 
+        monthly_growth_rates.columns = [
+            (col.split('_')[1] + '_' + col.split('_')[0]) if '_' in col and idx >= 3 else col
+            for idx, col in enumerate(monthly_growth_rates.columns)
+        ]
+        print("Number of rows in the concatenated dataframe:", len(monthly_growth_rates))
         return monthly_growth_rates
     else:
         print("No dataframes were found to concatenate.")
         return None
+
+# ------------------------------
+# Optional: one-call export helper
+# ------------------------------
+def concatenate_and_save(
+    dataframes_dict,
+    sector_key: str,
+    frequency: str,
+    out_dir: str = "data/clean/concatenated"
+):
+    """
+    Runs the appropriate concatenate_* function and writes the CSV.
+    """
+    if sector_key not in option_mapping:
+        raise ValueError(f"Unknown sector: {sector_key}")
+
+    sector_es, sector_en = option_mapping[sector_key]
+
+    func_map = {
+        "monthly": concatenate_monthly_df,
+        "quarterly": concatenate_quarterly_df,
+        "annual": concatenate_annual_df,
+    }
+    if frequency not in func_map:
+        raise ValueError(f"Unknown frequency: {frequency}")
+
+    df = func_map[frequency](dataframes_dict, sector_es, sector_en)
+    if df is not None:
+        _save_concat_to_csv(df, sector_key, frequency, out_dir)
+    return df
+

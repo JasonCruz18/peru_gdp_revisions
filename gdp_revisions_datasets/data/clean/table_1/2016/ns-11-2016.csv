@@ -1,0 +1,22 @@
+year,wr,sectores_economicos,economic_sectors,2015_ene,2015_feb,2015_mar,2015_abr,2015_may,2015_jun,2015_jul,2015_ago,2015_sep,2015_oct,2015_nov,2015_dic,2015_year,2016_ene
+2016,11,agropecuario,agriculture and livestock,-2.0,3.0,1.9,-1.3,2.8,8.6,5.9,1.9,4.6,5.2,0.8,1.7,2.8,5.5
+2016,11,agricola,agriculture,-7.2,1.5,0.8,-4.3,1.4,9.8,5.4,-0.9,3.2,4.7,-1.6,-0.3,1.3,7.8
+2016,11,pecuario,livestock,5.1,4.9,3.7,5.4,6.4,5.9,6.7,5.4,6.2,5.8,4.1,4.2,5.3,2.8
+2016,11,pesca,fishing,-23.5,-11.8,17.7,143.5,23.2,-29.6,-37.5,-10.3,3.7,-8.7,49.0,82.5,15.9,40.4
+2016,11,mineria e hidrocarburos,mining and fuel,5.9,-2.0,8.7,9.3,1.8,11.4,11.2,6.4,13.0,10.7,11.3,22.4,9.3,7.8
+2016,11,mineria metalica,metals,6.2,-0.5,14.8,18.2,9.0,15.5,19.0,13.6,22.7,17.3,17.7,30.7,15.5,18.6
+2016,11,hidrocarburos,fuel,5.1,-7.3,-9.6,-17.1,-22.1,-3.4,-15.1,-19.9,-19.4,-11.5,-10.5,-5.5,-11.5,-29.5
+2016,11,manufactura,manufacturing,-6.8,-4.4,-4.1,5.6,-3.5,-2.7,-0.7,-2.1,-4.2,-3.3,1.4,5.0,-1.7,-3.9
+2016,11,procesadores recursos primarios,based on raw materials,-16.4,-12.2,-6.6,34.2,3.0,-4.1,-10.3,-4.7,-8.3,3.7,17.8,24.2,1.7,6.2
+2016,11,manufactura no primaria,nonprimary,-3.6,-2.1,-3.1,-5.1,-6.2,-2.0,2.8,-1.3,-3.0,-5.1,-2.9,-0.7,-2.7,-7.1
+2016,11,electricidad y agua,electricity and water,4.6,3.7,5.6,5.7,5.4,5.5,5.4,6.7,6.8,7.2,7.4,10.1,6.2,8.8
+2016,11,construccion,construction,-2.8,-9.6,-7.7,-8.7,-13.3,-3.7,-7.5,-8.1,-4.8,-1.1,-6.5,0.1,-5.9,-2.7
+2016,11,comercio,commerce,3.6,3.4,3.9,3.5,3.7,4.1,4.3,4.0,4.1,4.0,4.1,3.6,3.9,2.6
+2016,11,otros servicios,other services,5.0,5.0,5.6,4.9,4.8,5.4,5.1,4.9,4.5,4.9,5.4,5.1,5.1,5.0
+2016,11,derechos de importacion y otros impuestos,import duties and other taxes,-2.6,0.8,0.2,-1.2,-4.3,2.8,0.6,1.9,2.3,-0.4,1.4,3.0,0.3,2.4
+2016,11,pbi,gdp,1.5,1.1,2.8,4.2,1.2,4.1,3.6,2.7,3.4,3.4,4.1,6.4,3.3,3.4
+2016,11,sectores primarios,primary sectors,-0.3,-2.5,4.7,12.9,2.9,7.2,5.6,3.6,7.9,8.2,10.1,18.6,6.6,7.6
+2016,11,sectores no primarios,non primary sectors,2.0,2.0,2.4,1.8,0.7,3.1,3.0,2.5,2.4,2.3,2.6,3.7,2.4,2.3
+2016,11,pbi desestacionalizado,seasonally adjusted gdp,1.1,0.0,0.8,0.8,-1.0,1.3,0.1,-0.1,0.6,0.2,0.4,1.2,,-0.9
+2016,11,indicador de demanda interna,domestic demand indicator,0.6,3.9,5.0,5.0,1.1,4.2,2.5,1.6,3.8,1.0,3.7,3.9,3.0,2.1
+2016,11,indicador de demanda interna desestacionalizada,seasonally adjusted domestic demand indicator,-0.6,0.3,1.4,-0.3,-0.5,0.5,-0.7,0.0,2.5,-2.8,1.8,3.1,,-3.5

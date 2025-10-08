@@ -1,0 +1,23 @@
+year,wr,sectores_economicos,economic_sectors,2019_feb,2019_mar,2019_abr,2019_may,2019_jun,2019_jul,2019_ago,2019_sep,2019_oct,2019_nov,2019_dic,2019_year,2020_ene,2020_feb,2020_ene_feb
+2020,16,agropecuario,agriculture and livestock,4.9,5.2,4.2,1.5,0.2,-1.5,3.5,2.6,5.5,3.2,7.1,3.2,3.6,3.5,3.6
+2020,16,agricola,agriculture,4.6,5.5,4.1,0.7,-1.7,-4.5,3.4,1.8,7.1,3.2,10.1,2.6,4.6,4.4,4.5
+2020,16,pecuario,livestock,5.2,4.7,4.5,3.7,4.5,3.7,3.7,3.5,3.6,3.2,3.1,4.1,2.5,2.5,2.5
+2020,16,pesca,fishing,-19.1,-18.0,-65.1,-28.8,11.4,39.8,-3.6,-3.4,-12.1,-17.9,-48.5,-25.9,-32.7,19.3,-13.1
+2020,16,mineria e hidrocarburos,mining and fuel,-0.6,0.4,-2.6,-1.3,-2.9,0.3,4.2,-3.4,0.7,4.1,1.6,0.0,3.5,4.2,3.8
+2020,16,mineria metalica,metals,-5.8,0.5,-1.4,0.0,-2.5,-0.6,-0.3,-4.9,0.1,3.7,1.8,-0.8,2.8,3.3,3.0
+2020,16,hidrocarburos,fuel,40.0,-0.4,-9.0,-8.8,-5.2,5.2,38.2,5.3,3.9,6.7,0.1,4.6,7.4,9.0,8.1
+2020,16,manufactura,manufacturing,-1.3,3.8,-14.0,-6.8,0.7,8.3,2.1,1.8,0.9,-2.3,-5.5,-1.7,0.8,5.3,3.0
+2020,16,procesadores recursos primarios,based on raw materials,-9.4,3.9,-32.4,-18.2,2.8,10.5,6.1,1.6,7.2,-2.7,-22.3,-8.8,2.1,24.2,12.6
+2020,16,manufactura no primaria,nonprimary,1.3,3.8,-4.5,0.1,-0.3,7.6,0.9,1.8,-1.1,-2.1,2.6,1.2,0.4,-0.2,0.1
+2020,16,electricidad y agua,electricity and water,5.7,6.7,3.8,4.2,3.4,4.1,4.0,2.8,2.8,2.4,2.0,3.9,1.6,5.0,3.3
+2020,16,construccion,construction,0.8,6.1,9.5,-0.3,13.4,0.6,5.0,4.4,1.5,-3.5,-9.9,1.5,5.2,5.1,5.2
+2020,16,comercio,commerce,1.8,3.0,3.0,2.3,2.7,3.2,3.1,3.4,3.5,3.5,3.6,3.0,2.7,2.5,2.6
+2020,16,otros servicios,other services,4.4,4.1,4.0,4.5,4.2,4.1,4.2,3.8,3.7,4.4,4.3,4.2,3.8,3.7,3.7
+2020,16,derechos de importacion y otros impuestos,import duties and other taxes,0.5,1.2,1.0,0.6,3.0,6.9,1.7,2.4,-0.8,-2.6,3.1,1.8,2.1,2.4,2.2
+2020,16,pbi,gdp,2.2,3.4,0.1,0.7,2.8,3.8,3.6,2.4,2.4,2.0,1.1,2.2,3.0,3.8,3.4
+2020,16,sectores primarios,primary sectors,-0.9,1.7,-8.4,-4.9,-0.8,1.6,4.2,-1.4,2.5,2.0,-3.2,-1.3,2.6,6.9,4.6
+2020,16,sectores no primarios,non primary sectors,3.0,3.8,2.9,2.8,4.0,4.4,3.4,3.4,2.4,2.0,2.3,3.2,3.1,3.1,3.1
+2020,16,pbi desestacionalizado,seasonally adjusted gdp,0.4,-1.9,-0.7,2.5,3.3,4.2,3.7,3.7,3.4,2.3,2.2,,0.7,-1.9,
+2020,16,indicadores de demanda,domestic demand indicators,,,,,,,,,,,,,,,
+2020,16,demanda interna sin inventarios,domestic demand without inventories,1.6,2.9,2.1,3.4,4.1,5.3,3.9,3.8,3.1,1.6,1.3,2.9,4.1,3.6,3.8
+2020,16,demanda interna,domestic demand,1.1,2.7,-0.6,2.3,3.8,3.8,4.4,3.5,0.9,3.1,1.9,2.3,5.2,3.1,4.2

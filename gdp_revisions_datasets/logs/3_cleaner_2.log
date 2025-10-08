@@ -1,0 +1,243 @@
+2025-10-05 20:35:04,543 — INFO — 
+🧹 Starting Table 2 cleaning...
+
+2025-10-05 20:35:04,543 — INFO — 📂 Processing Table 2 in 2013
+2025-10-05 20:35:07,390 — INFO — 📂 Processing Table 2 in 2014
+2025-10-05 20:35:11,074 — INFO — 📂 Processing Table 2 in 2015
+2025-10-05 20:35:14,629 — INFO — 📂 Processing Table 2 in 2016
+2025-10-05 20:35:18,293 — INFO — 📂 Processing Table 2 in 2017
+2025-10-05 20:35:21,974 — INFO — 📂 Processing Table 2 in 2018
+2025-10-05 20:35:25,727 — INFO — 📂 Processing Table 2 in 2019
+2025-10-05 20:35:29,663 — INFO — 📂 Processing Table 2 in 2020
+2025-10-05 20:35:33,899 — INFO — 📂 Processing Table 2 in 2021
+2025-10-05 20:35:37,823 — INFO — 📂 Processing Table 2 in 2022
+2025-10-05 20:35:42,173 — INFO — 
+📊 Summary:
+2025-10-05 20:35:42,173 — INFO — 🗃️  Record file: record\new_generated_dataframes_2.txt
+2025-10-05 20:35:42,173 — INFO — 💾 Saved to: data\clean\table_2
+2025-10-05 20:35:42,173 — INFO — 🧹 Cleaned: 120  ·  ⏩ Skipped: 0
+2025-10-05 20:35:42,173 — INFO — ⏱️ Time: 38 seconds
+
+2025-10-05 20:36:58,916 — INFO — 
+🧹 Starting Table 2 cleaning...
+
+2025-10-05 20:36:58,916 — INFO — 📂 Processing Table 2 in 2013
+2025-10-05 20:36:58,931 — INFO — 📂 Processing Table 2 in 2014
+2025-10-05 20:36:58,947 — INFO — 📂 Processing Table 2 in 2015
+2025-10-05 20:36:58,974 — INFO — 📂 Processing Table 2 in 2016
+2025-10-05 20:36:58,998 — INFO — 📂 Processing Table 2 in 2017
+2025-10-05 20:36:59,014 — INFO — 📂 Processing Table 2 in 2018
+2025-10-05 20:36:59,036 — INFO — 📂 Processing Table 2 in 2019
+2025-10-05 20:36:59,053 — INFO — 📂 Processing Table 2 in 2020
+2025-10-05 20:36:59,067 — INFO — 📂 Processing Table 2 in 2021
+2025-10-05 20:36:59,083 — INFO — 📂 Processing Table 2 in 2022
+2025-10-05 20:37:03,225 — INFO — 
+📊 Summary:
+2025-10-05 20:37:03,225 — INFO — 🗃️  Record file: record\new_generated_dataframes_2.txt
+2025-10-05 20:37:03,225 — INFO — 💾 Saved to: data\clean\table_2
+2025-10-05 20:37:03,225 — INFO — 🧹 Cleaned: 12  ·  ⏩ Skipped: 108
+2025-10-05 20:37:03,225 — INFO — ⏱️ Time: 4 seconds
+
+2025-10-05 20:54:15,737 — INFO — 
+🧹 Starting Table 2 cleaning...
+
+2025-10-05 20:54:15,737 — INFO — 
+📂 Processing Table 2 in 2022
+
+2025-10-05 20:54:16,073 — WARNING — ⚠️  ns-04-2022.pdf: illegal newline value: }
+2025-10-05 20:54:16,376 — WARNING — ⚠️  ns-08-2022.pdf: illegal newline value: }
+2025-10-05 20:54:16,807 — WARNING — ⚠️  ns-12-2022.pdf: illegal newline value: }
+2025-10-05 20:54:17,106 — WARNING — ⚠️  ns-16-2022.pdf: illegal newline value: }
+2025-10-05 20:54:17,435 — WARNING — ⚠️  ns-20-2022.pdf: illegal newline value: }
+2025-10-05 20:54:17,747 — WARNING — ⚠️  ns-23-2022.pdf: illegal newline value: }
+2025-10-05 20:54:18,231 — WARNING — ⚠️  ns-26-2022.pdf: illegal newline value: }
+2025-10-05 20:54:18,542 — WARNING — ⚠️  ns-30-2022.pdf: illegal newline value: }
+2025-10-05 20:54:18,859 — WARNING — ⚠️  ns-33-2022.pdf: illegal newline value: }
+2025-10-05 20:54:19,148 — WARNING — ⚠️  ns-37-2022.pdf: illegal newline value: }
+2025-10-05 20:54:19,468 — WARNING — ⚠️  ns-41-2022.pdf: illegal newline value: }
+2025-10-05 20:54:19,958 — WARNING — ⚠️  ns-44-2022.pdf: illegal newline value: }
+2025-10-05 20:54:19,958 — INFO — 
+⏩ 108 cleaned tables already generated for years: 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021
+2025-10-05 20:54:19,958 — INFO — 
+📊 Summary:
+
+2025-10-05 20:54:19,958 — INFO — 📂 10 folders (years) found containing input PDFs
+2025-10-05 20:54:19,958 — INFO — 🗂️ Already cleaned tables: 120
+2025-10-05 20:54:19,958 — INFO — ➕ Newly cleaned tables: 0
+2025-10-05 20:54:19,958 — INFO — ⏱️ Time: 4 seconds
+2025-10-06 11:44:30,438 — INFO — 
+🧹 Starting Table 2 cleaning...
+
+2025-10-06 11:44:30,445 — INFO — 
+📂 Processing Table 2 in 2021
+
+2025-10-06 11:44:35,034 — INFO — 
+📂 Processing Table 2 in 2022
+
+2025-10-06 11:44:39,287 — INFO — 
+⏩ 96 cleaned tables already generated for years: 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020
+2025-10-06 11:44:39,287 — INFO — 
+📊 Summary:
+
+2025-10-06 11:44:39,287 — INFO — 📂 10 folders (years) found containing input PDFs
+2025-10-06 11:44:39,287 — INFO — 🗃️ Already cleaned tables: 96
+2025-10-06 11:44:39,287 — INFO — ✨ Newly cleaned tables: 24
+2025-10-06 11:44:39,287 — INFO — ⏱️ 9 seconds
+2025-10-06 12:40:44,545 — INFO — 
+🧹 Starting Table 2 cleaning...
+
+2025-10-06 12:40:44,547 — INFO — 
+📂 Processing Table 2 in 2013
+
+2025-10-06 12:40:47,780 — INFO — 
+📂 Processing Table 2 in 2014
+
+2025-10-06 12:40:51,718 — INFO — 
+📂 Processing Table 2 in 2015
+
+2025-10-06 12:40:55,735 — INFO — 
+📂 Processing Table 2 in 2016
+
+2025-10-06 12:40:59,358 — INFO — 
+📂 Processing Table 2 in 2017
+
+2025-10-06 12:41:03,160 — INFO — 
+📂 Processing Table 2 in 2018
+
+2025-10-06 12:41:06,995 — INFO — 
+📂 Processing Table 2 in 2019
+
+2025-10-06 12:41:11,118 — INFO — 
+📂 Processing Table 2 in 2020
+
+2025-10-06 12:41:15,333 — INFO — 
+📂 Processing Table 2 in 2021
+
+2025-10-06 12:41:19,261 — INFO — 
+📂 Processing Table 2 in 2022
+
+2025-10-06 12:41:23,244 — INFO — 
+📊 Summary:
+
+2025-10-06 12:41:23,244 — INFO — 📂 10 folders (years) found containing input PDFs
+2025-10-06 12:41:23,244 — INFO — 🗃️ Already cleaned tables: 0
+2025-10-06 12:41:23,244 — INFO — ✨ Newly cleaned tables: 120
+2025-10-06 12:41:23,244 — INFO — ⏱️ 39 seconds
+2025-10-06 13:23:45,589 — INFO — 
+🧹 Starting Table 2 cleaning...
+
+2025-10-06 13:23:45,589 — INFO — 
+📂 Processing Table 2 in 2013
+
+2025-10-06 13:23:48,623 — INFO — 
+📂 Processing Table 2 in 2014
+
+2025-10-06 13:23:52,662 — INFO — 
+📂 Processing Table 2 in 2015
+
+2025-10-06 13:23:56,509 — INFO — 
+📂 Processing Table 2 in 2016
+
+2025-10-06 13:24:00,315 — INFO — 
+📂 Processing Table 2 in 2017
+
+2025-10-06 13:24:03,901 — INFO — 
+📂 Processing Table 2 in 2018
+
+2025-10-06 13:24:07,507 — INFO — 
+📂 Processing Table 2 in 2019
+
+2025-10-06 13:24:11,248 — INFO — 
+📂 Processing Table 2 in 2020
+
+2025-10-06 13:24:15,126 — INFO — 
+📂 Processing Table 2 in 2021
+
+2025-10-06 13:24:18,889 — INFO — 
+📂 Processing Table 2 in 2022
+
+2025-10-06 13:24:22,638 — INFO — 
+📊 Summary:
+
+2025-10-06 13:24:22,638 — INFO — 📂 10 folders (years) found containing input PDFs
+2025-10-06 13:24:22,638 — INFO — 🗃️ Already cleaned tables: 0
+2025-10-06 13:24:22,638 — INFO — ✨ Newly cleaned tables: 120
+2025-10-06 13:24:22,638 — INFO — ⏱️ 37 seconds
+2025-10-06 13:54:42,174 — INFO — 
+🧹 Starting Table 2 cleaning...
+
+2025-10-06 13:54:42,178 — INFO — 
+📂 Processing Table 2 in 2022
+
+2025-10-06 13:54:46,402 — INFO — 
+⏩ 108 cleaned tables already generated for years: 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021
+2025-10-06 13:54:46,402 — INFO — 
+📊 Summary:
+
+2025-10-06 13:54:46,402 — INFO — 📂 10 folders (years) found containing input PDFs
+2025-10-06 13:54:46,402 — INFO — 🗃️ Already cleaned tables: 108
+2025-10-06 13:54:46,402 — INFO — ✨ Newly cleaned tables: 12
+2025-10-06 13:54:46,402 — INFO — ⏱️ 4 seconds
+2025-10-06 15:21:56,688 — INFO — 
+🧹 Starting Table 2 cleaning...
+
+2025-10-06 15:21:56,688 — INFO — 
+📂 Processing Table 2 in 2022
+
+2025-10-06 15:22:01,178 — INFO — 
+⏩ 108 cleaned tables already generated for years: 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021
+2025-10-06 15:22:01,178 — INFO — 
+📊 Summary:
+
+2025-10-06 15:22:01,178 — INFO — 📂 10 folders (years) found containing input PDFs
+2025-10-06 15:22:01,178 — INFO — 🗃️ Already cleaned tables: 108
+2025-10-06 15:22:01,178 — INFO — ✨ Newly cleaned tables: 12
+2025-10-06 15:22:01,178 — INFO — ⏱️ 4 seconds
+2025-10-06 15:24:06,951 — INFO — 
+🧹 Starting Table 2 cleaning...
+
+2025-10-06 15:24:06,951 — INFO — 
+📂 Processing Table 2 in 2022
+
+2025-10-06 15:24:11,275 — INFO — 
+⏩ 108 cleaned tables already generated for years: 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021
+2025-10-06 15:24:11,275 — INFO — 
+📊 Summary:
+
+2025-10-06 15:24:11,275 — INFO — 📂 10 folders (years) found containing input PDFs
+2025-10-06 15:24:11,275 — INFO — 🗃️ Already cleaned tables: 108
+2025-10-06 15:24:11,275 — INFO — ✨ Newly cleaned tables: 12
+2025-10-06 15:24:11,275 — INFO — ⏱️ 4 seconds
+2025-10-06 16:14:53,656 — INFO — 
+🧹 Starting Table 2 cleaning...
+
+2025-10-06 16:14:53,656 — INFO — 
+📂 Processing Table 2 in 2022
+
+2025-10-06 16:14:57,898 — INFO — 
+⏩ 108 cleaned tables already generated for years: 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021
+2025-10-06 16:14:57,898 — INFO — 
+📊 Summary:
+
+2025-10-06 16:14:57,898 — INFO — 📂 10 folders (years) found containing input PDFs
+2025-10-06 16:14:57,898 — INFO — 🗃️ Already cleaned tables: 108
+2025-10-06 16:14:57,898 — INFO — ✨ Newly cleaned tables: 12
+2025-10-06 16:14:57,898 — INFO — ⏱️ 4 seconds
+2025-10-06 17:34:05,478 — INFO — 
+🧹 Starting Table 2 cleaning...
+
+2025-10-06 17:34:05,484 — INFO — 
+📂 Processing Table 2 in 2021
+
+2025-10-06 17:34:10,611 — INFO — 
+📂 Processing Table 2 in 2022
+
+2025-10-06 17:34:15,503 — INFO — 
+⏩ 96 cleaned tables already generated for years: 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020
+2025-10-06 17:34:15,503 — INFO — 
+📊 Summary:
+
+2025-10-06 17:34:15,503 — INFO — 📂 10 folders (years) found containing input PDFs
+2025-10-06 17:34:15,503 — INFO — 🗃️ Already cleaned tables: 96
+2025-10-06 17:34:15,503 — INFO — ✨ Newly cleaned tables: 24
+2025-10-06 17:34:15,503 — INFO — ⏱️ 10 seconds

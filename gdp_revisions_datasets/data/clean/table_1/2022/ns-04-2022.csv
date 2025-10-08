@@ -1,0 +1,25 @@
+year,wr,sectores_economicos,economic_sectors,2020_nov,2020_dic,2020_year,2021_ene,2021_feb,2021_mar,2021_abr,2021_may,2021_jun,2021_jul,2021_ago,2021_sep,2021_oct,2021_nov,2021_ene_nov
+2022,04,agropecuario,agriculture and livestock,0.9,-0.8,1.4,1.7,0.3,-1.8,-5.2,-5.7,11.1,11.1,6.1,11.5,5.2,2.0,2.9
+2022,04,agricola,agriculture,3.6,0.6,3.4,3.3,1.0,-2.9,-7.4,-8.4,14.9,16.2,8.8,18.3,6.8,1.7,3.7
+2022,04,pecuario,livestock,-2.7,-2.7,-1.8,-0.3,-0.7,-0.2,0.4,2.0,2.5,3.1,2.9,2.6,2.8,2.4,1.6
+2022,04,pesca,fishing,-0.3,113.6,4.2,70.6,6.8,35.7,141.1,97.6,-37.7,-41.4,-29.9,-39.2,-33.1,13.0,6.1
+2022,04,mineria e hidrocarburos,mining and fuel,-4.9,-3.9,-13.4,-8.4,-4.4,15.4,58.0,66.9,7.8,-0.9,3.1,11.1,1.4,-5.3,8.9
+2022,04,mineria metalica,metals,-3.2,-2.8,-13.8,-7.1,-1.0,20.5,76.6,82.5,7.2,1.4,5.1,12.3,0.4,-5.8,11.6
+2022,04,hidrocarburos,fuel,-13.9,-10.9,-11.0,-15.6,-20.8,-10.1,-8.1,6.7,11.9,-13.6,-8.4,4.0,7.2,-1.9,-5.1
+2022,04,manufactura,manufacturing,-2.4,9.9,-12.5,7.7,1.0,51.2,115.3,83.6,19.1,6.7,11.6,7.0,0.8,3.8,20.1
+2022,04,procesadores recursos primarios,based on raw materials,-5.8,41.3,-2.0,26.2,-2.7,23.0,29.3,50.5,-11.1,-14.7,0.2,-10.9,-8.5,-8.9,4.4
+2022,04,manufactura no primaria,nonprimary,-1.0,-1.5,-16.4,1.9,2.3,63.4,176.8,107.1,39.7,15.9,15.2,12.7,3.9,8.9,26.7
+2022,04,electricidad y agua,electricity and water,-0.4,-0.3,-6.1,-0.1,-4.6,14.0,34.0,28.5,15.1,6.9,6.0,5.9,3.3,3.2,9.2
+2022,04,construccion,construction,18.4,23.1,-13.9,16.3,14.5,133.4,989.2,257.9,90.3,36.5,25.1,12.6,-3.1,-5.8,43.4
+2022,04,comercio,commerce,-2.5,-1.6,-16.0,-0.2,-5.7,12.5,158.3,104.1,38.1,13.3,9.9,7.4,5.1,3.8,19.6
+2022,04,otros servicios,other services,-5.2,-4.2,-9.8,-3.0,-7.1,8.5,33.9,26.0,21.5,15.7,13.1,9.9,7.7,7.4,11.1
+2022,04,derechos de importacion y otros impuestos,import duties and other taxes,1.4,2.7,-12.9,-4.8,-0.4,34.3,70.3,61.8,42.3,21.6,19.2,13.2,7.8,5.7,20.7
+2022,04,pbi,gdp,-2.1,1.0,-11.0,-0.8,-3.4,20.0,59.4,48.1,23.6,12.9,11.8,9.7,4.5,3.5,14.7
+2022,04,sectores primarios,primary sectors,-3.6,5.5,-7.7,-0.1,-2.8,11.6,27.8,34.0,3.4,-0.9,3.0,7.3,0.3,-3.7,6.5
+2022,04,sectores no primarios,non primary sectors,-1.6,-0.3,-12.0,-0.9,-3.6,22.5,71.2,53.4,31.7,17.2,14.3,10.3,5.7,5.5,17.1
+2022,04,pbi desestacionalizado,seasonally adjusted gdp,,,,,,,,,,,,,,,
+2022,04,variacion porcentual mensual,monthly percent change,1.4,2.6,,-0.9,-2.0,-1.2,-0.8,3.3,0.6,-0.3,2.4,0.9,-1.0,0.2,
+2022,04,variacion porcentual promedio movil  meses,threemonth moving average percent change,2.6,2.6,,1.0,-0.2,-1.4,-1.4,0.4,1.0,1.1,0.9,1.0,0.8,0.0,
+2022,04,indicadores de demanda,domestic demand indicators,,,,,,,,,,,,,,,
+2022,04,demanda interna sin inventarios,domestic demand without inventories,2.3,8.8,-9.4,1.4,0.0,29.8,68.4,55.5,31.1,19.6,15.5,11.3,3.5,3.8,18.9
+2022,04,demanda interna,domestic demand,1.7,7.5,-9.4,-1.5,-1.1,23.4,51.9,43.9,26.7,17.2,12.7,12.0,8.1,3.5,16.0

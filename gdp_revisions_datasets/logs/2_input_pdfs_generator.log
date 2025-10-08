@@ -134,3 +134,42 @@
 2025-10-04 23:44:50,276 | INFO | 🗂️ Already generated input PDFs: 108
 2025-10-04 23:44:50,276 | INFO | ➕ Newly generated input PDFs: 12
 2025-10-04 23:44:50,276 | INFO | ⏱️ Time: 14 seconds
+2025-10-05 20:37:31,060 | INFO | 
+📂 Processing folder: 2022
+
+2025-10-05 20:37:46,700 | INFO | ✅ Shortened PDFs saved in 'digital_pdf\input_pdf' (12 new, 0 skipped)
+2025-10-05 20:37:48,488 | INFO | 
+⏩ 108 input PDFs already generated for years: 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021
+2025-10-05 20:37:48,488 | INFO | 
+📊 Summary:
+
+2025-10-05 20:37:48,488 | INFO | 📂 11 folders (years) found containing raw PDFs
+2025-10-05 20:37:48,488 | INFO | 🗂️ Already generated input PDFs: 108
+2025-10-05 20:37:48,488 | INFO | ➕ Newly generated input PDFs: 12
+2025-10-05 20:37:48,488 | INFO | ⏱️ Time: 17 seconds
+2025-10-06 12:37:53,225 | INFO | 
+📂 Processing folder: 2022
+
+2025-10-06 12:38:10,957 | INFO | ✅ Shortened PDFs saved in 'digital_pdf\input_pdf' (12 new, 0 skipped)
+2025-10-06 12:39:02,682 | INFO | 
+⏩ 108 input PDFs already generated for years: 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021
+2025-10-06 12:39:02,682 | INFO | 
+📊 Summary:
+
+2025-10-06 12:39:02,683 | INFO | 📂 11 folders (years) found containing raw PDFs
+2025-10-06 12:39:02,683 | INFO | 🗃️ Already generated input PDFs: 108
+2025-10-06 12:39:02,684 | INFO | ➕ Newly generated input PDFs: 12
+2025-10-06 12:39:02,684 | INFO | ⏱️ 69 seconds
+2025-10-06 17:05:56,337 | INFO | 
+📂 Processing folder: 2022
+
+2025-10-06 17:06:10,976 | INFO | ✅ Shortened PDFs saved in 'digital_pdf\input_pdf' (12 new, 0 skipped)
+2025-10-06 17:06:28,174 | INFO | 
+⏩ 108 input PDFs already generated for years: 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021
+2025-10-06 17:06:28,175 | INFO | 
+📊 Summary:
+
+2025-10-06 17:06:28,175 | INFO | 📂 11 folders (years) found containing raw PDFs
+2025-10-06 17:06:28,176 | INFO | 🗃️ Already generated input PDFs: 108
+2025-10-06 17:06:28,176 | INFO | ➕ Newly generated input PDFs: 12
+2025-10-06 17:06:28,176 | INFO | ⏱️ 32 seconds
