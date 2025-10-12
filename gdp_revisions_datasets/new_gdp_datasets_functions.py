@@ -1,126 +1,119 @@
-#*********************************************************************************************
-# Functions for new_gdp_dataset.ipynb
-#*********************************************************************************************
 
-################################################################################################
-# Section 1. PDF Downloader
-################################################################################################
+# *********************************************************************************************
+#  Pipelines for new_gdp_rtd.ipynb
+# *********************************************************************************************
+#
+#   Program       : new_gdp_rtd_pipeline.py
+#   Project       : Peruvian GDP Revisions
+#   Author        : Jason Cruz
+#   Last updated  : 08/13/2025
+#   Python        : 3.12
+#
+#   Overview: Helper functions used (together as a module) by the new_gdp_rtd.ipynb workflow.
+#
+#   Sections:
+#       1. PDF Downloader .....................................................................
+#       2. Generate PDF input with key tables .................................................
+#       3. 
+#       4. 
+# 
+# *********************************************************************************************
+
+
+
+# ##############################################################################################
+# 1 PDF Downloader
+# ##############################################################################################
+
+# In this section we build an automated downloader for BCRP's Weekly Reports (WR) using
+# Selenium-based web scraping to mimic a human browser session and avoid duplicate downloads.
+
 
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# LIBRARIES
+# Libraries
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-import os                                                               # Path utilities and directory management
-import re                                                               # Filename parsing and natural sorting helpers
-import time                                                             # Execution timing and simple profiling
-import random                                                           # Randomized backoff/wait durations
-import shutil                                                           # High-level file operations (move/copy/rename/delete)
+import os                                                                   # Path utilities and directory management
+import re                                                                   # Filename parsing and natural sorting helpers
+import time                                                                 # Execution timing and simple profiling
+import random                                                               # Randomized backoff/wait durations
+import shutil                                                               # High-level file operations (move/copy/rename/delete)
 
-import logging                                                          # Unified logging to console and file
-from logging.handlers import RotatingFileHandler                        # Log rotation
+import requests                                                             # HTTP client for downloading files
+from requests.adapters import HTTPAdapter                                   # Attach retry/backoff to requests
+from urllib3.util.retry import Retry                                        # Exponential backoff policy
 
-import requests                                                         # HTTP client for downloading files
-from requests.adapters import HTTPAdapter                               # Attach retry/backoff to requests
-from urllib3.util.retry import Retry                                    # Exponential backoff policy
+import pygame                                                               # Audio playback for notification sounds
 
-import pygame                                                           # Audio playback for notification sounds
+from selenium import webdriver                                              # Browser automation
+from selenium.webdriver.common.by import By                                 # Element location strategies
+from selenium.webdriver.support.ui import WebDriverWait                     # Explicit waits
+from selenium.webdriver.support import expected_conditions as EC            # Wait conditions
+from selenium.common.exceptions import StaleElementReferenceException       # Dynamic DOM handling
 
-from selenium import webdriver                                          # Browser automation
-from selenium.webdriver.common.by import By                             # Element location strategies
-from selenium.webdriver.support.ui import WebDriverWait                 # Explicit waits
-from selenium.webdriver.support import expected_conditions as EC        # Wait conditions
-from selenium.common.exceptions import StaleElementReferenceException   # Dynamic DOM handling
+from webdriver_manager.chrome import ChromeDriverManager                    # ChromeDriver provisioning
+from selenium.webdriver.chrome.options import Options as ChromeOptions      # Chrome options
+from selenium.webdriver.chrome.service import Service as ChromeService      # Chrome service
 
-from webdriver_manager.chrome import ChromeDriverManager                # ChromeDriver provisioning
-from selenium.webdriver.chrome.options import Options as ChromeOptions  # Chrome options
-from selenium.webdriver.chrome.service import Service as ChromeService  # Chrome service
+from webdriver_manager.firefox import GeckoDriverManager                    # GeckoDriver provisioning
+from selenium.webdriver.firefox.options import Options as FirefoxOptions    # Firefox options
+from selenium.webdriver.firefox.service import Service as FirefoxService    # Firefox service
 
-from webdriver_manager.firefox import GeckoDriverManager                  # GeckoDriver provisioning
-from selenium.webdriver.firefox.options import Options as FirefoxOptions  # Firefox options
-from selenium.webdriver.firefox.service import Service as FirefoxService  # Firefox service
-
-from webdriver_manager.microsoft import EdgeChromiumDriverManager   # EdgeDriver provisioning
-from selenium.webdriver.edge.options import Options as EdgeOptions   # Edge options
-from selenium.webdriver.edge.service import Service as EdgeService   # Edge service
+from webdriver_manager.microsoft import EdgeChromiumDriverManager           # EdgeDriver provisioning
+from selenium.webdriver.edge.options import Options as EdgeOptions          # Edge options
+from selenium.webdriver.edge.service import Service as EdgeService          # Edge service
 
 
-# --------------------------
-# Module-level configuration
-# --------------------------
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# Module-level setting-up
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # HTTP
-REQUEST_CHUNK_SIZE  = 128                                     # Bytes per chunk when streaming downloads
-REQUEST_TIMEOUT     = 60                                      # Seconds for connect+read timeouts
-DEFAULT_RETRIES     = 3                                       # Total retries for transient HTTP errors
-DEFAULT_BACKOFF     = 0.5                                     # Exponential backoff factor (0.5, 1.0, 2.0, ...)
-RETRY_STATUSES      = (429, 500, 502, 503, 504)               # Retry on rate limits and server errors
+REQUEST_CHUNK_SIZE  = 128                       # Bytes per chunk when streaming downloads
+REQUEST_TIMEOUT     = 60                        # Seconds for connect + read timeouts
+DEFAULT_RETRIES     = 3                         # Total retries for transient HTTP errors
+DEFAULT_BACKOFF     = 0.5                       # Exponential backoff factor (0.5, 1.0, 2.0, ...)
+RETRY_STATUSES      = (429, 500, 502, 503, 504) # Retry on rate limits and server errors
 
 # Selenium / Browser
-PAGE_LOAD_TIMEOUT       = 30                                  # Seconds to wait for page loads
-EXPLICIT_WAIT_TIMEOUT   = 60                                  # Seconds for WebDriverWait
+PAGE_LOAD_TIMEOUT       = 30                    # Seconds to wait for page loads
+EXPLICIT_WAIT_TIMEOUT   = 60                    # Seconds for WebDriverWait
 
 # Downloader pacing
-DEFAULT_MIN_WAIT    = 5.0                                     # Lower bound for random delay between downloads (seconds)
-DEFAULT_MAX_WAIT    = 10.0                                    # Upper bound for random delay between downloads (seconds)
-
-# Logging
-LOG_PATH        = "logs/1_pdf_downloader.log"                   # Rotating log file
-LOG_MAX_BYTES   = 1_000_000                                   # ~1 MB per log segment
-LOG_BACKUPS     = 3                                           # Keep last N rotated log files
+DEFAULT_MIN_WAIT    = 5.0                       # Lower bound for random delay between downloads (seconds)
+DEFAULT_MAX_WAIT    = 10.0                      # Upper bound for random delay between downloads (seconds)
 
 
-# --------------------------------
-# Logging setup (console + file)
-# --------------------------------
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# Functions
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
-_logger = logging.getLogger(__name__)
-_logger.setLevel(logging.INFO)
-
-_file_handler = RotatingFileHandler(
-    LOG_PATH, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUPS, encoding="utf-8"
-)
-_fmt = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
-_file_handler.setFormatter(_fmt)
-_logger.addHandler(_file_handler)
-
-def log_info(msg: str) -> None:
-    """Log informational message to console and rotating log file."""
-    print(msg)
-    _logger.info(msg)
-
-def log_warn(msg: str) -> None:
-    """Log warning message to console and rotating log file."""
-    print(msg)
-    _logger.warning(msg)
-
-def log_error(msg: str) -> None:
-    """Log error message to console and rotating log file."""
-    print(msg)
-    _logger.error(msg)
-
-
-# --------------------------------
-# Function: get_http_session
-# HTTP session with retry/backoff
-# --------------------------------
-
+# _________________________________________________________________________
+# Function to create a retry-enabled HTTP session for resilient downloads
 def get_http_session(
     total: int = DEFAULT_RETRIES,
     backoff: float = DEFAULT_BACKOFF,
     statuses: tuple = RETRY_STATUSES,
 ) -> requests.Session:
     """
-    Create a requests.Session configured with retries and exponential backoff
-    for transient HTTP errors (e.g., 429/5xx). Safe drop-in for GET requests.
+    Create a persistent HTTP session configured with retries and exponential backoff
+    for transient HTTP errors (e.g., 429/5xx). Safe drop-in replacement for plain GETs.
+
+    Args:
+        total (int): Max retries for connect/read/status failures.
+        backoff (float): Backoff factor (sleep grows as 0.5, 1.0, 2.0, ...).
+        statuses (tuple): HTTP status codes that should trigger a retry.
+
+    Returns:
+        requests.Session: Session with mounted retry-enabled adapters.
     """
     retry = Retry(
         total=total,
         read=total,
         connect=total,
-        backoff_factor=backoff,                         # 0.5s, 1.0s, 2.0s, ... between retries
-        status_forcelist=statuses,                      # Retry on these HTTP status codes
-        allowed_methods=frozenset(["GET", "HEAD"]),     # Idempotent methods only
+        backoff_factor=backoff,                         # Controls exponential sleep between retries
+        status_forcelist=statuses,                      # Retry only on these HTTP status codes
+        allowed_methods=frozenset(["GET", "HEAD"]),     # Retry idempotent methods only
         raise_on_status=False,                          # Do not raise; let caller inspect status_code
     )
     sess = requests.Session()
@@ -130,93 +123,88 @@ def get_http_session(
     return sess
 
 
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# FUNCTIONS
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 # _________________________________________________________________________
-# Function: load_alert_track
+# Function to load a random .mp3 alert track if available
 def load_alert_track(alert_track_folder: str) -> str | None:
     """
     Load a random .mp3 file from the given folder for audio alerts.
     If no .mp3 files are present, proceed without an alert track.
 
     Args:
-        alert_track_folder (str): Directory expected to contain one or more .mp3 files.
+        alert_track_folder (str): Folder expected to contain one or more .mp3 files.
 
     Returns:
         str | None: Absolute path to a randomly selected .mp3 file, or None if unavailable.
     """
-    os.makedirs(alert_track_folder, exist_ok=True)      # Ensure folder exists
-
-    tracks = [f for f in os.listdir(alert_track_folder) if f.lower().endswith(".mp3")]  # Filter .mp3 files
+    os.makedirs(alert_track_folder, exist_ok=True)                                      # Ensure folder exists on disk
+    tracks = [f for f in os.listdir(alert_track_folder) if f.lower().endswith(".mp3")]  # Pick only .mp3 files
     if not tracks:
-        log_warn("🔇 No .mp3 files found in 'alert_track/'. Continuing without audio alerts.")
+        print("🔇 No .mp3 files found in 'alert_track/'. Continuing without audio alerts.")
         return None
 
-    alert_track_path = os.path.join(alert_track_folder, random.choice(tracks))  # Random track selection
-    pygame.mixer.music.load(alert_track_path)           # Preload into mixer
+    alert_track_path = os.path.join(alert_track_folder, random.choice(tracks))          # Randomly choose one track
+    pygame.mixer.music.load(alert_track_path)                                           # Preload into mixer
     return alert_track_path
 
 
 # _________________________________________________________________________
-# Function: play_alert_track
+# Function to start playback of the loaded alert track
 def play_alert_track() -> None:
     """Start playback of the currently loaded alert track."""
-    pygame.mixer.music.play()                           # Non-blocking playback
+    pygame.mixer.music.play()                                               # Non-blocking playback
 
 
 # _________________________________________________________________________
-# Function: stop_alert_track
+# Function to stop playback of the alert track immediately
 def stop_alert_track() -> None:
     """Stop playback of the current alert track."""
-    pygame.mixer.music.stop()                           # Immediate stop
+    pygame.mixer.music.stop()                                               # Immediate stop
 
 
 # _________________________________________________________________________
-# Function: random_wait
+# Function to wait a random interval to mimic human pacing
 def random_wait(min_time: float, max_time: float) -> None:
     """
     Pause execution for a random duration within [min_time, max_time].
 
     Args:
-        min_time (float): Minimum wait time in seconds.
-        max_time (float): Maximum wait time in seconds.
+        min_time (float): Lower bound for waiting time (seconds).
+        max_time (float): Upper bound for waiting time (seconds).
     """
-    wait_time = random.uniform(min_time, max_time)      # Inclusive random delay
-    log_info(f"⏳ Waiting {wait_time:.2f} seconds...")
-    time.sleep(wait_time)                               # Sleep for the computed duration
+    wait_time = random.uniform(min_time, max_time)                          # Inclusive random delay
+    print(f"⏳ Waiting {wait_time:.2f} seconds...")
+    time.sleep(wait_time)                                                   # Sleep for the computed duration
 
 
 # _________________________________________________________________________
-# Function: init_driver
+# Function to initialize a Selenium WebDriver for the chosen browser
 def init_driver(browser: str = "chrome", headless: bool = False):
     """
     Initialize and return a Selenium WebDriver instance.
 
     Args:
-        browser (str): Browser engine to use. Supported: 'chrome' (default), 'firefox', 'edge'.
+        browser (str): Engine to use. Supported: 'chrome' (default), 'firefox', 'edge'.
         headless (bool): Run the browser in headless mode if True.
 
     Returns:
-        WebDriver: Configured Selenium WebDriver instance.
+        selenium.webdriver: Configured WebDriver instance.
     """
     b = browser.lower()
 
     if b == "chrome":
         options = ChromeOptions()
         if headless:
-            options.add_argument("--headless=new")      # Modern headless mode
-        options.add_argument("--no-sandbox")            # Container stability
-        options.add_argument("--disable-dev-shm-usage") # Avoid /dev/shm issues in containers
-        service = ChromeService(ChromeDriverManager().install())
+            options.add_argument("--headless=new")                          # Modern headless mode
+        options.add_argument("--no-sandbox")                                # Stability in containerized envs
+        options.add_argument("--disable-dev-shm-usage")                     # Avoid /dev/shm issues
+        service = ChromeService(ChromeDriverManager().install())            # Provision ChromeDriver automatically
         driver = webdriver.Chrome(service=service, options=options)
 
     elif b == "firefox":
         fopts = FirefoxOptions()
         if headless:
-            fopts.add_argument("-headless")             # Firefox headless flag
-        service = FirefoxService(GeckoDriverManager().install())
+            fopts.add_argument("-headless")                                 # Firefox headless flag
+        service = FirefoxService(GeckoDriverManager().install())            # Provision GeckoDriver automatically
         driver = webdriver.Firefox(service=service, options=fopts)
 
     elif b == "edge":
@@ -225,18 +213,23 @@ def init_driver(browser: str = "chrome", headless: bool = False):
             eopts.add_argument("--headless=new")
         eopts.add_argument("--no-sandbox")
         eopts.add_argument("--disable-dev-shm-usage")
-        service = EdgeService(EdgeChromiumDriverManager().install())
+        service = EdgeService(EdgeChromiumDriverManager().install())        # Provision EdgeDriver automatically
         driver = webdriver.Edge(service=service, options=eopts)
 
-    else:
-        raise ValueError("Supported browsers are: 'chrome', 'firefox', 'edge'.")
+    elif b == "safari":
+        if headless:
+            print("⚠️  Headless mode is not supported for Safari. Running in normal mode.")
+        driver = webdriver.Safari()                                         # Safari driver bundled with macOS
 
-    driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)     # Hard limit for page loads
+    else:
+        raise ValueError("Supported browsers are: 'chrome', 'firefox', 'edge', 'safari'.")
+
+    driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)                         # Hard limit for page loads
     return driver
 
 
 # _________________________________________________________________________
-# Function: download_pdf
+# Function to download a single PDF and update the chronological record
 def download_pdf(
     driver,
     pdf_link,
@@ -250,78 +243,78 @@ def download_pdf(
     Download a single PDF referenced by a Selenium link element and update the record log.
 
     Args:
-        driver: Active Selenium WebDriver instance.
-        pdf_link: Selenium WebElement (anchor) pointing to the PDF.
-        wait (WebDriverWait): Explicit wait instance for window events.
-        download_counter (int): Ordinal for progress messages.
-        raw_pdf_folder (str): Output directory for the downloaded PDF file.
-        download_record_folder (str): Directory containing the record text file.
-        download_record_txt (str): Filename of the record log (e.g., 'downloaded_pdfs.txt').
+        driver (WebDriver): Active Selenium WebDriver instance.
+        pdf_link (WebElement): Anchor element pointing to the PDF.
+        wait (WebDriverWait): Explicit wait helper bound to the driver.
+        download_counter (int): Ordinal used in progress messages.
+        raw_pdf_folder (str): Destination directory for the downloaded PDF.
+        download_record_folder (str): Folder containing the record text file.
+        download_record_txt (str): Record filename (e.g., 'downloaded_pdf.txt').
 
     Returns:
         bool: True if the file was successfully downloaded and recorded; False otherwise.
     """
-    driver.execute_script("arguments[0].click();", pdf_link)         # Open link via JS (handles hidden/overlayed links)
-    wait.until(EC.number_of_windows_to_be(2))                         # Wait for new tab (2 windows total)
-    windows = driver.window_handles                                   # Capture window handles
-    driver.switch_to.window(windows[1])                               # Focus new tab
+    driver.execute_script("arguments[0].click();", pdf_link)                    # Click via JS (handles covered/overlayed links)
+    wait.until(EC.number_of_windows_to_be(2))                                   # Wait for a new tab to open (2 windows in total)
+    windows = driver.window_handles                                             # Get both window handles
+    driver.switch_to.window(windows[1])                                         # Focus the new tab
 
-    new_url = driver.current_url                                      # Direct PDF URL (after any redirects)
-    file_name = os.path.basename(new_url)                             # Use server-provided filename
-    destination_path = os.path.join(raw_pdf_folder, file_name)        # Local path to save
+    new_url   = driver.current_url                                              # Final PDF URL after any redirects
+    file_name = os.path.basename(new_url)                                       # Use server-provided filename
+    destination_path = os.path.join(raw_pdf_folder, file_name)                  # Local destination
 
-    session = get_http_session()                                      # Session with retries/backoff
+    session = get_http_session()                                                # Session with retry/backoff
     try:
-        response = session.get(new_url, stream=True, timeout=REQUEST_TIMEOUT)  # Stream to avoid large memory use
-        if response.status_code == 200:
-            os.makedirs(raw_pdf_folder, exist_ok=True)                # Ensure destination exists
+        response = session.get(new_url, stream=True, timeout=REQUEST_TIMEOUT)   # Stream to avoid loading large files in RAM
+        if response.status_code == 200:                                         # Successful request; proceed to fetch other codes
+            os.makedirs(raw_pdf_folder, exist_ok=True)                          # Ensure output folder exists
             with open(destination_path, "wb") as fh:
                 for chunk in response.iter_content(chunk_size=REQUEST_CHUNK_SIZE):
-                    if chunk:                                         # Ignore keep-alive chunks
+                    if chunk:                                                   # Skip keep-alive chunks
                         fh.write(chunk)
         else:
-            log_error(f"{download_counter}. ❌ Error downloading {file_name}. HTTP {response.status_code}")
+            print(f"{download_counter}. ❌ Error downloading {file_name}. HTTP {response.status_code}")
             success = False
-            driver.close(); driver.switch_to.window(windows[0])       # Cleanup: close tab and refocus
+            driver.close(); driver.switch_to.window(windows[0])                 # Close child tab and return focus
             return success
     except requests.RequestException as ex:
-        log_error(f"{download_counter}. ❌ Network error downloading {file_name}: {ex}")
+        print(f"{download_counter}. ❌ Network error downloading {file_name}: {ex}")
         success = False
-        driver.close(); driver.switch_to.window(windows[0])           # Cleanup: close tab and refocus
+        driver.close(); driver.switch_to.window(windows[0])                     # Close child tab and return focus
         return success
 
-    # Update the record log (chronologically: year → issue)
+    # Update the record log in chronological order (year → issue)
     record_path = os.path.join(download_record_folder, download_record_txt)
     records: list[str] = []
     if os.path.exists(record_path):
         with open(record_path, "r", encoding="utf-8") as f:
-            records = [ln.strip() for ln in f if ln.strip()]          # Strip blanks and newlines
+            records = [ln.strip() for ln in f if ln.strip()]                    # Keep non-empty lines only
 
     if file_name not in records:
-        records.append(file_name)                                     # Append if not already present
+        records.append(file_name)                                               # Append if not present
 
     def _ns_key(s: str):
-        base = os.path.splitext(os.path.basename(s))[0]               # Drop extension
-        m = re.search(r"ns-(\d{2})-(\d{4})", base, re.I)              # Capture issue+year (ns-XX-YYYY)
-        if not m:                                                     # Unknown pattern → sort last, stable by name
-            return (9999, 9999, base)
+        base = os.path.splitext(os.path.basename(s))[0]                         # Strip extension
+        m = re.search(r"ns-(\d{2})-(\d{4})", base, re.I)                        # Expect ns-<issue>-<year>
+        if not m:
+            return (9999, 9999, base)                                           # Unknown pattern → sort last
         issue, year = int(m.group(1)), int(m.group(2))
-        return (year, issue)                                          # Primary sort by year, then issue
+        return (year, issue)
 
-    records.sort(key=_ns_key)                                         # Stable chronological order
+    records.sort(key=_ns_key)                                                   # Chronological order
     os.makedirs(download_record_folder, exist_ok=True)
     with open(record_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(records) + ("\n" if records else ""))       # Ensure trailing newline if non-empty
+        f.write("\n".join(records) + ("\n" if records else ""))                 # Trailing newline if non-empty
 
-    log_info(f"{download_counter}. ✅ Downloaded: {file_name}")
+    print(f"{download_counter}. ✅ Downloaded: {file_name}")
     success = True
 
-    driver.close(); driver.switch_to.window(windows[0])               # Return focus to main window
+    driver.close(); driver.switch_to.window(windows[0])                         # Close child tab and go back to main
     return success
 
 
 # _________________________________________________________________________
-# Function: pdf_downloader
+# Function to orchestrate monthly-link crawling, WR downloads, pacing, and summary
 def pdf_downloader(
     bcrp_url: str,
     raw_pdf_folder: str,
@@ -333,73 +326,93 @@ def pdf_downloader(
     headless: bool = False,
 ) -> None:
     """
-    Download BCRP Weekly Report PDFs (first link per month), keep clean numbering,
-    play batch alerts, and print a summary.
+    Download BCRP Weekly Reports (WR) by crawling the monthly listing page, selecting the
+    first link inside each month block (business rule: the first anchor corresponds to the
+    latest WR of that month), and saving files in chronological order while avoiding
+    duplicates via a persistent record text file. Optionally pauses every N downloads with
+    an audible prompt and prints a concise run summary.
+
+    What this function does:
+      1) Opens the WR listing page and locates one anchor per month (the first/“latest”).
+      2) Reverses the order to download from oldest → newest for stable local numbering.
+      3) Skips any file already present in the record file (no re-download).
+      4) Streams each PDF to disk and appends its filename to the record (chronological).
+      5) Optionally pauses after each batch with a short alert track and user prompt.
+      6) Prints a final summary (total links, skipped, new, elapsed time).
+
+    Assumptions:
+      - The site structures monthly WR links under `#rightside ul.listado-bot-std-claros`.
+      - Within each month block, the first <a> is the latest WR of that month.
+      - The record file contains one filename per line (e.g., ns-07-2019.pdf).
 
     Args:
-        bcrp_url (str): URL of the BCRP Weekly Reports page.
-        raw_pdf_folder (str): Destination folder for PDFs.
+        bcrp_url (str): URL of the BCRP WR listing page.
+        raw_pdf_folder (str): Destination folder for downloaded PDFs.
         download_record_folder (str): Folder containing the record file.
-        download_record_txt (str): Record filename tracking downloaded PDFs.
-        alert_track_folder (str): Folder with .mp3 files for notifications.
-        max_downloads (int | None): Upper limit on new downloads (None = no limit).
-        downloads_per_batch (int): Number of files between alert prompts.
-        headless (bool): Run browser headless if True.
+        download_record_txt (str): Record filename tracking downloaded PDFs (one per line).
+        alert_track_folder (str): Folder with .mp3 files (optional audio prompt between batches).
+        max_downloads (int | None): Upper bound on new downloads; None means no cap.
+        downloads_per_batch (int): Number of files between optional pause prompts.
+        headless (bool): If True, runs the browser in headless mode.
+
+    Returns:
+        None
     """
-    start_time = time.time()
+    start_time = time.time()                                                # Wall-clock start (seconds since epoch)
 
-    log_info("\n📥 Starting PDF downloader for BCRP Weekly Reports...\n")
-    pygame.mixer.init()                                               # Initialize audio mixer
-    alert_track_path = load_alert_track(alert_track_folder)           # Optional alert sound
+    print("\n📥 Starting PDF downloader for BCRP WR...\n")
+    pygame.mixer.init()                                                     # Ready the audio mixer for alerts
+    alert_track_path = load_alert_track(alert_track_folder)                 # Load a random .mp3 if available
 
-    record_path = os.path.join(download_record_folder, download_record_txt)
+    record_path = os.path.join(download_record_folder, download_record_txt) # State file: prevents duplicates
     downloaded_files = set()
     if os.path.exists(record_path):
         with open(record_path, "r", encoding="utf-8") as f:
-            downloaded_files = set(f.read().splitlines())             # Prior downloads (one per line)
+            downloaded_files = set(f.read().splitlines())                   # Preload known filenames into a set
 
-    driver = init_driver(headless=headless)
-    wait = WebDriverWait(driver, EXPLICIT_WAIT_TIMEOUT)               # Explicit wait helper
+    driver = init_driver(headless=headless)                                 # Start chosen browser engine
+    wait = WebDriverWait(driver, EXPLICIT_WAIT_TIMEOUT)                     # Explicit wait helper bound to driver
 
-    new_counter  = 0
-    skipped_files: list[str] = []
-    new_downloads = []                                                # (WebElement, filename)
-    pdf_links = []                                                    # Keep for summary
+    new_counter  = 0                                                        # Count new files successfully downloaded
+    skipped_files: list[str] = []                                           # Filenames skipped due to record matches
+    new_downloads = []                                                      # Queue of (selenium_element, filename)
+    pdf_links = []                                                          # Full set of month-leading anchors for summary
 
     try:
-        driver.get(bcrp_url)
-        log_info("🌐 BCRP site opened successfully.")
+        driver.get(bcrp_url)                                                # Open WR listing page
+        print("🌐 BCRP site opened successfully.")
 
-        # Capture the UL containers that hold monthly links; we only take the first link per month
-        month_ul_elems = wait.until(
+        month_ul_elems = wait.until(                                        # Wait for all month containers to appear
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#rightside ul.listado-bot-std-claros"))
         )
-        log_info(f"🔎 Found {len(month_ul_elems)} WR blocks on page (one per month).\n")
+        print(f"🔎 Found {len(month_ul_elems)} WR blocks on page (one per month).\n")
 
+        # Select exactly one link per month (business rule: the first anchor inside the block)
         for ul in month_ul_elems:
-            anchors = []
             try:
-                anchors = ul.find_elements(By.TAG_NAME, "a")          # All anchors within this month block
+                anchors = ul.find_elements(By.TAG_NAME, "a")                # All anchors within this month block
             except Exception:
-                pass
+                anchors = []                                                # Conservative fallback if DOM changes mid-run
             if not anchors:
                 continue
-            pdf_links.append(anchors[0])                               # Take the first anchor only
+            pdf_links.append(anchors[0])                                    # Keep only the first anchor (latest monthly WR)
 
-        pdf_links = pdf_links[::-1]                                    # Oldest → newest for stable local order
+        pdf_links = pdf_links[::-1]                                         # Oldest → newest for stable local ordering
 
+        # Build a work queue, skipping any file already recorded
         for link in pdf_links:
             try:
-                file_url  = link.get_attribute("href")                 # Direct link to PDF file
-                file_name = os.path.basename(file_url)                 # Server filename
+                file_url  = link.get_attribute("href")                      # Resolve the URL bound to the anchor
+                file_name = os.path.basename(file_url)                      # Server-provided filename (e.g., ns-07-2019.pdf)
             except Exception:
-                continue
+                continue                                                    # Defensive skip if attributes are momentarily unavailable
 
             if file_name in downloaded_files:
-                skipped_files.append(file_name)                        # Already downloaded earlier
+                skipped_files.append(file_name)                             # Already captured in prior runs → skip
             else:
-                new_downloads.append((link, file_name))                # Queue for download
+                new_downloads.append((link, file_name))                     # Will download in chronological pass
 
+        # Download queue (chronological), with optional batch pauses and pacing
         for i, (link, file_name) in enumerate(new_downloads, start=1):
             ok = download_pdf(
                 driver=driver,
@@ -411,62 +424,65 @@ def pdf_downloader(
                 download_record_txt=download_record_txt,
             )
             if ok:
-                downloaded_files.add(file_name)
+                downloaded_files.add(file_name)                             # Update in-memory record immediately
                 new_counter += 1
 
-            if (i % downloads_per_batch == 0) and alert_track_path:   # Batch checkpoint
+            # Optional checkpoint every N downloads — useful for long sessions
+            if (i % downloads_per_batch == 0) and alert_track_path:
                 play_alert_track()
-                user_input = input("⏸️ Continue? (y = yes, any other key = stop): ")  # Operator confirmation
+                user_input = input("⏸️ Continue? (y = yes, any other key = stop): ") 
                 stop_alert_track()
                 if user_input.lower() != "y":
-                    log_warn("🛑 Download stopped by user.")
+                    print("🛑 Download stopped by user.")
                     break
 
-            if max_downloads and new_counter >= max_downloads:        # Respect cap if provided
-                log_info(f"🏁 Download limit of {max_downloads} new PDFs reached.")
+            # Respect a global cap if provided (e.g., first 20 new files only)
+            if max_downloads and new_counter >= max_downloads:
+                print(f"🏁 Download limit of {max_downloads} new PDFs reached.")
                 break
 
-            random_wait(DEFAULT_MIN_WAIT, DEFAULT_MAX_WAIT)           # Gentle pacing
+            random_wait(DEFAULT_MIN_WAIT, DEFAULT_MAX_WAIT)                 # Gentle pacing to mimic a human user
 
     except StaleElementReferenceException:
-        log_warn("⚠️ StaleElementReferenceException encountered. Consider re-running.")
+        print("⚠️ StaleElementReferenceException encountered. Consider re-running.")  
     finally:
-        driver.quit()
-        log_info("\n👋 Browser closed.")
+        driver.quit()                                                       # Ensure the browser is closed in all cases
+        print("\n👋 Browser closed.")
 
-    # Keep the record file chronologically ordered (year → issue)
+    # Maintain the record file in chronological order (idempotent)
     try:
         if os.path.exists(record_path):
             with open(record_path, "r", encoding="utf-8") as f:
-                records = [ln.strip() for ln in f if ln.strip()]      # Compact existing entries
+                records = [ln.strip() for ln in f if ln.strip()]            # Compact to non-empty, trimmed lines
 
             def _ns_key(s: str):
                 base = os.path.splitext(os.path.basename(s))[0]
-                m = re.search(r"ns-(\d{2})-(\d{4})", base, re.I)      # Expect ns-XX-YYYY pattern
+                m = re.search(r"ns-(\d{2})-(\d{4})", base, re.I)            # Expect pattern ns-<issue>-<year>
                 if not m:
-                    return (9999, 9999, base)                          # Unknown pattern → sort last
+                    return (9999, 9999, base)                               # Unknown names sorted last (stable by base)
                 issue, year = int(m.group(1)), int(m.group(2))
                 return (year, issue)
 
-            records = sorted(set(records), key=_ns_key)               # De-dup + chronological sort
+            records = sorted(set(records), key=_ns_key)                     # De-dup then sort by (year, issue)
             os.makedirs(download_record_folder, exist_ok=True)
             with open(record_path, "w", encoding="utf-8") as f:
-                f.write("\n".join(records) + ("\n" if records else ""))  # Trailing newline if non-empty
+                f.write("\n".join(records) + ("\n" if records else ""))     # Trailing newline for POSIX-friendly files
     except Exception as _e:
-        log_warn(f"⚠️ Unable to re-sort record file: {_e}")
+        print(f"⚠️ Unable to re-sort record file: {_e}")                   
 
-    elapsed_time = round(time.time() - start_time)
-    total_links  = len(pdf_links)
-    log_info("\n📊 Summary:")
-    log_info(f"\n🔗 Total monthly links kept: {total_links}")
+    # Final summary for the session
+    elapsed_time = round(time.time() - start_time)                          # Seconds elapsed
+    total_links  = len(pdf_links)                                           # Count of month-leading anchors discovered
+    print("\n📊 Summary:")
+    print(f"\n🔗 Total monthly links kept: {total_links}")
     if skipped_files:
-        log_info(f"🗂️ {len(skipped_files)} already downloaded PDFs were skipped.")
-    log_info(f"➕ Newly downloaded: {new_counter}")
-    log_info(f"⏱️ {elapsed_time} seconds")
+        print(f"🗂️ {len(skipped_files)} already downloaded PDFs were skipped.")
+    print(f"➕ Newly downloaded: {new_counter}")
+    print(f"⏱️ {elapsed_time} seconds")
 
 
 # _________________________________________________________________________
-# Function: organize_files_by_year
+# Function to move PDFs into year-based subfolders inferred from filenames
 def organize_files_by_year(raw_pdf_folder: str) -> None:
     """
     Move PDFs in `raw_pdf_folder` into subfolders named by year.
@@ -475,23 +491,23 @@ def organize_files_by_year(raw_pdf_folder: str) -> None:
     Args:
         raw_pdf_folder (str): Directory containing the downloaded PDFs.
     """
-    files = os.listdir(raw_pdf_folder)                   # Enumerate files in the root folder
+    files = os.listdir(raw_pdf_folder)                                      # List immediate children in the folder
 
     for file in files:
-        name, _ext = os.path.splitext(file)              # Separate stem and extension
+        name, _ext = os.path.splitext(file)                                 # Separate stem and extension
         year = None
 
-        for part in name.split("-"):                      # Heuristic: look for any 4-digit token
+        for part in name.split("-"):                                        # Heuristic: look for any 4-digit token
             if part.isdigit() and len(part) == 4:
                 year = part
                 break
 
         if year:
-            dest = os.path.join(raw_pdf_folder, year)    # Ensure a year subfolder exists
-            os.makedirs(dest, exist_ok=True)
-            shutil.move(os.path.join(raw_pdf_folder, file), dest)  # Move file into its year folder
+            dest = os.path.join(raw_pdf_folder, year)                       # Year subfolder path
+            os.makedirs(dest, exist_ok=True)                                # Create if absent
+            shutil.move(os.path.join(raw_pdf_folder, file), dest)           # Move file into its year folder
         else:
-            log_warn(f"⚠️ No 4-digit year detected in filename: {file}")
+            print(f"⚠️ No 4-digit year detected in filename: {file}")      
 
             
             
@@ -2108,6 +2124,7 @@ class tables_cleaner:
         d = rounding_values(d, decimals=1)                                       # Round float columns to 1 decimal
         return d
 
+
 # =============================================================================================
 # PREPARATION: class to build month order and reshape cleaned tables into “vintages”
 # =============================================================================================
@@ -2407,8 +2424,6 @@ def table_1_cleaner(
 
     return raw_tables_dict_1, new_dataframes_dict_1, vintages_dict_1           # Return both raw and cleaned dataframes
 
-
-
 # _________________________________________________________________________
 # Function to clean and process Table 2 from all WR PDF files in a folder
 def table_2_cleaner(
@@ -2549,5 +2564,4 @@ def table_2_cleaner(
     print(f"⏱️ {elapsed_time} seconds")
 
     return raw_tables_dict_2, new_dataframes_dict_2, vintages_dict_2          # Return both raw and cleaned tables
-
 
