@@ -904,15 +904,15 @@ def input_pdfs_generator(
 
 
 
-
-################################################################################################
+# *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
+# ##############################################################################################
 # Section 3. Data cleaning
-################################################################################################
+# ##############################################################################################
+# *++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*
 
-
-#**********************************************************************************************
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Section 3.1.  Extracting tables and data cleanup 
-#----------------------------------------------------------------------------------------------
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 #+++++++++++++++
 # LIBRARIES
@@ -1754,9 +1754,8 @@ def exchange_roman_nan(df):
 
 
 
-
 # =============================================================================================
-# Section 3. pipelines — table 1 and table 2 cleaning runners
+# Section 3.2 pipelines — table 1 and table 2 cleaning runners
 # =============================================================================================
 
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1765,9 +1764,7 @@ def exchange_roman_nan(df):
 import os
 import re
 import time
-import csv
 import hashlib
-import logging
 import pandas as pd
 from tqdm.notebook import tqdm                      # Jupyter-native progress bars (gray background)
 import tabula                                       # PDF table extractor (Java backend)
@@ -1779,98 +1776,12 @@ PROG_COLOR_ACTIVE = "#E6004C"                       # in-progress color (magenta
 PROG_COLOR_DONE   = "#3366FF"                       # finished color (blue)
 BAR_FORMAT        = "{l_bar}{bar}| {n_fmt}/{total_fmt}"
 
-DEFAULT_LOG_FOLDER = "logs"                         # default folder for .log files
-LOG_TXT_T1         = "3_cleaner_1.log"              # table 1 log filename
-LOG_TXT_T2         = "3_cleaner_2.log"              # table 2 log filename
-
 RECORD_SUFFIX_1    = "new_generated_dataframes_1.txt"  # record txt for table 1
 RECORD_SUFFIX_2    = "new_generated_dataframes_2.txt"  # record txt for table 2
 
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# logger — file-only loggers per table (no console echo from logger)
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-_SECTION3_LOGGERS: dict[str, logging.Logger] = {}   # cache of named loggers
-
-
-# _________________________________________________________________________
-# Function: init_section3_logger
-def init_section3_logger(name: str,
-                         log_folder: str,
-                         log_txt: str) -> logging.Logger:
-    """
-    Create a file-only logger for Section 3 (per table).
-
-    Args:
-        name (str): Internal logger key (e.g., 't1' or 't2').
-        log_folder (str): Folder for log files.
-        log_txt (str): Log filename (e.g., '3_cleaner_1.log').
-
-    Returns:
-        logging.Logger: Configured file-only logger.
-    """
-    os.makedirs(log_folder, exist_ok=True)                                   # Ensure folder exists
-    log_path = os.path.join(log_folder, log_txt)
-
-    logger = logging.getLogger(f"section3.{name}")
-    logger.setLevel(logging.INFO)
-    logger.handlers.clear()
-    logger.propagate = False                                                 # No parent echo
-
-    fh = logging.FileHandler(log_path, encoding="utf-8")                     # File sink
-    fh.setFormatter(logging.Formatter("%(asctime)s — %(levelname)s — %(message)s"))
-    logger.addHandler(fh)
-    return logger
-
-
-# _________________________________________________________________________
-# Function: _ensure_logger
-def _ensure_logger(name: str, log_folder: str, log_txt: str) -> logging.Logger:
-    """
-    Return a cached logger per table; initialize if missing.
-
-    Args:
-        name (str): Logger key ('t1' or 't2').
-        log_folder (str): Folder for the log file.
-        log_txt (str): Log filename.
-
-    Returns:
-        logging.Logger: Ready-to-use logger.
-    """
-    if name not in _SECTION3_LOGGERS:
-        _SECTION3_LOGGERS[name] = init_section3_logger(name, log_folder, log_txt)
-    return _SECTION3_LOGGERS[name]
-
-
-# _________________________________________________________________________
-# Function: log_info
-def log_info(logger: logging.Logger, msg: str) -> None:
-    """
-    Write info into .log and show the same line in the notebook output.
-
-    Args:
-        logger (logging.Logger): Logger instance.
-        msg (str): Message to record.
-    """
-    logger.info(msg)                                                         # File only
-    print(msg)                                                               # Notebook line
-
-
-# _________________________________________________________________________
-# Function: log_warn
-def log_warn(logger: logging.Logger, msg: str) -> None:
-    """
-    Write warning into .log and show the same line in the notebook output.
-
-    Args:
-        logger (logging.Logger): Logger instance.
-        msg (str): Message to record.
-    """
-    logger.warning(msg)                                                      # File only
-    print(msg)                                                               # Notebook line
-
 
 # =============================================================================================
-# utilities — parsing, sorting, records, extraction, persistence
+# UTILITIES: parsing, sorting, records, extraction, persistence
 # =============================================================================================
 
 # _________________________________________________________________________
@@ -2016,79 +1927,26 @@ def _save_df(df: pd.DataFrame, out_path: str) -> tuple[str, int, int]:
     return out_path, int(df.shape[0]), int(df.shape[1])
 
 
-# _________________________________________________________________________
-# Function: _append_manifest
-def _append_manifest(manifest_path: str,
-                     ns_code: str,
-                     table_name: str,
-                     year: str,
-                     issue: str,
-                     file_path: str,
-                     n_rows: int,
-                     n_cols: int,
-                     pipeline_version: str) -> None:
-    """
-    Append or update a row in 'manifest.csv' for ns_code.
-
-    Columns:
-        ns, table, year, issue, path, rows, cols, sha256, pipeline_version, timestamp
-    """
-    os.makedirs(os.path.dirname(manifest_path), exist_ok=True)                 # Ensure folder exists
-
-    rows: list[dict] = []
-    if os.path.exists(manifest_path):
-        with open(manifest_path, "r", encoding="utf-8", newline="") as fh:
-            reader = csv.DictReader(fh)
-            rows = list(reader)
-
-    now_str = time.strftime("%Y-%m-%d %H:%M:%S")
-    sha = _compute_sha256(file_path)
-    new_row = {
-        "ns": ns_code,
-        "table": table_name,
-        "year": year,
-        "issue": issue,
-        "path": file_path,
-        "rows": str(n_rows),
-        "cols": str(n_cols),
-        "sha256": sha,
-        "pipeline_version": pipeline_version,
-        "timestamp": now_str,
-    }
-
-    idx = next((i for i, r in enumerate(rows)
-                if r.get("ns") == ns_code and r.get("table") == table_name), None)
-    if idx is None:
-        rows.append(new_row)                                                  # Append
-    else:
-        rows[idx] = new_row                                                   # Replace
-
-    with open(manifest_path, "w", encoding="utf-8", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=list(new_row.keys()))
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-
 # =============================================================================================
-# pipelines — class wrapper for Table 1 and Table 2 cleaning
+# PIPELINES: class wrapper for Table 1 and Table 2 cleaning
 # =============================================================================================
-class gdpwr_cleaner:
+
+class tables_cleaner:
     """
-    Pipelines for WR tables.
+    Pipelines for WR tables cleaning.
 
     Exposes:
-        - clean_table1(df): Monthly (table 1) pipeline.
-        - clean_table2(df): Quarterly/annual (table 2) pipeline.
+        - clean_table_1(df): Monthly (table 1) pipeline.
+        - clean_table_2(df): Quarterly/annual (table 2) pipeline.
 
     Note:
         The helper functions referenced below (drop_nan_rows, split_column_by_pattern, …)
-        must exist in this module (your Section 3 cleaning helpers).
+        must exist in this module (Section 3 cleaning helpers).
     """
 
     # _____________________________________________________________________
-    # Function: clean_table1
-    def clean_table1(self, df: pd.DataFrame) -> pd.DataFrame:
+    # Function: clean_table_1
+    def clean_table_1(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Clean a raw DataFrame extracted from WR Table 1 (monthly growth).
 
@@ -2176,9 +2034,10 @@ class gdpwr_cleaner:
         d = rounding_values(d, decimals=1)                                       # Round float columns to 1 decimal
         return d
 
+
     # _____________________________________________________________________
-    # Function: clean_table2
-    def clean_table2(self, df: pd.DataFrame) -> pd.DataFrame:
+    # Function: clean_table_2
+    def clean_table_2(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Clean a raw DataFrame extracted from WR Table 2 (quarterly/annual).
 
@@ -2249,609 +2108,446 @@ class gdpwr_cleaner:
         d = rounding_values(d, decimals=1)                                       # Round float columns to 1 decimal
         return d
 
+# =============================================================================================
+# PREPARATION: class to build month order and reshape cleaned tables into “vintages”
+# =============================================================================================
+
+class vintages_preparator:
+    """
+    Helpers to:
+      - infer month order within a year from WR issue number (ns-dd-yyyy.pdf → dd → month 1..12)
+      - reshape cleaned tables into tidy 'vintages' ready for concatenation across years/frequencies
+    """
+
+    # _____________________________________________________________________
+    # Function: build_month_order_map
+    def build_month_order_map(self, year_folder: str) -> dict[str, int]:
+        """
+        Create {filename: month_order} mapping for files under a given year folder.
+
+        Args:
+            year_folder (str): Folder path containing the year's PDFs.
+
+        Returns:
+            dict[str, int]: filename → month_order (1..12) inferred from ns-dd-yyyy.pdf (dd).
+        """
+        files = [f for f in os.listdir(year_folder) if f.endswith(".pdf")]              # PDFs in year folder
+        pairs = []
+        for f in files:
+            m = re.search(r"ns-(\d{2})-\d{4}\.pdf$", f, re.IGNORECASE)                  # capture dd
+            if m:
+                pairs.append((f, int(m.group(1))))
+        sorted_files = sorted(pairs, key=lambda x: x[1])                                 # order by dd
+        return {fname: i + 1 for i, (fname, _) in enumerate(sorted_files)}              # 1..12
+
+    # _____________________________________________________________________
+    # Function: prepare_table_1
+    def prepare_table_1(self, df: pd.DataFrame, filename: str, month_order_map: dict[str, int]) -> pd.DataFrame:
+        """
+        Prepare a cleaned Table 1 (monthly) into tidy vintage format.
+
+        Args:
+            df (pd.DataFrame): Cleaned Table 1 dataframe (already has 'year' and 'wr').
+            filename (str): Original PDF filename (ns-xx-yyyy.pdf) to pick its month order.
+            month_order_map (dict[str,int]): filename → month order (1..12).
+
+        Returns:
+            pd.DataFrame: Tidy vintage dataframe with:
+                - index (row id removed)
+                - 'target_period' like '2019m7'
+                - one column per vintage_id (economic_sector_year_month)
+        """
+        d = df.copy()                                                                    # work on a copy
+
+        # 1) month from filename
+        d["month"] = month_order_map.get(filename)                                       # 1..12 (int/None)
+
+        # 2) drop unused columns (keep EN sector)
+        d = d.drop(columns=["wr", "sectores_economicos"], errors="ignore")
+
+        # 3) short sector labels
+        sector_map = {
+            "agriculture and livestock": "agriculture",
+            "fishing": "fishing",
+            "mining and fuel": "mining",
+            "manufacturing": "manufacturing",
+            "electricity and water": "electricity",
+            "construction": "construction",
+            "commerce": "commerce",
+            "other services": "services",
+            "gdp": "gdp",
+        }
+        d["economic_sector"] = d["economic_sectors"].map(sector_map)                     # map to short labels
+        d = d[d["economic_sector"].notna()].copy()                                       # keep valid rows
+
+        # 4) build vintage_id (sector_year_month)
+        d["vintage_id"] = d["economic_sector"] + "_" + d["year"].astype(str) + "_" + d["month"].astype(str)
+
+        # 5) keep only yyyy_mmm columns
+        pat = re.compile(r"^\d{4}_(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)$", re.IGNORECASE)
+        keep = ["vintage_id"] + [c for c in d.columns if pat.match(str(c))]
+        d = d[keep]
+
+        # 6) reshape to tidy (target_period rows)
+        t = d.set_index("vintage_id").T.reset_index().rename(columns={"index": "target_period"})
+
+        # 7) convert 'YYYY_mmm' → 'yyyymX'
+        month_map = {"ene":"01","feb":"02","mar":"03","abr":"04","may":"05","jun":"06",
+                     "jul":"07","ago":"08","sep":"09","oct":"10","nov":"11","dic":"12"}
+        def _to_yyyymx(s: str) -> str:
+            m = re.match(r"^(\d{4})_(\w{3})$", s, re.IGNORECASE)
+            if not m:
+                return s
+            y = m.group(1); mmm = m.group(2).lower()
+            mm = month_map.get(mmm, "01")
+            return f"{y}m{int(mm)}"                                                     # no leading zero in m
+
+        t["target_period"] = t["target_period"].astype(str).map(_to_yyyymx)
+        return t
+
+    # _____________________________________________________________________
+    # Function: prepare_table_2
+    def prepare_table_2(self, df: pd.DataFrame, filename: str, month_order_map: dict[str, int]) -> pd.DataFrame:
+        """
+        Prepare a cleaned Table 2 (quarterly/annual) into tidy vintage format.
+
+        Args:
+            df (pd.DataFrame): Cleaned Table 2 dataframe (already has 'year' and 'wr').
+            filename (str): Original PDF filename (ns-xx-yyyy.pdf).
+            month_order_map (dict[str,int]): filename → month order (not used but kept for symmetry).
+
+        Returns:
+            pd.DataFrame: Tidy vintage dataframe with 'target_period' as 'yyyyqN' or 'yyyy'.
+        """
+        d = df.copy()                                                                    # work on a copy
+
+        # 1) drop unused columns (keep EN sector)
+        d = d.drop(columns=["wr", "sectores_economicos"], errors="ignore")
+
+        # 2) short sector labels
+        sector_map = {
+            "agriculture and livestock": "agriculture",
+            "fishing": "fishing",
+            "mining and fuel": "mining",
+            "manufacturing": "manufacturing",
+            "electricity and water": "electricity",
+            "construction": "construction",
+            "commerce": "commerce",
+            "other services": "services",
+            "gdp": "gdp",
+        }
+        d["economic_sector"] = d["economic_sectors"].map(sector_map)
+        d = d[d["economic_sector"].notna()].copy()
+
+        # 3) vintage_id (sector_year_monthorder) — keep same shape as table_1 for concatenation later
+        #    month_order not strictly needed here but kept for a homogeneous ID design
+        d["month"] = month_order_map.get(filename)
+        d["vintage_id"] = d["economic_sector"] + "_" + d["year"].astype(str) + "_" + d["month"].astype(str)
+
+        # 4) keep only yyyy_(1|2|3|4|year) columns
+        pat = re.compile(r"^\d{4}_(1|2|3|4|year)$", re.IGNORECASE)
+        keep = ["vintage_id"] + [c for c in d.columns if pat.match(str(c))]
+        d = d[keep]
+
+        # 5) reshape to tidy (target_period rows)
+        t = d.set_index("vintage_id").T.reset_index().rename(columns={"index": "target_period"})
+
+        # 6) convert 'YYYY_1..4' → 'yyyyqN' and 'YYYY_year' → 'yyyy'
+        t["target_period"] = (
+            t["target_period"].astype(str)
+            .str.replace(r"^(\d{4})_(\d)$", r"\1q\2", regex=True)
+            .str.replace(r"^(\d{4})_year$", r"\1", regex=True)
+        )
+        return t
+
 
 # =============================================================================================
-# runners — single-call functions per table (raw+clean dicts, records, logs, bars, summary)
+# RUNNERS: single-call functions per table (raw + clean dicts, records, bars, summary)
 # =============================================================================================
 
 # _________________________________________________________________________
-# Function: table_1_cleaner
+# Function to clean and process Table 1 from all WR (PDF files) in a folder
 def table_1_cleaner(
     input_pdf_folder: str,
     record_folder: str,
     record_txt: str = RECORD_SUFFIX_1,
-    log_folder: str = DEFAULT_LOG_FOLDER,
-    log_txt: str = LOG_TXT_T1,
     persist: bool = False,
     persist_folder: str | None = None,
     pipeline_version: str = "s3.0.0",
 ) -> tuple[dict[str, pd.DataFrame], dict[str, pd.DataFrame]]:
     """
     Extract page 1 from each WR PDF, run the table 1 pipeline, update the record,
-    optionally persist cleaned tables (Parquet/CSV) + manifest, and show a concise summary.
-
-    Args:
-        input_pdf_folder (str): Root folder containing year subfolders (skips '_quarantine').
-        record_folder (str): Folder where the record text file is stored.
-        record_txt (str): Record filename, default 'new_generated_dataframes_1.txt'.
-        log_folder (str): Folder where the .log file will be written.
-        log_txt (str): Log filename (default '3_cleaner_1.log').
-        persist (bool): If True, save cleaned DataFrames + manifest.
-        persist_folder (str | None): Base output folder (default './data/clean').
-        pipeline_version (str): Version tag recorded in manifest.
-
-    Returns:
-        tuple:
-            - raw_tables_dict_1 (dict[str, pd.DataFrame]): Raw tables keyed as 'ns_xx_yyyy_1'.
-            - new_dataframes_dict_1 (dict[str, pd.DataFrame]): Cleaned tables keyed as 'ns_xx_yyyy_1'.
+    optionally persist cleaned tables (Parquet/CSV), and show a concise summary.
     """
-    logger = _ensure_logger("t1", log_folder, log_txt)                         # File-only logger
-    start_time = time.time()                                                    # Timer start
+    start_time = time.time()                                 # Record the start time
+    print("\n🧹 Starting Table 1 cleaning...\n")
 
-    log_info(logger, "\n🧹 Starting Table 1 cleaning...\n")
+    cleaner   = tables_cleaner()                             # Initialize the GDP WR cleaner
+    records   = _read_records(record_folder, record_txt)     # Read existing record of processed files
+    processed = set(records)                                 # Convert record list to a set for faster lookup
 
-    cleaner   = gdpwr_cleaner()                                                # Pipeline runner
-    records   = _read_records(record_folder, record_txt)                        # Load existing records
-    processed = set(records)                                                    # Fast membership test
+    raw_tables_dict_1: dict[str, pd.DataFrame]   = {}        # Store extracted raw tables
+    new_dataframes_dict_1: dict[str, pd.DataFrame] = {}      # Store cleaned dataframes
 
-    raw_tables_dict_1: dict[str, pd.DataFrame]   = {}                           # Raw tables store
-    new_dataframes_dict_1: dict[str, pd.DataFrame] = {}                         # Cleaned tables store
+    new_counter = 0                                          # Counter for new cleaned tables
+    skipped_counter = 0                                      # Counter for skipped tables
+    skipped_years: dict[str, int] = {}                       # Track skipped years and their counts
 
-    new_counter = 0                                                             # Newly cleaned
-    skipped_counter = 0                                                         # Already cleaned (per file)
-    skipped_years: dict[str, int] = {}                                          # year → count already cleaned
-
-    # Year folders (skip quarantine)
+    # List all year folders except '_quarantine'
     years = [d for d in sorted(os.listdir(input_pdf_folder))
              if os.path.isdir(os.path.join(input_pdf_folder, d)) and d != "_quarantine"]
-    total_year_folders = len(years)                                             # For final summary
+    total_year_folders = len(years)                          # Total number of year folders found
+    
+    prep = vintages_preparator()                             # helper for vintages
+    vintages_dict_1: dict[str, pd.DataFrame] = {}            # tidy (prepared) outputs
 
-    # Persistence layout
+    # Prepare output folders if persistence is enabled
     if persist:
-        base_out      = persist_folder or os.path.join("data", "clean")         # Default base
-        out_root      = os.path.join(base_out, "table_1")                       # e.g., data/clean/table_1
-        manifest_path = os.path.join(out_root, "manifest.csv")                  # table-level manifest
-        os.makedirs(out_root, exist_ok=True)
+        base_out = persist_folder or os.path.join("data", "clean")
+        out_root = os.path.join(base_out, "table_1")
+        os.makedirs(out_root, exist_ok=True)                 # Ensure output directory exists
 
+    # Iterate through year folders
     for year in years:
-        folder_path = os.path.join(input_pdf_folder, year)                       # Year folder
-        pdf_files   = sorted([f for f in os.listdir(folder_path) if f.endswith(".pdf")], key=_ns_sort_key)
-        if not pdf_files:
-            continue
+        folder_path = os.path.join(input_pdf_folder, year)   # Full path to the year's folder
+        pdf_files = sorted([f for f in os.listdir(folder_path) if f.endswith(".pdf")],
+                           key=_ns_sort_key)                 # Sort PDF files by NS code
+        
+        month_order_map = prep.build_month_order_map(folder_path)   # <-- add: filename → month (1..12)
 
-        # If this year is fully processed, skip bar and remember
+        if not pdf_files:
+            continue                                         # Skip if no PDFs found
+
+        # Skip if all PDFs already processed
         already = [f for f in pdf_files if f in processed]
         if len(already) == len(pdf_files):
-            skipped_years[year] = len(already)                                   # Whole year already done
+            skipped_years[year] = len(already)
             skipped_counter += len(already)
             continue
 
-        log_info(logger, f"\n📂 Processing Table 1 in {year}\n")
-        folder_new_count = 0
-        folder_skipped_count = 0
+        print(f"\n📂 Processing Table 1 in {year}\n")        # Display year being processed
+        folder_new_count = 0                                 # New tables for this year
+        folder_skipped_count = 0                             # Skipped tables for this year
 
-        pbar = tqdm(
-            pdf_files,
-            desc=f"🚧 {year}",
-            unit="PDF",
-            bar_format=BAR_FORMAT,
-            colour=PROG_COLOR_ACTIVE,
-            leave=False,                 # remove row when finished
-            position=0,                  # use the same row for both bars
-            dynamic_ncols=True
-        )
+        # Progress bar for PDFs in this year
+        pbar = tqdm(pdf_files, desc=f"🚧 {year}", unit="PDF",
+                    bar_format=BAR_FORMAT, colour=PROG_COLOR_ACTIVE,
+                    leave=False, position=0, dynamic_ncols=True)
 
         for filename in pbar:
             if filename in processed:
-                folder_skipped_count += 1
+                folder_skipped_count += 1                    # Skip already processed PDFs
                 continue
 
-            issue, yr = parse_ns_meta(filename)
+            issue, yr = parse_ns_meta(filename)              # Extract WR issue and year from filename
             if not issue:
                 folder_skipped_count += 1
                 continue
 
-            pdf_path = os.path.join(folder_path, filename)
+            pdf_path = os.path.join(folder_path, filename)   # Build full PDF path
             try:
-                raw = _extract_table(pdf_path, page=1)
+                raw = _extract_table(pdf_path, page=1)       # Extract table 1 from page 1
                 if raw is None:
                     folder_skipped_count += 1
                     continue
 
                 key = f"{os.path.splitext(filename)[0].replace('-', '_')}_1"
-                raw_tables_dict_1[key] = raw.copy()
+                raw_tables_dict_1[key] = raw.copy()          # Store raw table
 
-                clean = cleaner.clean_table1(raw)
-                clean.insert(0, "year", yr)
-                clean.insert(1, "wr", issue)
-                new_dataframes_dict_1[key] = clean
+                clean = cleaner.clean_table_1(raw)            # Apply table 1 cleaning routine
+                clean.insert(0, "year", yr)                  # Insert 'year' column at start
+                clean.insert(1, "wr", issue)                 # Insert 'wr' (weekly report code) column
+                clean.attrs["pipeline_version"] = pipeline_version
 
-                if persist:
-                    ns_code  = os.path.splitext(filename)[0]
+                # ▶ keep a copy in-memory so you can inspect `clean_1`
+                new_dataframes_dict_1[key] = clean.copy()
+
+                # build + persist the vintage (what we save/record)
+                vintage = prep.prepare_table_1(clean, filename, month_order_map)
+                vintage.attrs["pipeline_version"] = pipeline_version
+                vintages_dict_1[key] = vintage               # Keep vintage in-memory (optional)
+                
+                if persist:                                  # Persist **vintage** only
+                    ns_code  = os.path.splitext(filename)[0] # e.g., ns-07-2017
                     out_dir  = os.path.join(out_root, str(yr))
                     out_path = os.path.join(out_dir, f"{ns_code}.parquet")
-                    saved_path, n_rows, n_cols = _save_df(clean, out_path)
-                    _append_manifest(
-                        manifest_path=manifest_path,
-                        ns_code=ns_code,
-                        table_name="table_1",
-                        year=yr,
-                        issue=issue,
-                        file_path=saved_path,
-                        n_rows=n_rows,
-                        n_cols=n_cols,
-                        pipeline_version=pipeline_version,
-                    )
+                    _save_df(vintage, out_path)              # Save vintage (Parquet/CSV)
 
-                processed.add(filename)
+                processed.add(filename)                      # Record processed **by vintage**
                 folder_new_count += 1
             except Exception as e:
-                log_warn(logger, f"⚠️  {filename}: {e}")
+                print(f"⚠️  {filename}: {e}")                # Handle and display any errors
                 folder_skipped_count += 1
 
-        # IMPORTANT: no prints/logs between these two blocks
-        pbar.clear(); pbar.close()        # remove the '🚧' row
+        pbar.clear(); pbar.close()                           # Clear progress bar
 
-        # Finished bar (blue) — same row, looks like it “replaced” the first
-        fb = tqdm(
-            total=len(pdf_files),
-            desc=f"✔️ {year}",
-            unit="PDF",
-            bar_format=BAR_FORMAT,
-            colour=PROG_COLOR_DONE,
-            leave=True,                   # keep visible
-            position=0,                   # same row as pbar
-            dynamic_ncols=True
-        )
+        # Display completion bar for the year
+        fb = tqdm(total=len(pdf_files), desc=f"✔️ {year}", unit="PDF",
+                  bar_format=BAR_FORMAT, colour=PROG_COLOR_DONE,
+                  leave=True, position=0, dynamic_ncols=True)
         fb.update(len(pdf_files))
         fb.close()
 
-        # Update counters after the year is done
-        new_counter += folder_new_count
-        skipped_counter += folder_skipped_count
+        new_counter += folder_new_count                      # Update overall new counter
+        skipped_counter += folder_skipped_count              # Update overall skipped counter
+        _write_records(record_folder, record_txt, list(processed))  # Update record file
 
-        # Persist updated record (chronological) after each year
-        _write_records(record_folder, record_txt, list(processed))
-
-    # Summary of fully skipped years (same style as Section 2)
+    # Display summary for skipped years
     if skipped_years:
         years_summary = ", ".join(skipped_years.keys())
         total_skipped = sum(skipped_years.values())
-        log_info(logger, f"\n⏩ {total_skipped} cleaned tables already generated for years: {years_summary}")
+        print(f"\n⏩ {total_skipped} cleaned tables already generated for years: {years_summary}")
 
-    # Final summary — mimic Section 2 format
-    elapsed_time = round(time.time() - start_time)
-    log_info(logger, f"\n📊 Summary:\n")
-    log_info(logger, f"📂 {total_year_folders} folders (years) found containing input PDFs")
-    log_info(logger, f"🗃️ Already cleaned tables: {skipped_counter}")
-    log_info(logger, f"✨ Newly cleaned tables: {new_counter}")
-    log_info(logger, f"⏱️ {elapsed_time} seconds")
+    elapsed_time = round(time.time() - start_time)            # Compute total elapsed time
+    print(f"\n📊 Summary:\n")
+    print(f"📂 {total_year_folders} folders (years) found containing input PDFs")
+    print(f"🗃️ Already cleaned tables: {skipped_counter}")
+    print(f"✨ Newly cleaned tables: {new_counter}")
+    print(f"⏱️ {elapsed_time} seconds")
 
-    return raw_tables_dict_1, new_dataframes_dict_1
+    return raw_tables_dict_1, new_dataframes_dict_1, vintages_dict_1           # Return both raw and cleaned dataframes
+
 
 
 # _________________________________________________________________________
-# Function: table_2_cleaner
+# Function to clean and process Table 2 from all WR PDF files in a folder
 def table_2_cleaner(
     input_pdf_folder: str,
     record_folder: str,
     record_txt: str = RECORD_SUFFIX_2,
-    log_folder: str = DEFAULT_LOG_FOLDER,
-    log_txt: str = LOG_TXT_T2,
     persist: bool = False,
     persist_folder: str | None = None,
     pipeline_version: str = "s3.0.0",
 ) -> tuple[dict[str, pd.DataFrame], dict[str, pd.DataFrame]]:
     """
     Extract page 2 from each WR PDF, run the table 2 pipeline, update the record,
-    optionally persist cleaned tables (Parquet/CSV) + manifest, and show a concise summary.
-
-    Args:
-        input_pdf_folder (str): Root folder containing year subfolders (skips '_quarantine').
-        record_folder (str): Folder where the record text file is stored.
-        record_txt (str): Record filename, default 'new_generated_dataframes_2.txt'.
-        log_folder (str): Folder where the .log file will be written.
-        log_txt (str): Log filename (default '3_cleaner_2.log').
-        persist (bool): If True, save cleaned DataFrames + manifest.
-        persist_folder (str | None): Base output folder (default './data/clean').
-        pipeline_version (str): Version tag recorded in manifest.
-
-    Returns:
-        tuple:
-            - raw_tables_dict_2 (dict[str, pd.DataFrame]): Raw tables keyed as 'ns_xx_yyyy_2'.
-            - new_dataframes_dict_2 (dict[str, pd.DataFrame]): Cleaned tables keyed as 'ns_xx_yyyy_2'.
+    optionally persist cleaned tables (Parquet/CSV), and show a concise summary.
     """
-    logger = _ensure_logger("t2", log_folder, log_txt)                          # File-only logger
-    start_time = time.time()                                                    # Timer start
+    start_time = time.time()                                # Record script start time
+    print("\n🧹 Starting Table 2 cleaning...\n")             # Display section start message
 
-    log_info(logger, "\n🧹 Starting Table 2 cleaning...\n")
+    cleaner = tables_cleaner()                              # Initialize table cleaner object
+    records = _read_records(record_folder, record_txt)       # Load processed record file
+    processed = set(records)                                 # Convert to set for fast lookup
 
-    cleaner   = gdpwr_cleaner()                                                # Pipeline runner
-    records   = _read_records(record_folder, record_txt)                        # Load existing records
-    processed = set(records)                                                    # Fast membership test
+    raw_tables_dict_2: dict[str, pd.DataFrame] = {}          # Store extracted raw tables
+    new_dataframes_dict_2: dict[str, pd.DataFrame] = {}      # Store cleaned tables
 
-    raw_tables_dict_2: dict[str, pd.DataFrame]   = {}                           # Raw tables store
-    new_dataframes_dict_2: dict[str, pd.DataFrame] = {}                         # Cleaned tables store
+    new_counter = 0                                          # Count new cleaned files
+    skipped_counter = 0                                      # Count skipped files
+    skipped_years: dict[str, int] = {}                       # Keep skipped counts per year
 
-    new_counter = 0                                                             # Newly cleaned
-    skipped_counter = 0                                                         # Already cleaned (per file)
-    skipped_years: dict[str, int] = {}                                          # year → count already cleaned
-
-    # Year folders (skip quarantine)
+    # List year directories except '_quarantine'
     years = [d for d in sorted(os.listdir(input_pdf_folder))
              if os.path.isdir(os.path.join(input_pdf_folder, d)) and d != "_quarantine"]
-    total_year_folders = len(years)                                             # For final summary
+    total_year_folders = len(years)                          # Total number of valid year folders
+    
+    prep = vintages_preparator()                             # helper for vintages
+    vintages_dict_2: dict[str, pd.DataFrame] = {}            # tidy (prepared) outputs
 
-    # Persistence layout
+    # Create persistence folder if enabled
     if persist:
-        base_out      = persist_folder or os.path.join("data", "clean")         # Default base
-        out_root      = os.path.join(base_out, "table_2")                       # e.g., data/clean/table_2
-        manifest_path = os.path.join(out_root, "manifest.csv")                  # table-level manifest
+        base_out = persist_folder or os.path.join("data", "clean")
+        out_root = os.path.join(base_out, "table_2")
         os.makedirs(out_root, exist_ok=True)
 
+    # Iterate through each year's folder
     for year in years:
-        folder_path = os.path.join(input_pdf_folder, year)                       # Year folder
-        pdf_files   = sorted([f for f in os.listdir(folder_path) if f.endswith(".pdf")], key=_ns_sort_key)
-        if not pdf_files:
-            continue
+        folder_path = os.path.join(input_pdf_folder, year)   # Full path to current year folder
+        pdf_files = sorted([f for f in os.listdir(folder_path) if f.endswith(".pdf")],
+                           key=_ns_sort_key)                 # Sort PDFs by NS code order
+        month_order_map = prep.build_month_order_map(folder_path)   # <-- add: filename → month (1..12)
 
-        # If this year is fully processed, skip bar and remember
+        if not pdf_files:
+            continue                                         # Skip if no PDFs present
+
+        # Skip if all PDFs already processed
         already = [f for f in pdf_files if f in processed]
         if len(already) == len(pdf_files):
-            skipped_years[year] = len(already)                                   # Whole year already done
+            skipped_years[year] = len(already)
             skipped_counter += len(already)
             continue
 
-        log_info(logger, f"\n📂 Processing Table 2 in {year}\n")
-        folder_new_count = 0
-        folder_skipped_count = 0
+        print(f"\n📂 Processing Table 2 in {year}\n")        # Indicate which year is running
+        folder_new_count = 0                                 # New tables within this year
+        folder_skipped_count = 0                             # Skipped tables within this year
 
-        pbar = tqdm(
-            pdf_files,
-            desc=f"🚧 {year}",
-            unit="PDF",
-            bar_format=BAR_FORMAT,
-            colour=PROG_COLOR_ACTIVE,
-            leave=False,                 # remove row when finished
-            position=0,                  # use the same row for both bars
-            dynamic_ncols=True
-        )
+        # Display progress bar for current year
+        pbar = tqdm(pdf_files, desc=f"🚧 {year}", unit="PDF",
+                    bar_format=BAR_FORMAT, colour=PROG_COLOR_ACTIVE,
+                    leave=False, position=0, dynamic_ncols=True)
 
         for filename in pbar:
             if filename in processed:
-                folder_skipped_count += 1
+                folder_skipped_count += 1                    # Skip if already processed
                 continue
 
-            issue, yr = parse_ns_meta(filename)
+            issue, yr = parse_ns_meta(filename)              # Extract WR issue and year
             if not issue:
                 folder_skipped_count += 1
                 continue
 
-            pdf_path = os.path.join(folder_path, filename)
+            pdf_path = os.path.join(folder_path, filename)   # Build full PDF path
             try:
-                raw = _extract_table(pdf_path, page=2)
+                raw = _extract_table(pdf_path, page=2)       # Extract table 2 (page 2)
                 if raw is None:
                     folder_skipped_count += 1
                     continue
 
                 key = f"{os.path.splitext(filename)[0].replace('-', '_')}_2"
-                raw_tables_dict_2[key] = raw.copy()
+                raw_tables_dict_2[key] = raw.copy()          # Save raw table with unique key
 
-                clean = cleaner.clean_table2(raw)
-                clean.insert(0, "year", yr)
-                clean.insert(1, "wr", issue)
-                new_dataframes_dict_2[key] = clean
+                clean = cleaner.clean_table_2(raw)            # Clean the extracted table
+                clean.insert(0, "year", yr)                  # Add 'year' column first
+                clean.insert(1, "wr", issue)                  
+                clean.attrs["pipeline_version"] = pipeline_version
 
-                if persist:
-                    ns_code  = os.path.splitext(filename)[0]
+                # ▶ keep a copy in-memory so you can inspect `clean_2`
+                new_dataframes_dict_2[key] = clean.copy()
+
+                # build + persist the vintage (what we save/record)
+                vintage = prep.prepare_table_2(clean, filename, month_order_map)
+                vintage.attrs["pipeline_version"] = pipeline_version
+                vintages_dict_2[key] = vintage               # Keep vintage in-memory (optional)
+
+                if persist:                                  # Persist **vintage** only
+                    ns_code  = os.path.splitext(filename)[0] # e.g., ns-07-2017
                     out_dir  = os.path.join(out_root, str(yr))
                     out_path = os.path.join(out_dir, f"{ns_code}.parquet")
-                    saved_path, n_rows, n_cols = _save_df(clean, out_path)
-                    _append_manifest(
-                        manifest_path=manifest_path,
-                        ns_code=ns_code,
-                        table_name="table_2",
-                        year=yr,
-                        issue=issue,
-                        file_path=saved_path,
-                        n_rows=n_rows,
-                        n_cols=n_cols,
-                        pipeline_version=pipeline_version,
-                    )
+                    _save_df(vintage, out_path)              # Save vintage (Parquet/CSV)
 
-                processed.add(filename)
+                processed.add(filename)                      # Record processed **by vintage**
                 folder_new_count += 1
             except Exception as e:
-                log_warn(logger, f"⚠️  {filename}: {e}")
+                print(f"⚠️  {filename}: {e}")                # Display any extraction/cleaning error
                 folder_skipped_count += 1
 
-        # IMPORTANT: no prints/logs between these two blocks
-        pbar.clear(); pbar.close()        # remove the '🚧' row
+        pbar.clear(); pbar.close()                           # Close progress bar cleanly
 
-        # Finished bar (blue) — same row, looks like it “replaced” the first
-        fb = tqdm(
-            total=len(pdf_files),
-            desc=f"✔️ {year}",
-            unit="PDF",
-            bar_format=BAR_FORMAT,
-            colour=PROG_COLOR_DONE,
-            leave=True,                   # keep visible
-            position=0,                   # same row as pbar
-            dynamic_ncols=True
-        )
+        # Display finished bar for current year
+        fb = tqdm(total=len(pdf_files), desc=f"✔️ {year}", unit="PDF",
+                  bar_format=BAR_FORMAT, colour=PROG_COLOR_DONE,
+                  leave=True, position=0, dynamic_ncols=True)
         fb.update(len(pdf_files))
         fb.close()
 
-        # Update counters after the year is done
-        new_counter += folder_new_count
-        skipped_counter += folder_skipped_count
+        new_counter += folder_new_count                      # Update total new count
+        skipped_counter += folder_skipped_count              # Update total skipped count
+        _write_records(record_folder, record_txt, list(processed))  # Update processed record file
 
-        # Persist updated record (chronological) after each year
-        _write_records(record_folder, record_txt, list(processed))
-
-    # Summary of fully skipped years (same style as Section 2)
+    # Summary of skipped years
     if skipped_years:
         years_summary = ", ".join(skipped_years.keys())
         total_skipped = sum(skipped_years.values())
-        log_info(logger, f"\n⏩ {total_skipped} cleaned tables already generated for years: {years_summary}")
+        print(f"\n⏩ {total_skipped} cleaned tables already generated for years: {years_summary}")
 
-    # Final summary — mimic Section 2 format
-    elapsed_time = round(time.time() - start_time)
-    log_info(logger, f"\n📊 Summary:\n")
-    log_info(logger, f"📂 {total_year_folders} folders (years) found containing input PDFs")
-    log_info(logger, f"🗃️ Already cleaned tables: {skipped_counter}")
-    log_info(logger, f"✨ Newly cleaned tables: {new_counter}")
-    log_info(logger, f"⏱️ {elapsed_time} seconds")
+    elapsed_time = round(time.time() - start_time)            # Compute total elapsed time
+    print(f"\n📊 Summary:\n")
+    print(f"📂 {total_year_folders} folders (years) found containing input PDFs")
+    print(f"🗃️ Already cleaned tables: {skipped_counter}")
+    print(f"✨ Newly cleaned tables: {new_counter}")
+    print(f"⏱️ {elapsed_time} seconds")
 
-    return raw_tables_dict_2, new_dataframes_dict_2
+    return raw_tables_dict_2, new_dataframes_dict_2, vintages_dict_2          # Return both raw and cleaned tables
 
-
-
-
-
-################################################################################################
-# Section 4. Concatenated CSV Export
-################################################################################################
-
-# +++++++++++++++
-# LIBRARIES
-# +++++++++++++++
-
-import os
-import pandas as pd
-import tkinter as tk  # GUI for choosing sector/frequency (if you use these helpers)
-from tkinter import simpledialog
-
-# Define the options and their mappings
-options = [
-    "gdp", 
-    "agriculture",  # agriculture and livestock
-    "fishing",
-    "mining",       # mining and fuel
-    "manufacturing",
-    "electricity",  # electricity and water
-    "construction",
-    "commerce",
-    "services"      # other services
-]
-
-# Mapping each option with its Spanish and English counterparts
-option_mapping = {
-    "gdp": ("pbi", "gdp"),
-    "agriculture": ("agropecuario", "agriculture and livestock"),
-    "fishing": ("pesca", "fishing"),
-    "mining": ("mineria e hidrocarburos", "mining and fuel"),
-    "manufacturing": ("manufactura", "manufacturing"),
-    "electricity": ("electricidad y agua", "electricity and water"),
-    "construction": ("construccion", "construction"),
-    "commerce": ("comercio", "commerce"),
-    "services": ("otros servicios", "other services")
-}
-
-# ------------------------------
-# Small helper to save to CSV
-# ------------------------------
-def _save_concat_to_csv(df: pd.DataFrame, sector: str, frequency: str, out_dir: str = "data/clean/concatenated"):
-    """
-    Saves the provided DataFrame to CSV under:
-        data/clean/concatenated/{frequency}/{sector}_{frequency}_growth_rates.csv
-    """
-    os.makedirs(os.path.join(out_dir, frequency), exist_ok=True)
-    fname = f"{sector}_{frequency}_growth_rates.csv"
-    fpath = os.path.join(out_dir, frequency, fname)
-    df.to_csv(fpath, index=False, encoding="utf-8")
-    print(f"Saved CSV: {fpath}")
-
-# Function to show the option window
-def show_option_window():
-    """
-    Displays a Tkinter window to select an option, and returns the corresponding 
-    selected values for 'selected_spanish', 'selected_english', and 'sector'.
-    """
-    selected_spanish = None
-    selected_english = None
-    sector = None
-
-    def save_option():
-        nonlocal selected_spanish, selected_english, sector
-        sector = selected_option.get()
-        selected_spanish, selected_english = option_mapping[sector]
-        root.destroy()
-
-    root = tk.Tk()
-    root.title("Select Option")
-
-    selected_option = tk.StringVar(root)
-    selected_option.set(options[0])  # Default
-
-    menu = tk.OptionMenu(root, selected_option, *options)
-    menu.pack(pady=10)
-
-    confirm_button = tk.Button(root, text="Confirm", command=save_option)
-    confirm_button.pack()
-
-    root.update_idletasks()
-    root.wait_window()
-    return selected_spanish, selected_english, sector
-
-# Function to show frequency window
-def show_frequency_window():
-    frequencies = ["monthly", "quarterly", "annual"]
-
-    def save_frequency():
-        root.destroy()
-
-    root = tk.Tk()
-    root.title("Select Frequency")
-
-    selected_frequency = tk.StringVar(root)
-    selected_frequency.set(frequencies[0])
-
-    menu = tk.OptionMenu(root, selected_frequency, *frequencies)
-    menu.pack(pady=10)
-
-    confirm_button = tk.Button(root, text="Confirm", command=save_frequency)
-    confirm_button.pack()
-
-    root.update_idletasks()
-    root.wait_window()
-    return selected_frequency.get()
-
-# **********************************************************************************************
-# Section 4.1. Annual Concatenation (and related helpers)
-# ----------------------------------------------------------------------------------------------
-
-# Concatenate Table 2 (annual)
-def concatenate_annual_df(dataframes_dict, sector_economico, economic_sector):
-    dataframes_ending_with_2 = []
-    dataframes_to_concatenate = []
-
-    for df_name in dataframes_dict.keys():
-        if df_name.endswith('_2'):
-            dataframes_ending_with_2.append(df_name)
-            dataframes_to_concatenate.append(dataframes_dict[df_name])
-
-    if dataframes_to_concatenate:
-        annual_growth_rates = pd.concat(
-            [
-                df[(df['sectores_economicos'] == sector_economico) | (df['economic_sectors'] == economic_sector)]
-                for df in dataframes_to_concatenate
-                if 'sectores_economicos' in df.columns and 'economic_sectors' in df.columns
-            ],
-            ignore_index=True
-        )
-
-        columns_to_keep = ['year', 'wr', 'date'] + [col for col in annual_growth_rates.columns if col.endswith('_year')]
-        annual_growth_rates = annual_growth_rates[columns_to_keep]
-        annual_growth_rates = annual_growth_rates.loc[:, ~annual_growth_rates.columns.duplicated()]
-        annual_growth_rates.columns = [
-            (col.split('_')[1] + '_' + col.split('_')[0]) if '_' in col and idx >= 3 else col
-            for idx, col in enumerate(annual_growth_rates.columns)
-        ]
-        print("Number of rows in the concatenated dataframe:", len(annual_growth_rates))
-        return annual_growth_rates
-    else:
-        print("No dataframes were found to concatenate.")
-        return None
-
-# Concatenate Table 1 (quarterly)
-def concatenate_quarterly_df(dataframes_dict, sector_economico, economic_sector):
-    dataframes_ending_with_2 = []
-    dataframes_to_concatenate = []
-
-    for df_name in dataframes_dict.keys():
-        if df_name.endswith('_2'):
-            dataframes_ending_with_2.append(df_name)
-            dataframes_to_concatenate.append(dataframes_dict[df_name])
-
-    if dataframes_to_concatenate:
-        quarterly_growth_rates = pd.concat(
-            [
-                df[(df['sectores_economicos'] == sector_economico) | (df['economic_sectors'] == economic_sector)]
-                for df in dataframes_to_concatenate
-                if 'sectores_economicos' in df.columns and 'economic_sectors' in df.columns
-            ],
-            ignore_index=True
-        )
-
-        columns_to_keep = ['year', 'wr', 'date'] + [col for col in quarterly_growth_rates.columns if not col.endswith('_year')]
-        quarterly_growth_rates = quarterly_growth_rates[columns_to_keep]
-        quarterly_growth_rates.drop(columns=['sectores_economicos', 'economic_sectors'], inplace=True)
-        quarterly_growth_rates = quarterly_growth_rates.loc[:, ~quarterly_growth_rates.columns.duplicated()]
-        print("Number of rows in the concatenated dataframe:", len(quarterly_growth_rates))
-        return quarterly_growth_rates
-    else:
-        print("No dataframes were found to concatenate.")
-        return None
-
-# Concatenate Table 1 (monthly)
-def concatenate_monthly_df(dataframes_dict, sector_economico, economic_sector):
-    dataframes_ending_with_1 = []
-    dataframes_to_concatenate = []
-
-    for df_name in dataframes_dict.keys():
-        if df_name.endswith('_1'):
-            dataframes_ending_with_1.append(df_name)
-            dataframes_to_concatenate.append(dataframes_dict[df_name])
-
-    if dataframes_to_concatenate:
-        monthly_growth_rates = pd.concat(
-            [
-                df[(df['sectores_economicos'] == sector_economico) | (df['economic_sectors'] == economic_sector)]
-                for df in dataframes_to_concatenate
-                if 'sectores_economicos' in df.columns and 'economic_sectors' in df.columns
-            ],
-            ignore_index=True
-        )
-
-        columns_to_keep = ['year', 'wr', 'date'] + [
-            col for col in monthly_growth_rates.columns if not (col.endswith('_year') or col.endswith('_mean'))
-        ]
-        monthly_growth_rates = monthly_growth_rates[columns_to_keep]
-        monthly_growth_rates.drop(columns=['sectores_economicos', 'economic_sectors'], inplace=True)
-        monthly_growth_rates = monthly_growth_rates.loc[:, ~monthly_growth_rates.columns.duplicated()]
-
-        # Drop columns with at least two underscores in their names
-        columns_to_drop = [col for col in monthly_growth_rates.columns if col.count('_') >= 2]
-        monthly_growth_rates.drop(columns=columns_to_drop, inplace=True)
-
-        monthly_growth_rates.columns = [
-            (col.split('_')[1] + '_' + col.split('_')[0]) if '_' in col and idx >= 3 else col
-            for idx, col in enumerate(monthly_growth_rates.columns)
-        ]
-        print("Number of rows in the concatenated dataframe:", len(monthly_growth_rates))
-        return monthly_growth_rates
-    else:
-        print("No dataframes were found to concatenate.")
-        return None
-
-# ------------------------------
-# Optional: one-call export helper
-# ------------------------------
-def concatenate_and_save(
-    dataframes_dict,
-    sector_key: str,
-    frequency: str,
-    out_dir: str = "data/clean/concatenated"
-):
-    """
-    Runs the appropriate concatenate_* function and writes the CSV.
-    """
-    if sector_key not in option_mapping:
-        raise ValueError(f"Unknown sector: {sector_key}")
-
-    sector_es, sector_en = option_mapping[sector_key]
-
-    func_map = {
-        "monthly": concatenate_monthly_df,
-        "quarterly": concatenate_quarterly_df,
-        "annual": concatenate_annual_df,
-    }
-    if frequency not in func_map:
-        raise ValueError(f"Unknown frequency: {frequency}")
-
-    df = func_map[frequency](dataframes_dict, sector_es, sector_en)
-    if df is not None:
-        _save_concat_to_csv(df, sector_key, frequency, out_dir)
-    return df
 
