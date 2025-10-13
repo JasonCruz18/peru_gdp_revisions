@@ -124,26 +124,35 @@ def get_http_session(
 
 
 # _________________________________________________________________________
-# Function to load a random .mp3 alert track if available
+# Function to load a random .mp3 alert track without repeating the last one
+_last_alert = None                                                          # Remember the last chosen filename across calls
+
 def load_alert_track(alert_track_folder: str) -> str | None:
     """
-    Load a random .mp3 file from the given folder for audio alerts.
-    If no .mp3 files are present, proceed without an alert track.
+    Load a random .mp3 file from `alert_track_folder` for audio alerts, avoiding
+    immediate repetition of the previous selection when possible.
 
     Args:
-        alert_track_folder (str): Folder expected to contain one or more .mp3 files.
+        alert_track_folder (str): Directory expected to contain one or more .mp3 files.
 
     Returns:
-        str | None: Absolute path to a randomly selected .mp3 file, or None if unavailable.
+        str | None: Absolute path to the selected .mp3 file, or None if no .mp3 is found.
     """
-    os.makedirs(alert_track_folder, exist_ok=True)                                      # Ensure folder exists on disk
-    tracks = [f for f in os.listdir(alert_track_folder) if f.lower().endswith(".mp3")]  # Pick only .mp3 files
+    global _last_alert                                                      # Access the module-level last-choice guard
+    os.makedirs(alert_track_folder, exist_ok=True)                          # Ensure folder exists (no error if present)
+
+    tracks = [f for f in os.listdir(alert_track_folder)                     # Collect only .mp3 filenames (case-insensitive)
+              if f.lower().endswith(".mp3")]
     if not tracks:
         print("🔇 No .mp3 files found in 'alert_track/'. Continuing without audio alerts.")
         return None
 
-    alert_track_path = os.path.join(alert_track_folder, random.choice(tracks))          # Randomly choose one track
-    pygame.mixer.music.load(alert_track_path)                                           # Preload into mixer
+    choices = [t for t in tracks if t != _last_alert] or tracks             # Prefer any file ≠ last; fallback to all if single
+    track   = random.choice(choices)                                        # Uniform random selection among candidates
+    _last_alert = track                                                     # Update guard to prevent immediate repetition
+
+    alert_track_path = os.path.join(alert_track_folder, track)              # Build absolute path to the chosen file
+    pygame.mixer.music.load(alert_track_path)                               # Preload into pygame mixer for instant playback
     return alert_track_path
 
 
@@ -509,8 +518,108 @@ def organize_files_by_year(raw_pdf_folder: str) -> None:
         else:
             print(f"⚠️ No 4-digit year detected in filename: {file}")      
 
-            
-            
+
+# _________________________________________________________________________
+# Function to replace defective WR PDFs (NS files) and update the record safely
+def replace_ns_pdfs(items, root_folder, record_folder, download_record_txt, quarantine=None):
+    """
+    Replace defective WR PDFs (BCRP Nota Semanal, 'ns-XX-YYYY.pdf') stored under year subfolders.
+    Keeps the download record consistent so the downloader will not re-fetch defective files.
+
+    Args:
+        items (list[tuple[str, str, str]]): Triples of (year, defective_pdf, replacement_code).
+            Example: [("2017","ns-08-2017.pdf","ns-07-2017"), ("2019","ns-23-2019.pdf","ns-22-2019")]
+        root_folder (str): Base path containing year folders (e.g., raw_pdf).
+        record_folder (str): Folder holding the download record TXT.
+        download_record_txt (str): Record filename (e.g., 'downloaded_pdfs.txt').
+        quarantine (str | None): Folder to move defective PDFs; if None, delete them.
+    """
+    pat = re.compile(r"^ns-(\d{1,2})-(\d{4})(?:\.pdf)?$", re.I)             # Match 'ns-<issue>-<year>[.pdf]' (issue can be 1–2 digits)
+
+    def norm(c):
+        m = pat.match(os.path.basename(c).lower())                          # Validate and normalize the code using the regex
+        if not m:
+            raise ValueError(f"Bad NS code: {c}")                           # Enforce expected 'ns-xx-yyyy' structure
+        return f"ns-{int(m.group(1)):02d}-{m.group(2)}"                     # Zero-pad issue (e.g., 7 → 07) and keep year
+
+    def url(c):
+        cc = norm(c)                                                        # Normalized 'ns-xx-yyyy'
+        return f"https://www.bcrp.gob.pe/docs/Publicaciones/Nota-Semanal/{cc[-4:]}/{cc}.pdf"  # Year-coded server path
+
+    def _ns_key(name):
+        base = os.path.splitext(os.path.basename(name))[0]                  # Drop directory and extension
+        m = re.search(r"ns-(\d{2})-(\d{4})", base, re.I)                    # Extract issue/year for ordering
+        if not m:
+            return (9999, 9999, base)                                       # Unknown pattern → stable, last
+        issue, year = int(m.group(1)), int(m.group(2))
+        return (year, issue, base)                                          # Sort by (year, issue, base)
+
+    def update_record(add=None, remove=None):
+        # Intentionally DO NOT remove defective entries from the TXT.
+        # This prevents the downloader from re-fetching them in future runs.
+        p = os.path.join(record_folder, download_record_txt)                # Absolute path to record file
+        s = set()
+        if os.path.exists(p):
+            with open(p, "r", encoding="utf-8") as f:
+                s = {x.strip() for x in f if x.strip()}                     # Read, trim blanks, and de-duplicate
+        if add:
+            s.add(add)                                                      # Add the replacement filename
+        records = sorted(s, key=_ns_key)                                    # Chronological order by (year → issue)
+        os.makedirs(record_folder, exist_ok=True)                           # Ensure destination exists
+        with open(p, "w", encoding="utf-8") as f:
+            f.write("\n".join(records) + ("\n" if records else ""))         # Write with trailing newline if non-empty
+
+    if quarantine:
+        os.makedirs(quarantine, exist_ok=True)
+
+    ok, fail = 0, 0
+
+    for year, bad_pdf, repl_code in items:
+        year = str(year)                                                    # Normalize year to string for path joins
+        ydir = os.path.join(root_folder, year)                              # Year directory (e.g., raw_pdf/2019)
+        bad_path = os.path.join(ydir, bad_pdf)                              # Full path to the defective file
+        new_name = f"{norm(repl_code)}.pdf"                                 # Normalized replacement filename
+        new_path = os.path.join(ydir, new_name)                             # Destination path for the replacement
+
+        if not os.path.exists(bad_path):
+            fail += 1
+            continue
+
+        # Download the replacement first to ensure availability before removing the defective file
+        try:
+            os.makedirs(ydir, exist_ok=True)                                # Ensure year folder exists
+            with requests.get(url(repl_code), stream=True, timeout=60) as r:
+                r.raise_for_status()                                        # Fail fast on non-2xx
+                with open(new_path, "wb") as fh:
+                    for ch in r.iter_content(131072):                       # Stream in 128 KiB chunks
+                        if ch:
+                            fh.write(ch)
+        except Exception as e:
+            if os.path.exists(new_path):
+                try:
+                    os.remove(new_path)                                     # Remove partial/incomplete file
+                except:
+                    pass
+            fail += 1
+            continue
+
+        # Quarantine the defective file (if configured) or delete it permanently
+        try:
+            if quarantine:
+                shutil.move(bad_path, os.path.join(quarantine, bad_pdf))    # Preserve original artifact under quarantine
+            else:
+                os.remove(bad_path)                                         # Hard delete when no quarantine path is provided
+        except Exception:
+            fail += 1
+            continue
+
+        update_record(add=new_name, remove=bad_pdf)                         # Keep defective entry; append replacement
+        ok += 1
+
+    return ok, fail
+
+
+
 ################################################################################################
 # Section 2. Generate PDF input with key tables
 ################################################################################################
@@ -573,115 +682,6 @@ def log2_error(msg: str) -> None:
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # FUNCTIONS
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-# _________________________________________________________________________
-# Function: replace_ns_pdfs
-def replace_ns_pdfs(items, root_folder, record_folder, download_record_txt, quarantine=None):
-    """
-    Replace defective PDFs stored under year subfolders, keeping a consistent
-    download record. Defective entries are intentionally kept in the TXT so the
-    downloader will not fetch them again.
-
-    Args:
-        items (list[tuple[str, str, str]]): Triples of (year, defective_pdf, replacement_code).
-            Example: [("2017","ns-08-2017.pdf","ns-07-2017"), ("2019","ns-23-2019.pdf","ns-22-2019")]
-        root_folder (str): Base path containing year folders (e.g., raw_pdf).
-        record_folder (str): Folder holding the download record TXT.
-        download_record_txt (str): Record filename (e.g., 'downloaded_pdfs.txt').
-        quarantine (str | None): Folder to move defective PDFs; if None, delete them.
-    """
-    pat = re.compile(r"^ns-(\d{1,2})-(\d{4})(?:\.pdf)?$", re.I)            # Flexible matcher for ns-<issue>-<year>[.pdf]
-
-    def norm(c):
-        m = pat.match(os.path.basename(c).lower())
-        if not m:
-            raise ValueError(f"Bad NS code: {c}")                          # Validate expected NS format
-        return f"ns-{int(m.group(1)):02d}-{m.group(2)}"                    # Zero-pad issue (e.g., 7 → 07)
-
-    def url(c):
-        cc = norm(c)
-        return f"https://www.bcrp.gob.pe/docs/Publicaciones/Nota-Semanal/{cc[-4:]}/{cc}.pdf"  # Year-coded path on server
-
-    def _ns_key(name):
-        base = os.path.splitext(os.path.basename(name))[0]
-        m = re.search(r"ns-(\d{2})-(\d{4})", base, re.I)
-        if not m:
-            return (9999, 9999, base)                                      # Unknown names go last (stable by base)
-        issue, year = int(m.group(1)), int(m.group(2))
-        return (year, issue, base)                                         # Sort by year → issue → name
-
-    def update_record(add=None, remove=None):
-        # Intentionally DO NOT remove defective entries from the TXT.
-        # This prevents the downloader from re-fetching them in future runs.
-        p = os.path.join(record_folder, download_record_txt)
-        s = set()
-        if os.path.exists(p):
-            with open(p, "r", encoding="utf-8") as f:
-                s = {x.strip() for x in f if x.strip()}                   # De-duplicate and strip blanks
-        if add:
-            s.add(add)                                                    # Only add the replacement
-        records = sorted(s, key=_ns_key)                                  # Chronological: year → issue
-        os.makedirs(record_folder, exist_ok=True)
-        with open(p, "w", encoding="utf-8") as f:
-            f.write("\n".join(records) + ("\n" if records else ""))       # Ensure trailing newline if non-empty
-
-    log2_info(f"\n🧩 Replacing {len(items)} PDF(s) under: {root_folder}")
-    if quarantine:
-        os.makedirs(quarantine, exist_ok=True)
-        log2_info(f"🦠 Quarantine enabled → {quarantine}")
-    ok, fail = 0, 0
-
-    for year, bad_pdf, repl_code in items:
-        year = str(year)
-        ydir = os.path.join(root_folder, year)                             # Year directory (e.g., raw_pdf/2019)
-        bad_path = os.path.join(ydir, bad_pdf)                             # Full path to defective file
-        new_name = f"{norm(repl_code)}.pdf"                                # Normalized replacement filename
-        new_path = os.path.join(ydir, new_name)                            # Destination path for replacement
-
-        if not os.path.exists(bad_path):
-            log2_warn(f"⚠️  {year}: not found → {bad_pdf} (skipped)")
-            fail += 1
-            continue
-
-        # Download replacement first to avoid leaving gaps if removal fails later
-        try:
-            os.makedirs(ydir, exist_ok=True)
-            log2_info(f"⬇️  {year}: downloading {norm(repl_code)} …")
-            with requests.get(url(repl_code), stream=True, timeout=60) as r:
-                r.raise_for_status()                                       # Raise on non-2xx to enter except block
-                with open(new_path, "wb") as fh:
-                    for ch in r.iter_content(131072):                      # 128 KiB chunks for efficiency
-                        if ch:
-                            fh.write(ch)
-        except Exception as e:
-            if os.path.exists(new_path):
-                try:
-                    os.remove(new_path)                                    # Clean partial file on failure
-                except:
-                    pass
-            log2_error(f"❌  {year}: download failed for {norm(repl_code)} → {e}")
-            fail += 1
-            continue
-
-        # Move defective to quarantine or delete permanently
-        try:
-            if quarantine:
-                shutil.move(bad_path, os.path.join(quarantine, bad_pdf))   # Preserve evidence in quarantine
-                moved_msg = f"moved to {os.path.basename(quarantine)}"
-            else:
-                os.remove(bad_path)                                        # Hard delete
-                moved_msg = "deleted"
-        except Exception as e:
-            log2_error(f"❌  {year}: could not remove old file {bad_pdf} → {e}")
-            fail += 1
-            continue
-
-        update_record(add=new_name, remove=bad_pdf)                        # Keep defective entry; add replacement
-        log2_info(f"✅  {year}: {bad_pdf} → {new_name} ({moved_msg})")
-        ok += 1
-
-    log2_info(f"\n📊 Summary: ✅ {ok} done · ❌ {fail} failed")
-
 
 # _________________________________________________________________________
 # Function: search_keywords
