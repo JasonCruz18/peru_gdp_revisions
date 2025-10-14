@@ -146,12 +146,12 @@ def load_alert_track(alert_track_folder: str, last_alert: str | None) -> str | N
         print("🔇 No .mp3 files found in 'alert_track/'. Continuing without audio alerts.")
         return None
 
-    choices = [t for t in tracks if t != last_alert] or tracks             # Prefer any file ≠ last; fallback to all if single
+    choices = [t for t in tracks if t != last_alert] or tracks              # Prefer any file ≠ last; fallback to all if single
     track   = random.choice(choices)                                        # Uniform random selection among candidates
 
     alert_track_path = os.path.join(alert_track_folder, track)              # Build absolute path to the chosen file
     pygame.mixer.music.load(alert_track_path)                               # Preload into pygame mixer for instant playback
-    return track  # Return the selected track instead of the path
+    return track                                                            # Return the selected track instead of the path
 
 # _________________________________________________________________________
 # Function to start playback of the loaded alert track
@@ -363,7 +363,10 @@ def pdf_downloader(
 
     print("\n📥 Starting PDF downloader for BCRP WR...\n")
     pygame.mixer.init()                                                     # Ready the audio mixer for alerts
-    alert_track_path = load_alert_track(alert_track_folder)                 # Load a random .mp3 if available
+
+    _last_alert = None                                                      # Initialize memory of last alert
+    alert_track_path = load_alert_track(alert_track_folder, _last_alert)    # Load a random .mp3 if available
+    _last_alert = alert_track_path                                          # Store last alert name (filename only)
 
     record_path = os.path.join(download_record_folder, download_record_txt) # State file: prevents duplicates
     downloaded_files = set()
@@ -415,11 +418,10 @@ def pdf_downloader(
 
         # Download queue (chronological), with optional batch pauses and pacing
         for i, (link, file_name) in enumerate(new_downloads, start=1):
-            # Reset the last alert for each new batch
-            if i == 1:                                                      # Reset only when starting a new batch (first file of the batch)
-                _last_alert = None                                          # Reset the last alert for a new batch
-            alert_track_path = load_alert_track(alert_track_folder, _last_alert)
-            _last_alert = alert_track_path                                  # Update _last_alert after the track is loaded
+            # Load a new random alert for each batch start
+            if i % downloads_per_batch == 1:                                # new batch
+                alert_track_path = load_alert_track(alert_track_folder, _last_alert)
+                _last_alert = alert_track_path                              # Update memory of last alert
 
             ok = download_pdf(
                 driver=driver,
