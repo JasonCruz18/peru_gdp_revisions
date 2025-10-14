@@ -419,7 +419,7 @@ def pdf_downloader(
         # Download queue (chronological), with optional batch pauses and pacing
         for i, (link, file_name) in enumerate(new_downloads, start=1):
             # Load a new random alert for each batch start
-            if i % downloads_per_batch == 1:                                # new batch
+            if i % downloads_per_batch == 1:                                # New batch
                 alert_track_path = load_alert_track(alert_track_folder, _last_alert)
                 _last_alert = alert_track_path                              # Update memory of last alert
 
@@ -433,7 +433,7 @@ def pdf_downloader(
                 download_record_txt=download_record_txt,
             )
             if ok:
-                downloaded_files.add(file_name)  # Update in-memory record immediately
+                downloaded_files.add(file_name)                             # Update in-memory record immediately
                 new_counter += 1
 
             # Optional checkpoint every N downloads — useful for long sessions
@@ -450,7 +450,7 @@ def pdf_downloader(
                 print(f"🏁 Download limit of {max_downloads} new PDFs reached.")
                 break
 
-            random_wait(DEFAULT_MIN_WAIT, DEFAULT_MAX_WAIT)  # Gentle pacing to mimic a human user
+            random_wait(DEFAULT_MIN_WAIT, DEFAULT_MAX_WAIT)                 # Gentle pacing to mimic a human user
 
     except StaleElementReferenceException:
         print("⚠️ StaleElementReferenceException encountered. Consider re-running.")  
