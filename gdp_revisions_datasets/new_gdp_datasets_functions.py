@@ -126,20 +126,18 @@ def get_http_session(
 
 # _________________________________________________________________________
 # Function to load a random .mp3 alert track without repeating the last one
-_last_alert = None                                                          # Remember the last chosen filename across calls
-
-def load_alert_track(alert_track_folder: str) -> str | None:
+def load_alert_track(alert_track_folder: str, last_alert: str | None) -> str | None:
     """
     Load a random .mp3 file from `alert_track_folder` for audio alerts, avoiding
     immediate repetition of the previous selection when possible.
 
     Args:
         alert_track_folder (str): Directory expected to contain one or more .mp3 files.
+        last_alert (str | None): The filename of the last track played.
 
     Returns:
         str | None: Absolute path to the selected .mp3 file, or None if no .mp3 is found.
     """
-    global _last_alert                                                      # Access the module-level last-choice guard
     os.makedirs(alert_track_folder, exist_ok=True)                          # Ensure folder exists (no error if present)
 
     tracks = [f for f in os.listdir(alert_track_folder)                     # Collect only .mp3 filenames (case-insensitive)
@@ -148,13 +146,12 @@ def load_alert_track(alert_track_folder: str) -> str | None:
         print("🔇 No .mp3 files found in 'alert_track/'. Continuing without audio alerts.")
         return None
 
-    choices = [t for t in tracks if t != _last_alert] or tracks             # Prefer any file ≠ last; fallback to all if single
+    choices = [t for t in tracks if t != last_alert] or tracks             # Prefer any file ≠ last; fallback to all if single
     track   = random.choice(choices)                                        # Uniform random selection among candidates
-    _last_alert = track                                                     # Update guard to prevent immediate repetition
 
     alert_track_path = os.path.join(alert_track_folder, track)              # Build absolute path to the chosen file
     pygame.mixer.music.load(alert_track_path)                               # Preload into pygame mixer for instant playback
-    return alert_track_path
+    return track  # Return the selected track instead of the path
 
 # _________________________________________________________________________
 # Function to start playback of the loaded alert track
@@ -418,6 +415,12 @@ def pdf_downloader(
 
         # Download queue (chronological), with optional batch pauses and pacing
         for i, (link, file_name) in enumerate(new_downloads, start=1):
+            # Reset the last alert for each new batch
+            if i == 1:                                                      # Reset only when starting a new batch (first file of the batch)
+                _last_alert = None                                          # Reset the last alert for a new batch
+            alert_track_path = load_alert_track(alert_track_folder, _last_alert)
+            _last_alert = alert_track_path                                  # Update _last_alert after the track is loaded
+
             ok = download_pdf(
                 driver=driver,
                 pdf_link=link,
@@ -428,13 +431,13 @@ def pdf_downloader(
                 download_record_txt=download_record_txt,
             )
             if ok:
-                downloaded_files.add(file_name)                             # Update in-memory record immediately
+                downloaded_files.add(file_name)  # Update in-memory record immediately
                 new_counter += 1
 
             # Optional checkpoint every N downloads — useful for long sessions
             if (i % downloads_per_batch == 0) and alert_track_path:
                 play_alert_track()
-                user_input = input("⏸️ Continue? (y = yes, any other key = stop): ") 
+                user_input = input("⏸️ Continue? (y = yes, any other key = stop): ")
                 stop_alert_track()
                 if user_input.lower() != "y":
                     print("🛑 Download stopped by user.")
@@ -445,7 +448,7 @@ def pdf_downloader(
                 print(f"🏁 Download limit of {max_downloads} new PDFs reached.")
                 break
 
-            random_wait(DEFAULT_MIN_WAIT, DEFAULT_MAX_WAIT)                 # Gentle pacing to mimic a human user
+            random_wait(DEFAULT_MIN_WAIT, DEFAULT_MAX_WAIT)  # Gentle pacing to mimic a human user
 
     except StaleElementReferenceException:
         print("⚠️ StaleElementReferenceException encountered. Consider re-running.")  
