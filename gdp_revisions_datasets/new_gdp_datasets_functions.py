@@ -15,7 +15,7 @@
 #       1. Downloading PDFs ...................................................................
 #       2. Generating input PDFs ..............................................................
 #       3. Cleaning data and building vintages ................................................
-#       4. Concatenate vintages across years by frequency......................................
+#       4. Concatenating vintages across years by frequency....................................
 # 
 #   Notes:
 #       "NS/ns" (Nota Semanal, Spanish) is equivalent to "WR/wr" (Weekly Report).
@@ -647,7 +647,7 @@ def replace_defective_pdfs(
     fail = not_found + download_errors + file_op_errors
 
     if verbose:
-        print("\n✅ PDF replacement summary")
+        print("\n📊 PDF replacement summary")
         print(f"   • Succeeded: {ok}")
         print(f"   • Failed:    {fail} "
               f"(not found: {not_found}, download errors: {download_errors}, file ops: {file_op_errors})")
@@ -2712,7 +2712,7 @@ def table_2_cleaner(
 
 
 # ##############################################################################################
-# SECTION 4 Concatenate vintages across years by frequency
+# SECTION 4 Concatenating vintages across years by frequency
 # ##############################################################################################
 
 
