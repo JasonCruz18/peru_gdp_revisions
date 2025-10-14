@@ -2491,7 +2491,7 @@ def table_1_cleaner(
         folder_skipped_count = 0                             # Count skipped tables for this year
 
         # Progress bar for PDFs in the current year
-        pbar = tqdm(pdf_files, desc=f"🚧 {year}", unit="PDF",
+        pbar = tqdm(pdf_files, desc=f"🧹 {year}", unit="PDF",
                     bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}", colour="#E6004C",
                     leave=False, position=0, dynamic_ncols=True)
 
@@ -2632,7 +2632,7 @@ def table_2_cleaner(
         folder_skipped_count = 0                             # Count skipped tables for this year
 
         # Display progress bar for current year
-        pbar = tqdm(pdf_files, desc=f"🚧 {year}", unit="PDF",
+        pbar = tqdm(pdf_files, desc=f"🧹 {year}", unit="PDF",
                     bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}", colour="#E6004C",
                     leave=False, position=0, dynamic_ncols=True)
 
