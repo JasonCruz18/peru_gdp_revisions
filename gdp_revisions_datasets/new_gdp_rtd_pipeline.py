@@ -4,7 +4,7 @@
 # *********************************************************************************************
 #
 #   Program       : new_gdp_rtd_pipeline.py
-#   Project       : Peruvian GDP Revisions
+#   Project       : Building Real-Time Dataset (RTD) for GDP Revisions
 #   Author        : Jason Cruz
 #   Last updated  : 08/13/2025
 #   Python        : 3.12
@@ -15,7 +15,7 @@
 #       1. Downloading PDFs ...................................................................
 #       2. Generating input PDFs ..............................................................
 #       3. Cleaning data and building vintages ................................................
-#       4. Concatenating vintages across years by frequency....................................
+#       4. Concatenating RTD across years by frequency ........................................
 # 
 #   Notes:
 #       "NS/ns" (Nota Semanal, Spanish) is equivalent to "WR/wr" (Weekly Report).
@@ -2712,7 +2712,7 @@ def table_2_cleaner(
 
 
 # ##############################################################################################
-# SECTION 4 Concatenating vintages across years by frequency
+# SECTION 4 Concatenating RTD across years by frequency
 # ##############################################################################################
 
 
