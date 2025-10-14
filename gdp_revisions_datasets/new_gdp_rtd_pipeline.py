@@ -779,7 +779,7 @@ def write_input_pdf_files(input_pdf_files, input_pdf_record_folder, input_pdf_re
     record_path = os.path.join(input_pdf_record_folder, input_pdf_record_txt)
     os.makedirs(input_pdf_record_folder, exist_ok=True)                    # Ensure folder exists
     with open(record_path, "w", encoding="utf-8") as f:
-        for fn in sorted(input_pdf_files):                                  # Stable, predictable order
+        for fn in sorted(input_pdf_files):                                 # Stable, predictable order
             f.write(fn + "\n")
 
 # _________________________________________________________________________
@@ -1024,25 +1024,25 @@ def split_values(df):
 # Function to drop rows where all values are NaN
 def drop_nan_rows(df):
     """Drop any row that is entirely NaN."""
-    df = df.dropna(how='all')
+    df = df.dropna(how='all')                                               # Drop rows with all NaN values
     return df
 
 # _________________________________________________________________________
 # Function to drop columns where all values are NaN
 def drop_nan_columns(df):
     """Drop any column that is entirely NaN."""
-    return df.dropna(axis=1, how='all')
+    return df.dropna(axis=1, how='all')                                     # Drop columns with all NaN values
 
 # _________________________________________________________________________
 # Function to swap first and second rows in both the first and last columns
 def swap_first_second_row(df):
     """Swap [row0,row1] in first and last columns to fix misplaced headers."""
-    temp = df.iloc[0, 0]
-    df.iloc[0, 0] = df.iloc[1, 0]
+    temp = df.iloc[0, 0]                                                    # Temporary store first cell of the first column
+    df.iloc[0, 0] = df.iloc[1, 0]                                           # Swap first row of the first column
     df.iloc[1, 0] = temp
 
-    temp = df.iloc[0, -1]
-    df.iloc[0, -1] = df.iloc[1, -1]
+    temp = df.iloc[0, -1]                                                   # Temporary store first cell of the last column
+    df.iloc[0, -1] = df.iloc[1, -1]                                         # Swap first row of the last column
     df.iloc[1, -1] = temp
     return df
 
@@ -1050,15 +1050,15 @@ def swap_first_second_row(df):
 # Function to reset the DataFrame index
 def reset_index(df):
     """Reset index to a simple RangeIndex after row drops/reorders."""
-    df.reset_index(drop=True, inplace=True)
+    df.reset_index(drop=True, inplace=True)                              # Reset the index of the DataFrame, removing old index
     return df
 
 # _________________________________________________________________________
 # Function to remove digit-slash prefixes in first and last two columns
 def remove_digit_slash(df):
     """Strip patterns like '12/' at the start of values in [first, penultimate, last] columns."""
-    df.iloc[:, [0, -2, -1]] = df.iloc[:, [0, -2, -1]].apply(
-        lambda x: x.str.replace(r'\d+/', '', regex=True)
+    df.iloc[:, [0, -2, -1]] = df.iloc[:, [0, -2, -1]].apply(                # Apply the transformation on the relevant columns
+        lambda x: x.str.replace(r'\d+/', '', regex=True)                    # Remove digit-slash patterns
     )
     return df
 
@@ -1070,14 +1070,14 @@ def separate_text_digits(df):
     - text-only part (moved into the last column when it is NaN)
     - numeric part (kept in the penultimate column; decimal separator harmonized)
     """
-    for index, row in df.iterrows():
-        token = str(row.iloc[-2])
-        if any(char.isdigit() for char in token) and any(char.isalpha() for char in token):
-            if pd.isnull(row.iloc[-1]):                                   # Only split if target is empty
-                df.loc[index, df.columns[-1]] = ''.join(                  # Letters + spaces → last column
+    for index, row in df.iterrows():                                                            # Iterate over each row in the DataFrame
+        token = str(row.iloc[-2])                                                               # Convert token from the penultimate column to string
+        if any(char.isdigit() for char in token) and any(char.isalpha() for char in token):     # Check for mixed content
+            if pd.isnull(row.iloc[-1]):                                                         # Only split if target column is empty
+                df.loc[index, df.columns[-1]] = ''.join(                                        # Assign letters to the last column
                     filter(lambda x: x.isalpha() or x == ' ', token)
                 )
-                df.loc[index, df.columns[-2]] = ''.join(                  # Non-letters → penultimate column
+                df.loc[index, df.columns[-2]] = ''.join(                                        # Assign digits to the penultimate column
                     filter(lambda x: not (x.isalpha() or x == ' '), token)
                 )
 
@@ -1089,8 +1089,8 @@ def separate_text_digits(df):
             else:
                 parts = [token, '']
 
-            cleaned_integer = ''.join(filter(lambda x: x.isdigit() or x == '-', parts[0]))
-            cleaned_decimal = ''.join(filter(lambda x: x.isdigit(), parts[1]))
+            cleaned_integer = ''.join(filter(lambda x: x.isdigit() or x == '-', parts[0]))      # Clean the integer part
+            cleaned_decimal = ''.join(filter(lambda x: x.isdigit(), parts[1]))                  # Clean the decimal part
             cleaned_numeric = f"{cleaned_integer},{cleaned_decimal}" if cleaned_decimal else cleaned_integer
             df.loc[index, df.columns[-2]] = cleaned_numeric
     return df
@@ -1099,15 +1099,15 @@ def separate_text_digits(df):
 # Function to list columns that are 4-digit years
 def extract_years(df):
     """Return a list of column names that are pure 4-digit years."""
-    year_columns = [col for col in df.columns if re.match(r'\b\d{4}\b', col)]
+    year_columns = [col for col in df.columns if re.match(r'\b\d{4}\b', col)]  # Find columns with exactly 4 digits
     return year_columns
 
 # _________________________________________________________________________
 # Function to promote first row to header
 def first_row_columns(df):
     """Set first row as header and drop it from the data area."""
-    df.columns = df.iloc[0]
-    df = df.drop(df.index[0])
+    df.columns = df.iloc[0]                                      # Set the first row as the header
+    df = df.drop(df.index[0])                                    # Drop the first row from the data area
     return df
 
 # _________________________________________________________________________
@@ -1118,23 +1118,22 @@ def clean_columns_values(df):
     Convert string numeric commas to dots across textual and numeric columns.
     Lowercase and sanitize the sector label columns.
     """
-    df.columns = df.columns.str.lower()                                   # Lowercase headings
+    df.columns = df.columns.str.lower()                                                             # Convert column headers to lowercase
     df.columns = [
-        unicodedata.normalize('NFKD', col).encode('ASCII', 'ignore').decode('utf-8')
+        unicodedata.normalize('NFKD', col).encode('ASCII', 'ignore').decode('utf-8')                # Normalize Unicode characters
         if isinstance(col, str) else col
         for col in df.columns
     ]
     df.columns = df.columns.str.replace(' ', '_').str.replace('ano', 'year').str.replace('-', '_')
 
-    text_columns = df.select_dtypes(include='object').columns             # Capture textual columns (not strictly required)
-
+    text_columns = df.select_dtypes(include='object').columns                                       # Capture all textual columns
     for col in df.columns:
-        df.loc[:, col] = df[col].apply(lambda x: remove_tildes(x) if isinstance(x, str) else x)
-        df.loc[:, col] = df[col].apply(lambda x: str(x).replace(',', '.') if isinstance(x, (int, float, str)) else x)
+        df.loc[:, col] = df[col].apply(lambda x: remove_tildes(x) if isinstance(x, str) else x)     # Remove tildes
+        df.loc[:, col] = df[col].apply(lambda x: str(x).replace(',', '.') if isinstance(x, (int, float, str)) else x)  # Replace commas with dots
 
-    df.loc[:, 'sectores_economicos'] = df['sectores_economicos'].str.lower()
+    df.loc[:, 'sectores_economicos'] = df['sectores_economicos'].str.lower()                        # Lowercase the economic sector columns
     df.loc[:, 'economic_sectors']   = df['economic_sectors'].str.lower()
-    df.loc[:, 'sectores_economicos'] = df['sectores_economicos'].apply(remove_rare_characters)
+    df.loc[:, 'sectores_economicos'] = df['sectores_economicos'].apply(remove_rare_characters)      # Clean sector columns
     df.loc[:, 'economic_sectors']    = df['economic_sectors'].apply(remove_rare_characters)
     return df
 
@@ -1142,17 +1141,17 @@ def clean_columns_values(df):
 # Function to convert all non-excluded columns to numeric
 def convert_float(df):
     """Convert all columns except sector-label columns to numeric (coerce on failure)."""
-    excluded_columns   = ['sectores_economicos', 'economic_sectors']
+    excluded_columns   = ['sectores_economicos', 'economic_sectors']                        # Do not convert sector label columns
     columns_to_convert = [col for col in df.columns if col not in excluded_columns]
-    df[columns_to_convert] = df[columns_to_convert].apply(pd.to_numeric, errors='coerce')
+    df[columns_to_convert] = df[columns_to_convert].apply(pd.to_numeric, errors='coerce')   # Convert to numeric, set errors to NaN
     return df
 
 # _________________________________________________________________________
 # Function to move the last column into second position
 def relocate_last_column(df):
     """Relocate the last column to position index 1, preserving order of the rest."""
-    last_column = df.pop(df.columns[-1])
-    df.insert(1, last_column.name, last_column)
+    last_column = df.pop(df.columns[-1])                                        # Remove last column and store it
+    df.insert(1, last_column.name, last_column)                                 # Insert it at second position
     return df
 
 # _________________________________________________________________________
@@ -1163,12 +1162,12 @@ def clean_first_row(df):
     and translate 'ano'→'year' in-place.
     """
     for col in df.columns:
-        if df[col].dtype == 'object':
-            if isinstance(df.at[0, col], str):
-                df.at[0, col] = df.at[0, col].lower()
-                df.at[0, col] = remove_tildes(df.at[0, col])
-                df.at[0, col] = remove_rare_characters_first_row(df.at[0, col])
-                df.at[0, col] = df.at[0, col].replace('ano', 'year')
+        if df[col].dtype == 'object':                                               # Only process string columns
+            if isinstance(df.at[0, col], str):                                      # Apply transformations only on string values
+                df.at[0, col] = df.at[0, col].lower()                               # Lowercase
+                df.at[0, col] = remove_tildes(df.at[0, col])                        # Remove tildes
+                df.at[0, col] = remove_rare_characters_first_row(df.at[0, col])     # Remove rare characters
+                df.at[0, col] = df.at[0, col].replace('ano', 'year')                # Replace 'ano' with 'year'
     return df
 
 # _________________________________________________________________________
@@ -1177,17 +1176,17 @@ def replace_set_sep(df):
     """Rename any column containing 'set' to use 'sep' instead."""
     columns = df.columns
     for column in columns:
-        if 'set' in column:
-            new_column = column.replace('set', 'sep')
-            df.rename(columns={column: new_column}, inplace=True)
+        if 'set' in column:                                                     # Check if 'set' is in the column name
+            new_column = column.replace('set', 'sep')                           # Replace 'set' with 'sep'
+            df.rename(columns={column: new_column}, inplace=True)               # Rename the column
     return df
 
 # _________________________________________________________________________
 # Function to strip extra spaces in sector label columns
 def spaces_se_es(df):
     """Trim surrounding spaces from sector label columns in ES/EN."""
-    df['sectores_economicos'] = df['sectores_economicos'].str.strip()
-    df['economic_sectors']    = df['economic_sectors'].str.strip()
+    df['sectores_economicos'] = df['sectores_economicos'].str.strip()        # Trim spaces from 'sectores_economicos'
+    df['economic_sectors']    = df['economic_sectors'].str.strip()           # Trim spaces from 'economic_sectors'
     return df
 
 # _________________________________________________________________________
@@ -1195,33 +1194,8 @@ def spaces_se_es(df):
 def replace_services(df):
     """Replace 'servicios'→'otros servicios' and 'services'→'other services' when both columns contain those tokens."""
     if ('servicios' in df['sectores_economicos'].values) and ('services' in df['economic_sectors'].values):
-        df['sectores_economicos'].replace({'servicios': 'otros servicios'}, inplace=True)
-        df['economic_sectors'].replace({'services': 'other services'}, inplace=True)
-    return df
-
-# _________________________________________________________________________
-# Function to unify 'mineria' naming in ES sector labels
-def replace_mineria(df):
-    """Replace 'mineria'→'mineria e hidrocarburos' when the latter is otherwise absent."""
-    if ('mineria' in df['sectores_economicos'].values) and ('mineria e hidrocarburos' not in df['sectores_economicos'].values):
-        df['sectores_economicos'].replace({'mineria': 'mineria e hidrocarburos'}, inplace=True)
-    return df
-
-# _________________________________________________________________________
-# Function to unify 'mining and fuels' naming in EN sector labels
-def replace_mining(df):
-    """Replace 'mining and fuels'→'mining and fuel' in EN sector labels."""
-    if ('mining and fuels' in df['economic_sectors'].values):
-        df['economic_sectors'].replace({'mining and fuels': 'mining and fuel'}, inplace=True)
-    return df
-
-# _________________________________________________________________________
-# Function to round all float64 columns to the given number of decimals
-def rounding_values(df, decimals=1):
-    """Round float64 columns to `decimals` places."""
-    for col in df.columns:
-        if df[col].dtype == 'float64':
-            df[col] = df[col].round(decimals)
+        df['sectores_economicos'].replace({'servicios': 'otros servicios'}, inplace=True)   # Replace 'servicios' with 'otros servicios'
+        df['economic_sectors'].replace({'services': 'other services'}, inplace=True)        # Replace 'services' with 'other services'
     return df
 
 
@@ -1236,16 +1210,16 @@ def relocate_last_columns(df):
     If the last column's second row is non-null, create a helper column and relocate
     the penultimate header value to the last column header, clearing the original spot.
     """
-    if not pd.isna(df.iloc[1, -1]):
-        new_column = 'col_' + ''.join(map(str, np.random.randint(1, 5, size=1)))  # Temporary helper column name
-        df[new_column] = np.nan
+    if not pd.isna(df.iloc[1, -1]):                                                 # Check if the second row of the last column is non-null
+        new_column = 'col_' + ''.join(map(str, np.random.randint(1, 5, size=1)))    # Create a temporary helper column name
+        df[new_column] = np.nan                                                     # Add the new column with NaN values
 
-        insert_value_1 = df.iloc[0, -2]                                   # Value to transfer into last column header
-        insert_value_1 = str(insert_value_1)
-        df.iloc[:, -1] = df.iloc[:, -1].astype('object')                  # Ensure string-capable dtype
-        df.iloc[0, -1] = insert_value_1
+        insert_value_1 = df.iloc[0, -2]                                             # Get value to transfer into the last column header
+        insert_value_1 = str(insert_value_1)                                        # Ensure the value is a string
+        df.iloc[:, -1] = df.iloc[:, -1].astype('object')                            # Ensure the last column is treated as a string
+        df.iloc[0, -1] = insert_value_1                                             # Set the penultimate header value in the last column header
 
-        df.iloc[0, -2] = np.nan                                           # Clear original position
+        df.iloc[0, -2] = np.nan                                                     # Clear the original spot in the penultimate column header
     return df
 
 # _________________________________________________________________________
@@ -1255,38 +1229,38 @@ def get_months_sublist_list(df, year_columns):
     Parse the first row to collect month tokens and compose headers as <year>_<month>.
     Preserve the first two original elements if they are not present in the new header list.
     """
-    first_row = df.iloc[0]
-    months_sublist_list = []
-    months_sublist = []
+    first_row = df.iloc[0]                                                      # Get the first row for processing
+    months_sublist_list = []                                                    # Initialize list for months
+    months_sublist = []                                                         # Temporary list for a month group
 
     for item in first_row:
-        if len(str(item)) == 3:                                           # Likely month abbreviations (e.g., 'jan')
+        if len(str(item)) == 3:                                                 # Likely month abbreviations (e.g., 'jan')
             months_sublist.append(item)
-        elif '-' in item or str(item) == 'year':                          # Group boundary markers
+        elif '-' in item or str(item) == 'year':                                # Boundary markers such as 'year' or 'year-month'
             months_sublist.append(item)
-            months_sublist_list.append(months_sublist)
-            months_sublist = []
+            months_sublist_list.append(months_sublist)                          # Add completed month group
+            months_sublist = []                                                 # Reset for next group
 
-    if months_sublist:
+    if months_sublist:                                                          # Append the last group if not empty
         months_sublist_list.append(months_sublist)
 
-    new_elements = []
-    if year_columns:
+    new_elements = []                                                           # Initialize list for new header elements
+    if year_columns:                                                            # Only process if year columns are provided
         for i, year in enumerate(year_columns):
             if i < len(months_sublist_list):
                 for element in months_sublist_list[i]:
-                    new_elements.append(f"{year}_{element}")
+                    new_elements.append(f"{year}_{element}")                    # Combine year and month into one string
 
-    two_first_elements = df.iloc[0][:2].tolist()                          # Safeguard leading identifiers
+    two_first_elements = df.iloc[0][:2].tolist()                                # Safeguard first two elements
     for index in range(len(two_first_elements) - 1, -1, -1):
-        if two_first_elements[index] not in new_elements:
+        if two_first_elements[index] not in new_elements:                       # Ensure the first two elements are added if not present
             new_elements.insert(0, two_first_elements[index])
 
-    while len(new_elements) < len(df.columns):                            # Pad to full width if needed
+    while len(new_elements) < len(df.columns):                                  # Fill remaining spots with None if necessary
         new_elements.append(None)
 
-    temp_df = pd.DataFrame([new_elements], columns=df.columns)            # Single-row temporary DF for aligned assignment
-    df.iloc[0] = temp_df.iloc[0]
+    temp_df = pd.DataFrame([new_elements], columns=df.columns)                  # Create temporary DataFrame for alignment
+    df.iloc[0] = temp_df.iloc[0]                                                # Assign the new header to the DataFrame
     return df
 
 # _________________________________________________________________________
@@ -1296,30 +1270,30 @@ def find_year_column(df):
     Detect 4-digit year columns; if a single year is present and a 'year' token appears
     in a different column header position, rename that token to the adjacent year (±1).
     """
-    found_years = []
+    found_years = []                                                                        # List to store detected years
 
     for column in df.columns:
-        if column.isdigit() and len(column) == 4:
+        if column.isdigit() and len(column) == 4:                                           # Check for columns with a 4-digit year
             found_years.append(column)
 
-    if len(found_years) > 1:
+    if len(found_years) > 1:                                                                # If multiple years are found, do nothing
         pass
-    elif len(found_years) == 1:
-        year_name = found_years[0]
+    elif len(found_years) == 1:                                                             # If one year is found, proceed to fix year-related header
+        year_name = found_years[0]                                                          # Extract the detected year
         first_row = df.iloc[0]
 
-        column_contains_year = first_row[first_row.astype(str).str.contains(r'\byear\b')]
+        column_contains_year = first_row[first_row.astype(str).str.contains(r'\byear\b')]   # Find 'year' token in header
 
         if not column_contains_year.empty:
-            column_contains_year_name  = column_contains_year.index[0]
+            column_contains_year_name = column_contains_year.index[0]                       # Get the column name containing 'year'
             column_contains_year_index = df.columns.get_loc(column_contains_year_name)
-            year_name_index            = df.columns.get_loc(year_name)
+            year_name_index = df.columns.get_loc(year_name)
 
             if column_contains_year_index < year_name_index:
-                new_year = str(int(year_name) - 1)                        # If 'year' is to the left, assign previous year
+                new_year = str(int(year_name) - 1)                                          # If 'year' is to the left, assign previous year
                 df.rename(columns={column_contains_year_name: new_year}, inplace=True)
             elif column_contains_year_index > year_name_index:
-                new_year = str(int(year_name) + 1)                        # If 'year' is to the right, assign next year
+                new_year = str(int(year_name) + 1)                                          # If 'year' is to the right, assign next year
                 df.rename(columns={column_contains_year_name: new_year}, inplace=True)
             else:
                 pass
@@ -1327,7 +1301,7 @@ def find_year_column(df):
             pass
     else:
         pass
-    
+
     return df
 
 # _________________________________________________________________________
@@ -1337,16 +1311,16 @@ def exchange_values(df):
     If the last column has NaNs, swap those cells with the corresponding penultimate
     column values (row-wise) to restore completeness.
     """
-    if len(df.columns) < 2:
+    if len(df.columns) < 2:                                                                 # Ensure DataFrame has more than one column
         print("The DataFrame has less than two columns. Values cannot be exchanged.")
         return df
 
-    if df.iloc[:, -1].isnull().any():
+    if df.iloc[:, -1].isnull().any():                                                       # Check if the last column contains NaNs
         last_column_rows_nan = df[df.iloc[:, -1].isnull()].index
 
-        for idx in last_column_rows_nan:
-            if -2 >= -len(df.columns):
-                df.iloc[idx, -1], df.iloc[idx, -2] = df.iloc[idx, -2], df.iloc[idx, -1]
+        for idx in last_column_rows_nan:                                                    # Iterate over rows with NaNs
+            if -2 >= -len(df.columns):                                                      # Ensure the penultimate column exists
+                df.iloc[idx, -1], df.iloc[idx, -2] = df.iloc[idx, -2], df.iloc[idx, -1]     # Swap values between last and penultimate columns
 
     return df
 
@@ -1354,12 +1328,12 @@ def exchange_values(df):
 # Function to standardize "Var. %" tokens in the first column (ES)
 def replace_var_perc_first_column(df):
     """Replace 'Var.%' variants with 'variacion porcentual' in the first column."""
-    regex = re.compile(r'Var\. ?%')
+    regex = re.compile(r'Var\. ?%')                                                 # Regular expression to match 'Var. %'
 
-    for index, row in df.iterrows():
-        value = str(row.iloc[0])
-        if regex.search(value):
-            df.at[index, df.columns[0]] = regex.sub("variacion porcentual", value)
+    for index, row in df.iterrows():                                                # Iterate through the rows of the DataFrame
+        value = str(row.iloc[0])                                                    # Get the first column value as string
+        if regex.search(value):                                                     # If 'Var. %' is found, replace it
+            df.at[index, df.columns[0]] = regex.sub("variacion porcentual", value)  # Replace with 'variacion porcentual'
     return df
 
 # _________________________________________________________________________
@@ -1370,10 +1344,10 @@ def replace_number_moving_average(df):
     Replace patterns like '2 -' at the start of tokens in the last column with a
     normalized text (e.g., 'three-'), using the global `number_moving_average`.
     """
-    for index, row in df.iterrows():
-        if pd.notnull(row.iloc[-1]) and re.search(r'(\d\s*-)', str(row.iloc[-1])):
+    for index, row in df.iterrows():                                                    # Iterate over rows in the DataFrame
+        if pd.notnull(row.iloc[-1]) and re.search(r'(\d\s*-)', str(row.iloc[-1])):      # Check for numeric pattern
             df.at[index, df.columns[-1]] = re.sub(
-                r'(\d\s*-)', f'{number_moving_average}-', str(row.iloc[-1])
+                r'(\d\s*-)', f'{number_moving_average}-', str(row.iloc[-1])             # Replace numeric pattern with the moving average descriptor
             )
     return df
 
@@ -1381,15 +1355,15 @@ def replace_number_moving_average(df):
 # Function to standardize "Var. %" tokens in the last two columns (EN)
 def replace_var_perc_last_columns(df):
     """Replace 'Var.%' variants with 'percent change' in the last two columns."""
-    regex = re.compile(r'(Var\. ?%)(.*)')
+    regex = re.compile(r'(Var\. ?%)(.*)')                                           # Regular expression to match 'Var. %'
 
-    for index, row in df.iterrows():
-        if isinstance(row.iloc[-2], str) and regex.search(row.iloc[-2]):
-            replaced_text = regex.sub(r'\2 percent change', row.iloc[-2])
+    for index, row in df.iterrows():                                                # Iterate over the rows of the DataFrame
+        if isinstance(row.iloc[-2], str) and regex.search(row.iloc[-2]):            # Check if the penultimate column contains 'Var. %'
+            replaced_text = regex.sub(r'\2 percent change', row.iloc[-2])           # Replace with 'percent change'
             df.at[index, df.columns[-2]] = replaced_text.strip()
-        
-        if isinstance(row.iloc[-1], str) and regex.search(row.iloc[-1]):
-            replaced_text = regex.sub(r'\2 percent change', row.iloc[-1])
+
+        if isinstance(row.iloc[-1], str) and regex.search(row.iloc[-1]):            # Check if the last column contains 'Var. %'
+            replaced_text = regex.sub(r'\2 percent change', row.iloc[-1])           # Replace with 'percent change'
             df.at[index, df.columns[-1]] = replaced_text.strip()
     return df
 
@@ -1397,21 +1371,21 @@ def replace_var_perc_last_columns(df):
 # Function to change the first dot in row 2 into a hyphen pattern across columns
 def replace_first_dot(df):
     """If a cell on the second row matches 'Word.Word', replace the first dot with a hyphen."""
-    second_row = df.iloc[1]
+    second_row = df.iloc[1]                                                                         # Get the second row for processing
 
-    if any(isinstance(cell, str) and re.match(r'^\w+\.\s?\w+', cell) for cell in second_row):
-        for col in df.columns:
-            if isinstance(second_row[col], str):
-                if re.match(r'^\w+\.\s?\w+', second_row[col]):
-                    df.at[1, col] = re.sub(r'(\w+)\.(\s?\w+)', r'\1-\2', second_row[col], count=1)
+    if any(isinstance(cell, str) and re.match(r'^\w+\.\s?\w+', cell) for cell in second_row):       # Check if any cell matches 'Word.Word'
+        for col in df.columns:                                                                      # Iterate over all columns
+            if isinstance(second_row[col], str):                                                    # Ensure the cell is a string
+                if re.match(r'^\w+\.\s?\w+', second_row[col]):                                      # Check for 'Word.Word' pattern
+                    df.at[1, col] = re.sub(r'(\w+)\.(\s?\w+)', r'\1-\2', second_row[col], count=1)  # Replace first dot with hyphen
     return df
 
 # _________________________________________________________________________
 # Function to drop rows containing the '}' character anywhere
 def drop_rare_caracter_row(df):
     """Remove any row where the '}' character appears in any cell."""
-    rare_caracter_row = df.apply(lambda row: '}' in row.values, axis=1)
-    df = df[~rare_caracter_row]
+    rare_caracter_row = df.apply(lambda row: '}' in row.values, axis=1)         # Find rows containing '}' character
+    df = df[~rare_caracter_row]                                                 # Remove rows with rare character
     return df
 
 # _________________________________________________________________________
@@ -1422,11 +1396,11 @@ def split_column_by_pattern(df):
     and insert the second token into a new '<col>_split' column immediately to the right.
     """
     for col in df.columns:
-        if re.match(r'^[A-Z][a-z]+\.?\s[A-Z][a-z]+\.?$', str(df.iloc[1][col])):
-            split_values = df[col].str.split(expand=True)
-            df[col] = split_values[0]
-            new_col_name = col + '_split'
-            df.insert(df.columns.get_loc(col) + 1, new_col_name, split_values[1])
+        if re.match(r'^[A-Z][a-z]+\.?\s[A-Z][a-z]+\.?$', str(df.iloc[1][col])):     # Check for 'Word.Word' pattern in second row
+            split_values = df[col].str.split(expand=True)                           # Split the column by whitespace
+            df[col] = split_values[0]                                               # Assign first token to original column
+            new_col_name = col + '_split'                                           # Create new column name
+            df.insert(df.columns.get_loc(col) + 1, new_col_name, split_values[1])   # Insert second token in new column
     return df
 
 
@@ -1445,11 +1419,11 @@ def split_column_by_pattern(df):
 # Function to swap NaN and 'SECTORES ECONÓMICOS' in the first row, then drop the empty column
 def swap_nan_se(df):
     """Place 'SECTORES ECONÓMICOS' in the first column header when it drifted to the second."""
-    if pd.isna(df.iloc[0, 0]) and df.iloc[0, 1] == "SECTORES ECONÓMICOS":
-        column_1_value = df.iloc[0, 1]
-        df.iloc[0, 0] = column_1_value
-        df.iloc[0, 1] = np.nan
-        df = df.drop(df.columns[1], axis=1)
+    if pd.isna(df.iloc[0, 0]) and df.iloc[0, 1] == "SECTORES ECONÓMICOS":       # Check if 'SECTORES ECONÓMICOS' is in the second column and the first column is NaN
+        column_1_value = df.iloc[0, 1]                                          # Store the value of 'SECTORES ECONÓMICOS' from the second column
+        df.iloc[0, 0] = column_1_value                                          # Place it in the first column
+        df.iloc[0, 1] = np.nan                                                  # Set the second column to NaN
+        df = df.drop(df.columns[1], axis=1)                                     # Drop the now empty second column
     return df
 
 
@@ -1463,12 +1437,12 @@ def replace_first_row_with_columns(df):
     If the first row contains 4-digit year tokens, fill NaN cells with 'column_<idx>'
     and promote the first row to be the header.
     """
-    if any(isinstance(element, str) and element.isdigit() and len(element) == 4 for element in df.iloc[0]):
-        for col_index, value in enumerate(df.iloc[0]):
-            if pd.isna(value):
-                df.iloc[0, col_index] = f"column_{col_index + 1}"
-        df.columns = df.iloc[0]
-        df = df.drop(df.index[0])
+    if any(isinstance(element, str) and element.isdigit() and len(element) == 4 for element in df.iloc[0]):     # Check for 4-digit year tokens in the first row
+        for col_index, value in enumerate(df.iloc[0]):                                                          # Iterate through the first row
+            if pd.isna(value):                                                                                  # If a value is NaN
+                df.iloc[0, col_index] = f"column_{col_index + 1}"                                               # Replace with synthetic column name like 'column_1'
+        df.columns = df.iloc[0]                                                                                 # Promote the first row as the new header
+        df = df.drop(df.index[0])                                                                               # Drop the first row since it's now the header
     return df
 
 # _________________________________________________________________________
@@ -1478,29 +1452,29 @@ def expand_column(df):
     For the penultimate column, normalize 'word-word' to 'word word', move trailing text to
     the last column (row-wise), and keep only numeric/textual parts separated.
     """
-    column_to_expand = df.columns[-2]
+    column_to_expand = df.columns[-2]                                                                               # Identify the penultimate column
     
     def replace_hyphens(match_obj):
-        return match_obj.group(1) + ' ' + match_obj.group(2)
+        return match_obj.group(1) + ' ' + match_obj.group(2)                                                        # Replace hyphen between words with a space
 
-    if df[column_to_expand].str.contains(r'\d').any() and df[column_to_expand].str.contains(r'[a-zA-Z]').any():
+    if df[column_to_expand].str.contains(r'\d').any() and df[column_to_expand].str.contains(r'[a-zA-Z]').any():     # Check for mixed numeric and textual data
         df[column_to_expand] = df[column_to_expand].apply(
-            lambda x: re.sub(r'([a-zA-Z]+)\s*-\s*([a-zA-Z]+)', replace_hyphens, str(x)) if pd.notnull(x) else x
+            lambda x: re.sub(r'([a-zA-Z]+)\s*-\s*([a-zA-Z]+)', replace_hyphens, str(x)) if pd.notnull(x) else x     # Apply regex to normalize hyphen
         )
         
-        pattern = re.compile(r'[a-zA-Z\s]+$')
+        pattern = re.compile(r'[a-zA-Z\s]+$')                                                                       # Regex to match trailing text (letters or spaces)
 
         def extract_replace(row):
-            if pd.notnull(row[column_to_expand]) and isinstance(row[column_to_expand], str):
-                if row.name != 0:
-                    value_to_replace = pattern.search(row[column_to_expand])
+            if pd.notnull(row[column_to_expand]) and isinstance(row[column_to_expand], str):                        # If there's a valid string to process
+                if row.name != 0:                                                                                   # Ensure this isn't the first row
+                    value_to_replace = pattern.search(row[column_to_expand])                                        # Search for trailing text
                     if value_to_replace:
-                        value_to_replace = value_to_replace.group().strip()
-                        row[df.columns[-1]] = value_to_replace
-                        row[column_to_expand] = re.sub(pattern, '', row[column_to_expand]).strip()
+                        value_to_replace = value_to_replace.group().strip()                                         # Clean the extracted value
+                        row[df.columns[-1]] = value_to_replace                                                      # Place the extracted value in the last column
+                        row[column_to_expand] = re.sub(pattern, '', row[column_to_expand]).strip()                  # Remove the trailing text from the original column
             return row
 
-        df = df.apply(extract_replace, axis=1)
+        df = df.apply(extract_replace, axis=1)                                                                      # Apply the changes row-wise
 
     return df
 
@@ -1508,13 +1482,13 @@ def expand_column(df):
 # Function to split penultimate column into multiple columns (whitespace)
 def split_values_1(df):
     """Split the penultimate column by whitespace and insert the parts before the last column."""
-    column_to_expand = df.columns[-2]
-    new_columns = df[column_to_expand].str.split(expand=True)
-    new_columns.columns = [f'{column_to_expand}_{i+1}' for i in range(new_columns.shape[1])]
-    insertion_position = len(df.columns) - 1
-    for col in reversed(new_columns.columns):
+    column_to_expand = df.columns[-2]                                                           # Identify the penultimate column
+    new_columns = df[column_to_expand].str.split(expand=True)                                   # Split the values in the column by whitespace
+    new_columns.columns = [f'{column_to_expand}_{i+1}' for i in range(new_columns.shape[1])]    # Rename new columns with an index suffix
+    insertion_position = len(df.columns) - 1                                                    # Determine the position before the last column
+    for col in reversed(new_columns.columns):                                                   # Insert each new column in reverse order to avoid overwriting
         df.insert(insertion_position, col, new_columns[col])
-    df.drop(columns=[column_to_expand], inplace=True)
+    df.drop(columns=[column_to_expand], inplace=True)                                           # Drop the original penultimate column
     return df
 
 
@@ -1528,22 +1502,22 @@ def check_first_row(df):
     Detect cells like '2018 2019' in row 0; rename such columns with synthetic names and backfill
     year tokens into the first two columns if missing.
     """
-    first_row = df.iloc[0]
+    first_row = df.iloc[0]                                                      # Get the first row for processing
     
-    for i, (col, value) in enumerate(first_row.items()):
-        if re.search(r'\b\d{4}\s\d{4}\b', str(value)):
-            years = value.split()
-            first_year  = years[0]
-            second_year = years[1]
+    for i, (col, value) in enumerate(first_row.items()):                        # Iterate through the columns in the first row
+        if re.search(r'\b\d{4}\s\d{4}\b', str(value)):                          # Detect year pair patterns (e.g., '2018 2019')
+            years = value.split()                                               # Split the value into two separate years
+            first_year  = years[0]                                              # First year
+            second_year = years[1]                                              # Second year
             
-            original_column_name = f'col_{i}'
-            df.at[0, col] = original_column_name
+            original_column_name = f'col_{i}'                                   # Create synthetic column name for this entry
+            df.at[0, col] = original_column_name                                # Replace the header with the synthetic name
             
-            if pd.isna(df.iloc[0, 0]):
-                df.iloc[0, 0] = first_year
+            if pd.isna(df.iloc[0, 0]):                                          # If the first header cell is NaN
+                df.iloc[0, 0] = first_year                                      # Fill the first header cell with the first year
             
-            if pd.isna(df.iloc[0, 1]):
-                df.iloc[0, 1] = second_year
+            if pd.isna(df.iloc[0, 1]):                                          # If the second header cell is NaN
+                df.iloc[0, 1] = second_year                                     # Fill the second header cell with the second year
     
     return df
 
@@ -1554,13 +1528,13 @@ def replace_nan_with_previous_column_3(df):
     For any pair of adjacent columns where the right column has NaNs and does not end with '_year',
     swap values with the left column that ends with '_year' and is fully non-null.
     """
-    columns = df.columns
+    columns = df.columns                                                                                                    # Get all the columns in the DataFrame
     
-    for i in range(len(columns) - 1):
-        if i != len(columns) - 1 and (columns[i].endswith('_year') and not df[columns[i]].isnull().any()):
-            if df[columns[i+1]].isnull().any() and not columns[i+1].endswith('_year'):
-                nan_indices = df[columns[i+1]].isnull()
-                df.loc[nan_indices, [columns[i], columns[i+1]]] = df.loc[nan_indices, [columns[i+1], columns[i]]].values
+    for i in range(len(columns) - 1):                                                                                       # Iterate over the columns, except the last one
+        if i != len(columns) - 1 and (columns[i].endswith('_year') and not df[columns[i]].isnull().any()):                  # Check if the current column ends with '_year' and has no NaNs
+            if df[columns[i+1]].isnull().any() and not columns[i+1].endswith('_year'):                                      # Check if the next column has NaNs and is not a year column
+                nan_indices = df[columns[i+1]].isnull()                                                                     # Get the indices with NaNs in the next column
+                df.loc[nan_indices, [columns[i], columns[i+1]]] = df.loc[nan_indices, [columns[i+1], columns[i]]].values    # Swap the values
     return df
 
 
@@ -1574,17 +1548,17 @@ def check_first_row_1(df):
     If first or second header cells are NaN and the trailing cells contain 4-digit years,
     move those years forward and clear their original positions.
     """
-    if pd.isnull(df.iloc[0, 0]):
-        penultimate_column = df.iloc[0, -2]
-        if isinstance(penultimate_column, str) and len(penultimate_column) == 4 and penultimate_column.isdigit():
-            df.iloc[0, 0] = penultimate_column
-            df.iloc[0, -2] = np.nan
+    if pd.isnull(df.iloc[0, 0]):                                                                                    # Check if the first cell in the header is NaN
+        penultimate_column = df.iloc[0, -2]                                                                         # Get the penultimate column value
+        if isinstance(penultimate_column, str) and len(penultimate_column) == 4 and penultimate_column.isdigit():   # If it's a 4-digit year
+            df.iloc[0, 0] = penultimate_column                                                                      # Move it to the first header cell
+            df.iloc[0, -2] = np.nan                                                                                 # Clear the penultimate column header
     
-    if pd.isnull(df.iloc[0, 1]):
-        last_column = df.iloc[0, -1]
-        if isinstance(last_column, str) and len(last_column) == 4 and last_column.isdigit():
-            df.iloc[0, 1] = last_column
-            df.iloc[0, -1] = np.nan
+    if pd.isnull(df.iloc[0, 1]):                                                                                    # Check if the second cell in the header is NaN
+        last_column = df.iloc[0, -1]                                                                                # Get the last column value
+        if isinstance(last_column, str) and len(last_column) == 4 and last_column.isdigit():                        # If it's a 4-digit year
+            df.iloc[0, 1] = last_column                                                                             # Move it to the second header cell
+            df.iloc[0, -1] = np.nan                                                                                 # Clear the last column header
     
     return df
 
@@ -1592,13 +1566,13 @@ def check_first_row_1(df):
 # Function to split the 4th-from-last column into multiple columns (whitespace)
 def split_values_2(df):
     """Split the fourth-from-last column and insert new parts before the last three columns."""
-    column_to_expand = df.columns[-4]
-    new_columns = df[column_to_expand].str.split(expand=True)
-    new_columns.columns = [f'{column_to_expand}_{i+1}' for i in range(new_columns.shape[1])]
-    insertion_position = len(df.columns) - 3
-    for col in reversed(new_columns.columns):
+    column_to_expand = df.columns[-4]                                                           # Identify the fourth-from-last column
+    new_columns = df[column_to_expand].str.split(expand=True)                                   # Split the values in the column by whitespace
+    new_columns.columns = [f'{column_to_expand}_{i+1}' for i in range(new_columns.shape[1])]    # Rename new columns with an index suffix
+    insertion_position = len(df.columns) - 3                                                    # Determine the position before the last three columns
+    for col in reversed(new_columns.columns):                                                   # Insert each new column in reverse order to avoid overwriting
         df.insert(insertion_position, col, new_columns[col])
-    df.drop(columns=[column_to_expand], inplace=True)
+    df.drop(columns=[column_to_expand], inplace=True)                                           # Drop the original column
     return df
 
 
@@ -1609,39 +1583,39 @@ def split_values_2(df):
 # Function to split the third-from-last column into multiple columns (whitespace)
 def split_values_3(df):
     """Split the third-from-last column and insert new parts before the last two columns."""
-    column_to_expand = df.columns[-3]
-    new_columns = df[column_to_expand].str.split(expand=True)
-    new_columns.columns = [f'{column_to_expand}_{i+1}' for i in range(new_columns.shape[1])]
-    insertion_position = len(df.columns) - 2
-    for col in reversed(new_columns.columns):
+    column_to_expand = df.columns[-3]                                                           # Identify the third-from-last column
+    new_columns = df[column_to_expand].str.split(expand=True)                                   # Split the values in the column by whitespace
+    new_columns.columns = [f'{column_to_expand}_{i+1}' for i in range(new_columns.shape[1])]    # Rename new columns with an index suffix
+    insertion_position = len(df.columns) - 2                                                    # Determine the position before the last two columns
+    for col in reversed(new_columns.columns):                                                   # Insert each new column in reverse order to avoid overwriting
         df.insert(insertion_position, col, new_columns[col])
-    df.drop(columns=[column_to_expand], inplace=True)
+    df.drop(columns=[column_to_expand], inplace=True)                                           # Drop the original column
     return df
 
 # _________________________________________________________________________
 # Function to swap with previous column when the right column has NaNs (variant 1)
 def replace_nan_with_previous_column_1(df):
     """Swap values with the previous column if the right one contains NaNs and is not a '_year' column."""
-    columns = df.columns
+    columns = df.columns                                                                                                    # Get all columns in the DataFrame
     
-    for i in range(len(columns) - 1):
-        if i != len(columns) - 2 and not (columns[i].endswith('_year') and df[columns[i]].isnull().any()):
-            if df[columns[i+1]].isnull().any() and not columns[i+1].endswith('_year'):
-                nan_indices = df[columns[i+1]].isnull()
-                df.loc[nan_indices, [columns[i], columns[i+1]]] = df.loc[nan_indices, [columns[i+1], columns[i]]].values
+    for i in range(len(columns) - 1):                                                                                       # Iterate over the columns, except the last one
+        if i != len(columns) - 2 and not (columns[i].endswith('_year') and df[columns[i]].isnull().any()):                  # Check for '_year' columns with no NaNs
+            if df[columns[i+1]].isnull().any() and not columns[i+1].endswith('_year'):                                      # Check if the next column has NaNs and is not a year column
+                nan_indices = df[columns[i+1]].isnull()                                                                     # Get the indices of NaN values in the next column
+                df.loc[nan_indices, [columns[i], columns[i+1]]] = df.loc[nan_indices, [columns[i+1], columns[i]]].values    # Swap the values
     return df
 
 # _________________________________________________________________________
 # Function to swap with previous column when the right column has NaNs (variant 2)
 def replace_nan_with_previous_column_2(df):
     """Same as variant 1; included for WR-specific patterns that require a second pass."""
-    columns = df.columns
+    columns = df.columns                                                                                                    # Get all columns in the DataFrame
     
-    for i in range(len(columns) - 1):
-        if i != len(columns) - 2 and not (columns[i].endswith('_year') and df[columns[i]].isnull().any()):
-            if df[columns[i+1]].isnull().any() and not columns[i+1].endswith('_year'):
-                nan_indices = df[columns[i+1]].isnull()
-                df.loc[nan_indices, [columns[i], columns[i+1]]] = df.loc[nan_indices, [columns[i+1], columns[i]]].values
+    for i in range(len(columns) - 1):                                                                                       # Iterate over the columns, except the last one
+        if i != len(columns) - 2 and not (columns[i].endswith('_year') and df[columns[i]].isnull().any()):                  # Check for '_year' columns with no NaNs
+            if df[columns[i+1]].isnull().any() and not columns[i+1].endswith('_year'):                                      # Check if the next column has NaNs and is not a year column
+                nan_indices = df[columns[i+1]].isnull()                                                                     # Get the indices of NaN values in the next column
+                df.loc[nan_indices, [columns[i], columns[i+1]]] = df.loc[nan_indices, [columns[i+1], columns[i]]].values    # Swap the values
     return df
 
 
@@ -1656,13 +1630,13 @@ def separate_years(df):
     If the penultimate header cell contains 'YYYY YYYY', keep the first in place and
     insert the second as a new column immediately before the last column.
     """
-    df = df.copy()
-    if isinstance(df.iloc[0, -2], str) and len(df.iloc[0, -2].split()) == 2:
-        years = df.iloc[0, -2].split()
-        if all(len(year) == 4 for year in years):
-            second_year = years[1]
-            df.iloc[0, -2] = years[0]
-            df.insert(len(df.columns) - 1, 'new_column', [second_year] + [None] * (len(df) - 1))
+    df = df.copy()                                                                                  # Create a copy to avoid modifying the original DataFrame
+    if isinstance(df.iloc[0, -2], str) and len(df.iloc[0, -2].split()) == 2:                        # Check if the penultimate column has two space-separated years
+        years = df.iloc[0, -2].split()                                                              # Split the string into two parts
+        if all(len(year) == 4 for year in years):                                                   # Ensure both parts are 4-digit years
+            second_year = years[1]                                                                  # Get the second year
+            df.iloc[0, -2] = years[0]                                                               # Assign the first year back to the penultimate column
+            df.insert(len(df.columns) - 1, 'new_column', [second_year] + [None] * (len(df) - 1))    # Insert the second year as a new column
     return df
 
 # _________________________________________________________________________
@@ -1672,14 +1646,14 @@ def relocate_roman_numerals(df):
     Detect Roman numerals in the third row's last column, strip them from that cell,
     move them into 'new_column', and set the original cell to NaN.
     """
-    roman_numerals = find_roman_numerals(df.iloc[2, -1])
+    roman_numerals = find_roman_numerals(df.iloc[2, -1])                        # Find Roman numerals in the last cell of row 2
     if roman_numerals:
-        original_text = df.iloc[2, -1]
-        for roman_numeral in roman_numerals:
-            original_text = original_text.replace(roman_numeral, '').strip()
-        df.iloc[2, -1] = original_text
-        df.at[2, 'new_column'] = ', '.join(roman_numerals)
-        df.iloc[2, -1] = np.nan
+        original_text = df.iloc[2, -1]                                          # Store the original content
+        for roman_numeral in roman_numerals:                                    # For each Roman numeral found
+            original_text = original_text.replace(roman_numeral, '').strip()    # Remove Roman numerals from the text
+        df.iloc[2, -1] = original_text                                          # Update the original cell with the cleaned text
+        df.at[2, 'new_column'] = ', '.join(roman_numerals)                      # Move the Roman numerals to a new column
+        df.iloc[2, -1] = np.nan                                                 # Set the original cell to NaN
     return df
 
 # _________________________________________________________________________
@@ -1689,51 +1663,51 @@ def extract_mixed_values(df):
     If the third-from-last column contains patterns like '-1,2 text', move that token into
     the penultimate column (when empty) and clean the source cell.
     """
-    df = df.copy()
-    regex_pattern = r'(-?\d+,\d [a-zA-Z\s]+)'
-    for index, row in df.iterrows():
-        third_last_obs  = row.iloc[-3]
-        second_last_obs = row.iloc[-2]
+    df = df.copy()                                                                      # Create a copy to avoid modifying the original DataFrame
+    regex_pattern = r'(-?\d+,\d [a-zA-Z\s]+)'                                           # Define the regex pattern to capture the mixed numeric-textual tokens
+    for index, row in df.iterrows():                                                    # Iterate over each row in the DataFrame
+        third_last_obs  = row.iloc[-3]                                                  # Get the value from the third-to-last column
+        second_last_obs = row.iloc[-2]                                                  # Get the value from the second-to-last column
 
-        if isinstance(third_last_obs, str) and pd.notnull(third_last_obs):
-            match = re.search(regex_pattern, third_last_obs)
+        if isinstance(third_last_obs, str) and pd.notnull(third_last_obs):              # If the value is a valid string and not NaN
+            match = re.search(regex_pattern, third_last_obs)                            # Try to match the regex pattern
             if match:
-                extracted_part = match.group(0)
-                if pd.isna(second_last_obs) or pd.isnull(second_last_obs):
-                    df.iloc[index, -2] = extracted_part
-                    third_last_obs = re.sub(regex_pattern, '', third_last_obs).strip()
-                    df.iloc[index, -3] = third_last_obs
+                extracted_part = match.group(0)                                         # Extract the matched portion
+                if pd.isna(second_last_obs) or pd.isnull(second_last_obs):              # If the second-to-last column is empty
+                    df.iloc[index, -2] = extracted_part                                 # Place the extracted value in the second-to-last column
+                    third_last_obs = re.sub(regex_pattern, '', third_last_obs).strip()  # Remove the extracted part from the original cell
+                    df.iloc[index, -3] = third_last_obs                                 # Update the third-to-last column with the cleaned text
     return df
 
 # _________________________________________________________________________
 # Function to fill NaN values in the first row with their column names
 def replace_first_row_nan(df):
     """Replace NaNs in the first row with the corresponding column name."""
-    for col in df.columns:
-        if pd.isna(df.iloc[0][col]):
-            df.iloc[0, df.columns.get_loc(col)] = col
+    for col in df.columns:                              # Iterate over the columns
+        if pd.isna(df.iloc[0][col]):                    # Check if the cell in the first row is NaN
+            df.iloc[0, df.columns.get_loc(col)] = col   # Replace NaN with the column name
     return df
 
 # _________________________________________________________________________
 # Function to convert Roman numerals in the first row to Arabic numerals
 def roman_arabic(df):
     """Convert any Roman numeral tokens in the first row into Arabic numerals."""
-    first_row = df.iloc[0]
+    first_row = df.iloc[0]                                              # Get the first row
     
     def convert_roman_number(number):
         try:
-            return str(roman.fromRoman(number))
-        except roman.InvalidRomanNumeralError:
-            return number
+            return str(roman.fromRoman(number))                         # Convert Roman numeral to Arabic
+        except roman.InvalidRomanNumeralError:                          # Handle invalid Roman numerals
+            return number                                               # Return the original value if conversion fails
 
-    converted_first_row = []
-    for value in first_row:
-        if isinstance(value, str) and not pd.isna(value):
-            converted_first_row.append(convert_roman_number(value))
+    converted_first_row = []                                            # Prepare an empty list to store the converted values
+    for value in first_row:                                             # Iterate over the values in the first row
+        if isinstance(value, str) and not pd.isna(value):               # If the value is a string and not NaN
+            converted_first_row.append(convert_roman_number(value))     # Convert Roman numeral to Arabic
         else:
-            converted_first_row.append(value)
+            converted_first_row.append(value)                           # If not a Roman numeral, keep the original value
 
-    df.iloc[0] = converted_first_row
+    df.iloc[0] = converted_first_row                                    # Update the first row with the converted values
     return df
 
 # _________________________________________________________________________
@@ -1743,32 +1717,32 @@ def fix_duplicates(df):
     Ensure strictly increasing numeric tokens across the first row when duplicates appear.
     Subsequent duplicates are incremented in sequence.
     """
-    second_row = df.iloc[0].copy()
-    prev_num = None
-    first_one_index = None
+    second_row = df.iloc[0].copy()                                          # Copy the first row to avoid modifying the original DataFrame
+    prev_num = None                                                         # Initialize previous number tracker
+    first_one_index = None                                                  # Track the first occurrence of the number 1
 
-    for i, num in enumerate(second_row):
+    for i, num in enumerate(second_row):                                    # Iterate through the first row
         try:
-            num = int(num)
-            prev_num = int(prev_num) if prev_num is not None else None
+            num = int(num)                                                  # Try to convert the value to an integer
+            prev_num = int(prev_num) if prev_num is not None else None      # If a previous number exists, cast to integer
 
-            if num == prev_num:
-                if num == 1:
+            if num == prev_num:                                             # If the current number is equal to the previous one
+                if num == 1:                                                # If the number is 1, handle as a special case
                     if first_one_index is None:
-                        first_one_index = i - 1
-                    next_num = int(second_row[i - 1]) + 1
-                    for j in range(i, len(second_row)):
-                        if str(second_row.iloc[j]).isdigit():
-                            second_row.iloc[j] = str(next_num)
-                            next_num += 1
-                elif i - 1 >= 0:
+                        first_one_index = i - 1                             # Track the first occurrence of 1
+                    next_num = int(second_row[i - 1]) + 1                   # Increment the previous value
+                    for j in range(i, len(second_row)):                     # Iterate over the remaining values
+                        if str(second_row.iloc[j]).isdigit():               # If the value is a digit
+                            second_row.iloc[j] = str(next_num)              # Assign the incremented value
+                            next_num += 1                                   # Increment for the next duplicate
+                elif i - 1 >= 0:                                            # If not the first index, increment the previous value
                     second_row.iloc[i] = str(int(second_row.iloc[i - 1]) + 1)
 
-            prev_num = num
+            prev_num = num                                                  # Update the previous number tracker
         except ValueError:
-            pass
+            pass                                                            # Skip non-numeric values
 
-    df.iloc[0] = second_row
+    df.iloc[0] = second_row                                                 # Update the first row with the new values
     return df
 
 # _________________________________________________________________________
@@ -1778,38 +1752,38 @@ def get_quarters_sublist_list(df, year_columns):
     Parse the first row to collect single-char quarter labels and compose headers as <year>_<q>.
     Preserve the first two original elements if they are not present in the result.
     """
-    first_row = df.iloc[0]
-    quarters_sublist_list = []                                            # List of quarter groups per year
-    quarters_sublist = []
+    first_row = df.iloc[0]                                      # Get the first row to extract quarter labels
+    quarters_sublist_list = []                                  # List of quarter groups per year
+    quarters_sublist = []                                       # Temporary list to hold quarters for the current year
 
-    for item in first_row:
-        if len(str(item)) == 1:                                           # Single-char quarter (e.g., '1','2','3','4')
+    for item in first_row:                                      # Iterate over each element in the first row
+        if len(str(item)) == 1:                                 # Single-character quarter label (e.g., '1', '2', '3', '4')
             quarters_sublist.append(item)
-        elif str(item) == 'year':
-            quarters_sublist.append(item)
-            quarters_sublist_list.append(quarters_sublist)
-            quarters_sublist = []
+        elif str(item) == 'year':                               # Marker for year columns
+            quarters_sublist.append(item)                       # Add the 'year' token to the current sublist
+            quarters_sublist_list.append(quarters_sublist)      # Add the current sublist to the list of sublists
+            quarters_sublist = []                               # Reset for the next year
 
-    if quarters_sublist:
+    if quarters_sublist:                                        # If there are any remaining quarters, add them to the list
         quarters_sublist_list.append(quarters_sublist)
 
-    new_elements = []
-    if year_columns:
-        for i, year in enumerate(year_columns):
-            if i < len(quarters_sublist_list):
-                for element in quarters_sublist_list[i]:
+    new_elements = []                                           # List to hold the new column names
+    if year_columns:                                            # If there are year columns provided
+        for i, year in enumerate(year_columns):                 # Iterate through the year columns
+            if i < len(quarters_sublist_list):                  # If there's a corresponding quarter list
+                for element in quarters_sublist_list[i]:        # Append the year-quarter combinations
                     new_elements.append(f"{year}_{element}")
 
-    two_first_elements = df.iloc[0][:2].tolist()                          # Preserve first two header tokens
-    for index in range(len(two_first_elements) - 1, -1, -1):
+    two_first_elements = df.iloc[0][:2].tolist()                # Preserve the first two elements from the original header
+    for index in range(len(two_first_elements) - 1, -1, -1):    # Ensure the first two elements are included in the new headers
         if two_first_elements[index] not in new_elements:
             new_elements.insert(0, two_first_elements[index])
 
-    while len(new_elements) < len(df.columns):                            # Pad to full width if needed
+    while len(new_elements) < len(df.columns):                  # Pad with None values to match the number of columns
         new_elements.append(None)
 
-    temp_df = pd.DataFrame([new_elements], columns=df.columns)
-    df.iloc[0] = temp_df.iloc[0]
+    temp_df = pd.DataFrame([new_elements], columns=df.columns)  # Create a temporary DataFrame with the new headers
+    df.iloc[0] = temp_df.iloc[0]                                # Update the original DataFrame with the new headers
     return df
 
 
@@ -1828,9 +1802,9 @@ def get_quarters_sublist_list(df, year_columns):
 # Function to drop the first row if it is entirely NaN
 def drop_nan_row(df):
     """If the first row is all NaN, drop it and reset the index."""
-    if df.iloc[0].isnull().all():
-        df = df.drop(index=0)
-        df.reset_index(drop=True, inplace=True)
+    if df.iloc[0].isnull().all():                   # Check if the first row has all NaN values
+        df = df.drop(index=0)                       # Drop the first row
+        df.reset_index(drop=True, inplace=True)     # Reset the index after dropping the row
     return df
 
 
@@ -1844,17 +1818,17 @@ def last_column_es(df):
     If the last column header is 'ECONOMIC SECTORS' and the second row in that column is non-null,
     insert a new helper column and relocate the adjacent header value into the last column header.
     """
-    if df[df.columns[-1]].iloc[0] == 'ECONOMIC SECTORS':
-        if pd.notnull(df[df.columns[-1]].iloc[1]):
-            new_column_name = f"col_{len(df.columns)}"                    # Name helper column based on width
-            df[new_column_name] = np.nan
+    if df[df.columns[-1]].iloc[0] == 'ECONOMIC SECTORS':        # Check if the last column header is 'ECONOMIC SECTORS'
+        if pd.notnull(df[df.columns[-1]].iloc[1]):              # Ensure that the second row in the column is not NaN
+            new_column_name = f"col_{len(df.columns)}"          # Name the new helper column based on the current number of columns
+            df[new_column_name] = np.nan                        # Add the new column with NaN values
 
-            insert_value = df.iloc[0, -2]                                 # Move penultimate header into last
+            insert_value = df.iloc[0, -2]                       # Get the value from the penultimate column header to be moved
             insert_value = str(insert_value)
-            df.iloc[:, -1] = df.iloc[:, -1].astype('object')
-            df.iloc[0, -1] = insert_value
+            df.iloc[:, -1] = df.iloc[:, -1].astype('object')    # Ensure the last column can hold string values
+            df.iloc[0, -1] = insert_value                       # Move the penultimate column header to the last column header
 
-            df.iloc[0, -2] = np.nan                                       # Clear original position
+            df.iloc[0, -2] = np.nan                             # Clear the original position of the penultimate header
     return df
 
 
@@ -1868,18 +1842,18 @@ def exchange_columns(df):
     Find a year-like column (4 digits) that is fully NaN and swap its name with the immediate
     left neighbor if that neighbor is not year-like.
     """
-    nan_column = None
-    for column in df.columns:
-        if df[column].isnull().all() and len(column) == 4 and column.isdigit():
-            nan_column = column
+    nan_column = None                                                                                   # Initialize variable to store the column with NaN values
+    for column in df.columns:                                                                           # Iterate through each column to find a fully NaN year column
+        if df[column].isnull().all() and len(column) == 4 and column.isdigit():                         # Check for a 4-digit column with all NaN values
+            nan_column = column  # Store the column name
             break
-    
-    if nan_column:
-        column_index = df.columns.get_loc(nan_column)
-        if column_index > 0:
-            left_column = df.columns[column_index - 1]
-            if not (len(left_column) == 4 and left_column.isdigit()):
-                df.rename(columns={nan_column: left_column, left_column: nan_column}, inplace=True)
+
+    if nan_column:  # If a NaN column is found
+        column_index = df.columns.get_loc(nan_column)                                                   # Get the index of the NaN column
+        if column_index > 0:                                                                            # Ensure there is a left neighbor
+            left_column = df.columns[column_index - 1]                                                  # Get the left neighbor column
+            if not (len(left_column) == 4 and left_column.isdigit()):                                   # If the left column is not a year column
+                df.rename(columns={nan_column: left_column, left_column: nan_column}, inplace=True)     # Swap the columns' names
     return df
 
 
@@ -1893,15 +1867,15 @@ def exchange_roman_nan(df):
     For each cell in row 2, if it is 'AÑO' or a valid Roman numeral and the next cell is NaN,
     swap those two row-2 values when the column below is empty (except the header row).
     """
-    for col_idx, value in enumerate(df.iloc[1]):
-        if isinstance(value, str):
-            if value.upper() == 'AÑO' or (value.isalpha() and roman.fromRoman(value.upper())):
-                next_col_idx = col_idx + 1
-                if next_col_idx < len(df.columns) and pd.isna(df.iloc[1, next_col_idx]):
-                    current_col = df.iloc[:, col_idx].drop(index=1)        # Exclude header row from emptiness check
-                    next_col    = df.iloc[:, next_col_idx].drop(index=1)
-                    if current_col.isna().all():
-                        df.iloc[1, col_idx], df.iloc[1, next_col_idx] = df.iloc[1, next_col_idx], df.iloc[1, col_idx]
+    for col_idx, value in enumerate(df.iloc[1]):                                                                        # Iterate through each value in row 2
+        if isinstance(value, str):                                                                                      # Check if the value is a string
+            if value.upper() == 'AÑO' or (value.isalpha() and roman.fromRoman(value.upper())):                          # Check for 'AÑO' or Roman numeral
+                next_col_idx = col_idx + 1                                                                              # Get the index of the next column
+                if next_col_idx < len(df.columns) and pd.isna(df.iloc[1, next_col_idx]):                                # Ensure the next cell is NaN
+                    current_col = df.iloc[:, col_idx].drop(index=1)                                                     # Exclude header row from emptiness check
+                    next_col = df.iloc[:, next_col_idx].drop(index=1)                                                   # Exclude header row from emptiness check
+                    if current_col.isna().all():                                                                        # If the current column is all NaN
+                        df.iloc[1, col_idx], df.iloc[1, next_col_idx] = df.iloc[1, next_col_idx], df.iloc[1, col_idx]   # Swap the values
     return df
 
 
@@ -2288,12 +2262,12 @@ class vintages_preparator:
         Returns:
             dict[str, int]: filename → month_order (1..12) inferred from ns-dd-yyyy.pdf (dd).
         """
-        files = [f for f in os.listdir(year_folder) if f.endswith(".pdf")]  # Get list of PDF files in the year folder
-        pairs = []                                                           # Initialize list for filename-month pairs
+        files = [f for f in os.listdir(year_folder) if f.endswith(".pdf")]      # Get list of PDF files in the year folder
+        pairs = []                                                              # Initialize list for filename-month pairs
         for f in files:
-            m = re.search(r"ns-(\d{2})-\d{4}\.pdf$", f, re.IGNORECASE)        # Match filenames like 'ns-07-2017.pdf'
+            m = re.search(r"ns-(\d{2})-\d{4}\.pdf$", f, re.IGNORECASE)          # Match filenames like 'ns-07-2017.pdf'
             if m:
-                pairs.append((f, int(m.group(1))))                             # Extract day (dd) as month order
+                pairs.append((f, int(m.group(1))))                              # Extract day (dd) as month order
         sorted_files = sorted(pairs, key=lambda x: x[1])                        # Sort filenames by the extracted month
         return {fname: i + 1 for i, (fname, _) in enumerate(sorted_files)}      # Create month order mapping (1..12)
 
@@ -2314,10 +2288,10 @@ class vintages_preparator:
                 - 'target_period' like '2019m7'
                 - one column per vintage_id (economic_sector_year_month)
         """
-        d = df.copy()  # Work on a copy of the dataframe to avoid modifying the original
+        d = df.copy()                                                       # Work on a copy of the dataframe to avoid modifying the original
 
         # 1) Determine month from filename
-        d["month"] = month_order_map.get(filename)  # Map filename to month order using the month_order_map
+        d["month"] = month_order_map.get(filename)                          # Map filename to month order using the month_order_map
 
         # 2) Drop unused columns (retain only 'economic_sector')
         d = d.drop(columns=["wr", "sectores_economicos"], errors="ignore")  # Drop 'wr' and 'sectores_economicos' columns
@@ -2334,16 +2308,16 @@ class vintages_preparator:
             "other services": "services",
             "gdp": "gdp",
         }
-        d["economic_sector"] = d["economic_sectors"].map(sector_map)  # Map full sector names to short labels
-        d = d[d["economic_sector"].notna()].copy()  # Keep only rows with valid economic sectors
+        d["economic_sector"] = d["economic_sectors"].map(sector_map)            # Map full sector names to short labels
+        d = d[d["economic_sector"].notna()].copy()                              # Keep only rows with valid economic sectors
 
         # 4) Build vintage_id (sector_year_month)
         d["vintage_id"] = d["economic_sector"] + "_" + d["year"].astype(str) + "_" + d["month"].astype(str)
 
         # 5) Retain only the 'yyyy_mmm' columns based on month names (e.g., 2020_ene, 2020_feb)
         pat = re.compile(r"^\d{4}_(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)$", re.IGNORECASE)
-        keep = ["vintage_id"] + [c for c in d.columns if pat.match(str(c))]  # Select only relevant columns
-        d = d[keep]  # Keep the selected columns
+        keep = ["vintage_id"] + [c for c in d.columns if pat.match(str(c))]     # Select only relevant columns
+        d = d[keep]                                                             # Keep the selected columns
 
         # 6) Reshape the dataframe to a tidy format (rows: target_period, columns: vintage_id)
         t = d.set_index("vintage_id").T.reset_index().rename(columns={"index": "target_period"})
@@ -2352,16 +2326,16 @@ class vintages_preparator:
         month_map = {"ene":"01","feb":"02","mar":"03","abr":"04","may":"05","jun":"06",
                      "jul":"07","ago":"08","sep":"09","oct":"10","nov":"11","dic":"12"}
         def _to_yyyymx(s: str) -> str:
-            m = re.match(r"^(\d{4})_(\w{3})$", s, re.IGNORECASE)  # Match the 'YYYY_mmm' format
+            m = re.match(r"^(\d{4})_(\w{3})$", s, re.IGNORECASE)                # Match the 'YYYY_mmm' format
             if not m:
                 return s
-            y = m.group(1)  # Extract year
-            mmm = m.group(2).lower()  # Extract month abbreviation
-            mm = month_map.get(mmm, "01")  # Convert month abbreviation to month number
-            return f"{y}m{int(mm)}"  # Return 'yyyymX' format (no leading zero in month)
+            y = m.group(1)                                                      # Extract year
+            mmm = m.group(2).lower()                                            # Extract month abbreviation
+            mm = month_map.get(mmm, "01")                                       # Convert month abbreviation to month number
+            return f"{y}m{int(mm)}"                                             # Return 'yyyymX' format (no leading zero in month)
 
         t["target_period"] = t["target_period"].astype(str).map(_to_yyyymx)  # Apply the conversion
-        return t  # Return the reshaped (tidy) dataframe
+        return t                                                                # Return the reshaped (tidy) dataframe
 
     # _____________________________________________________________________
     # Function to prepare Table 2 data into vintage format
@@ -2377,10 +2351,10 @@ class vintages_preparator:
         Returns:
             pd.DataFrame: Tidy vintage dataframe with 'target_period' as 'yyyyqN' or 'yyyy'.
         """
-        d = df.copy()  # Work on a copy to avoid modifying the original DataFrame
+        d = df.copy()                                                           # Work on a copy to avoid modifying the original DataFrame
 
         # 1) Drop unused columns (retain only relevant columns)
-        d = d.drop(columns=["wr", "sectores_economicos"], errors="ignore")  # Drop 'wr' and 'sectores_economicos'
+        d = d.drop(columns=["wr", "sectores_economicos"], errors="ignore")      # Drop 'wr' and 'sectores_economicos'
 
         # 2) Map economic sector names to shorter labels
         sector_map = {
@@ -2395,15 +2369,15 @@ class vintages_preparator:
             "gdp": "gdp",
         }
         d["economic_sector"] = d["economic_sectors"].map(sector_map)
-        d = d[d["economic_sector"].notna()].copy()  # Keep only valid rows
+        d = d[d["economic_sector"].notna()].copy()                              # Keep only valid rows
 
         # 3) Build vintage_id (sector_year_monthorder) — keeps the same structure as table_1 for later concatenation
-        d["month"] = month_order_map.get(filename)  # Get month from the filename using the month_order_map
+        d["month"] = month_order_map.get(filename)                              # Get month from the filename using the month_order_map
         d["vintage_id"] = d["economic_sector"] + "_" + d["year"].astype(str) + "_" + d["month"].astype(str)
 
         # 4) Retain only the relevant columns (e.g., year and quarterly/year columns)
-        pat = re.compile(r"^\d{4}_(1|2|3|4|year)$", re.IGNORECASE)  # Match year and quarter columns
-        keep = ["vintage_id"] + [c for c in d.columns if pat.match(str(c))]  # Keep only necessary columns
+        pat = re.compile(r"^\d{4}_(1|2|3|4|year)$", re.IGNORECASE)              # Match year and quarter columns
+        keep = ["vintage_id"] + [c for c in d.columns if pat.match(str(c))]     # Keep only necessary columns
         d = d[keep]  # Retain selected columns
 
         # 5) Reshape the DataFrame to a tidy format (rows: target_period, columns: vintage_id)
@@ -2412,10 +2386,10 @@ class vintages_preparator:
         # 6) Convert 'YYYY_1..4' → 'yyyyqN' (e.g., '2020_1' → '2020q1')
         t["target_period"] = (
             t["target_period"].astype(str)
-            .str.replace(r"^(\d{4})_(\d)$", r"\1q\2", regex=True)  # Convert to 'yyyyqN'
-            .str.replace(r"^(\d{4})_year$", r"\1", regex=True)  # Convert 'yyyy_year' to 'yyyy'
+            .str.replace(r"^(\d{4})_(\d)$", r"\1q\2", regex=True)               # Convert to 'yyyyqN'
+            .str.replace(r"^(\d{4})_year$", r"\1", regex=True)                  # Convert 'yyyy_year' to 'yyyy'
         )
-        return t  # Return the reshaped (tidy) vintage dataframe
+        return t                                                                # Return the reshaped (tidy) vintage dataframe
 
 
 # °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
@@ -2440,44 +2414,44 @@ def table_1_cleaner(
     Extract page 1 from each WR PDF, run the table 1 pipeline, update the record,
     optionally persist cleaned tables (Parquet/CSV), and show a concise summary.
     """
-    start_time = time.time()                                 # Record the start time
-    print("\n🧹 Starting Table 1 cleaning...\n")               # Print section start message
+    start_time = time.time()                                                        # Record the start time
+    print("\n🧹 Starting Table 1 cleaning...\n")
 
-    cleaner   = tables_cleaner()                             # Initialize the cleaner for Table 1
-    records   = _read_records(record_folder, record_txt)     # Read existing record of processed files
-    processed = set(records)                                 # Convert record list to set for faster lookup
+    cleaner   = tables_cleaner()                                                    # Initialize the cleaner for Table 1
+    records   = _read_records(record_folder, record_txt)                            # Read existing record of processed files
+    processed = set(records)                                                        # Convert record list to set for faster lookup
 
-    raw_tables_dict_1: dict[str, pd.DataFrame]   = {}        # Store raw tables extracted from PDFs
-    new_dataframes_dict_1: dict[str, pd.DataFrame] = {}      # Store cleaned dataframes
+    raw_tables_dict_1: dict[str, pd.DataFrame]   = {}                               # Store raw tables extracted from PDFs
+    new_dataframes_dict_1: dict[str, pd.DataFrame] = {}                             # Store cleaned dataframes
 
-    new_counter = 0                                          # Counter for newly cleaned tables
-    skipped_counter = 0                                      # Counter for skipped tables
-    skipped_years: dict[str, int] = {}                       # Track skipped years and counts
+    new_counter = 0                                                                 # Counter for newly cleaned tables
+    skipped_counter = 0                                                             # Counter for skipped tables
+    skipped_years: dict[str, int] = {}                                              # Track skipped years and counts
 
     # List all year folders except '_quarantine'
     years = [d for d in sorted(os.listdir(input_pdf_folder))
              if os.path.isdir(os.path.join(input_pdf_folder, d)) and d != "_quarantine"]
-    total_year_folders = len(years)                          # Total number of year folders found
+    total_year_folders = len(years)                                                 # Total number of year folders found
     
-    prep = vintages_preparator()                             # Initialize vintages helper
-    vintages_dict_1: dict[str, pd.DataFrame] = {}            # Store tidy (prepared) vintage data
+    prep = vintages_preparator()                                                    # Initialize vintages helper
+    vintages_dict_1: dict[str, pd.DataFrame] = {}                                   # Store tidy (prepared) vintage data
 
     # Prepare output folders if persistence is enabled
     if persist:
         base_out = persist_folder or os.path.join("data", "clean")
         out_root = os.path.join(base_out, "table_1")
-        os.makedirs(out_root, exist_ok=True)                 # Ensure the output directory exists
+        os.makedirs(out_root, exist_ok=True)                                        # Ensure the output directory exists
 
     # Iterate through year folders
     for year in years:
-        folder_path = os.path.join(input_pdf_folder, year)   # Full path to current year folder
+        folder_path = os.path.join(input_pdf_folder, year)                          # Full path to current year folder
         pdf_files = sorted([f for f in os.listdir(folder_path) if f.endswith(".pdf")],
-                           key=_ns_sort_key)                 # Sort PDF files by NS code
+                           key=_ns_sort_key)                                        # Sort PDF files by NS code
         
-        month_order_map = prep.build_month_order_map(folder_path)   # Map filename → month (1..12)
+        month_order_map = prep.build_month_order_map(folder_path)                   # Map filename → month (1..12)
 
         if not pdf_files:
-            continue                                         # Skip if no PDFs found
+            continue                                                                # Skip if no PDFs found
 
         # Skip if all PDFs already processed
         already = [f for f in pdf_files if f in processed]
@@ -2486,9 +2460,9 @@ def table_1_cleaner(
             skipped_counter += len(already)
             continue
 
-        print(f"\n📂 Processing Table 1 in {year}\n")        # Indicate the year being processed
-        folder_new_count = 0                                 # Count new tables for this year
-        folder_skipped_count = 0                             # Count skipped tables for this year
+        print(f"\n📂 Processing Table 1 in {year}\n")
+        folder_new_count = 0                                                        # Count new tables for this year
+        folder_skipped_count = 0                                                    # Count skipped tables for this year
 
         # Progress bar for PDFs in the current year
         pbar = tqdm(pdf_files, desc=f"🧹 {year}", unit="PDF",
@@ -2497,27 +2471,27 @@ def table_1_cleaner(
 
         for filename in pbar:
             if filename in processed:
-                folder_skipped_count += 1                    # Skip if already processed
+                folder_skipped_count += 1                                           # Skip if already processed
                 continue
 
-            issue, yr = parse_ns_meta(filename)              # Extract WR issue and year from filename
+            issue, yr = parse_ns_meta(filename)                                     # Extract WR issue and year from filename
             if not issue:
                 folder_skipped_count += 1
                 continue
 
-            pdf_path = os.path.join(folder_path, filename)   # Build full PDF path
+            pdf_path = os.path.join(folder_path, filename)                          # Build full PDF path
             try:
-                raw = _extract_table(pdf_path, page=1)       # Extract table 1 from page 1
+                raw = _extract_table(pdf_path, page=1)                              # Extract table 1 from page 1
                 if raw is None:
                     folder_skipped_count += 1
                     continue
 
                 key = f"{os.path.splitext(filename)[0].replace('-', '_')}_1"
-                raw_tables_dict_1[key] = raw.copy()          # Store raw table
+                raw_tables_dict_1[key] = raw.copy()                                 # Store raw table
 
-                clean = cleaner.clean_table_1(raw)            # Clean the raw table
-                clean.insert(0, "year", yr)                  # Insert 'year' column at the start
-                clean.insert(1, "wr", issue)                 # Insert 'wr' column (weekly report code)
+                clean = cleaner.clean_table_1(raw)                                  # Clean the raw table
+                clean.insert(0, "year", yr)                                         # Insert 'year' column at the start
+                clean.insert(1, "wr", issue)                                        # Insert 'wr' column (weekly report code)
                 clean.attrs["pipeline_version"] = pipeline_version
 
                 # Keep a copy of the cleaned table in-memory for inspection
@@ -2526,21 +2500,21 @@ def table_1_cleaner(
                 # Prepare and persist the vintage (final output)
                 vintage = prep.prepare_table_1(clean, filename, month_order_map)
                 vintage.attrs["pipeline_version"] = pipeline_version
-                vintages_dict_1[key] = vintage               # Store vintage data in-memory (optional)
+                vintages_dict_1[key] = vintage                                      # Store vintage data in-memory (optional)
                 
-                if persist:                                  # Persist only the vintage (not raw data)
-                    ns_code  = os.path.splitext(filename)[0] # e.g., ns-07-2017
+                if persist:                                                         # Persist only the vintage (not raw data)
+                    ns_code  = os.path.splitext(filename)[0]                        # e.g., ns-07-2017
                     out_dir  = os.path.join(out_root, str(yr))
                     out_path = os.path.join(out_dir, f"{ns_code}.parquet")
-                    _save_df(vintage, out_path)              # Save vintage (Parquet/CSV)
+                    _save_df(vintage, out_path)                                     # Save vintage (Parquet/CSV)
 
-                processed.add(filename)                      # Mark the file as processed
+                processed.add(filename)                                             # Mark the file as processed
                 folder_new_count += 1
             except Exception as e:
-                print(f"⚠️  {filename}: {e}")                # Handle and print any extraction/cleaning errors
+                print(f"⚠️  {filename}: {e}")                                       # Handle and print any extraction/cleaning errors
                 folder_skipped_count += 1
 
-        pbar.clear(); pbar.close()                           # Clear progress bar after processing
+        pbar.clear(); pbar.close()                                                  # Clear progress bar after processing
 
         # Display the completion bar for the current year
         fb = tqdm(total=len(pdf_files), desc=f"✔️ {year}", unit="PDF",
@@ -2549,9 +2523,9 @@ def table_1_cleaner(
         fb.update(len(pdf_files))  # Update completion status
         fb.close()
 
-        new_counter += folder_new_count                      # Update the total count of new cleaned tables
-        skipped_counter += folder_skipped_count              # Update the total skipped table count
-        _write_records(record_folder, record_txt, list(processed))  # Update the processed records list
+        new_counter += folder_new_count                                             # Update the total count of new cleaned tables
+        skipped_counter += folder_skipped_count                                     # Update the total skipped table count
+        _write_records(record_folder, record_txt, list(processed))                  # Update the processed records list
 
     # Summary of skipped years
     if skipped_years:
@@ -2559,14 +2533,14 @@ def table_1_cleaner(
         total_skipped = sum(skipped_years.values())
         print(f"\n⏩ {total_skipped} cleaned tables already generated for years: {years_summary}")
 
-    elapsed_time = round(time.time() - start_time)            # Calculate total elapsed time
+    elapsed_time = round(time.time() - start_time)                                  # Calculate total elapsed time
     print(f"\n📊 Summary:\n")
     print(f"📂 {total_year_folders} folders (years) found containing input PDFs")
     print(f"🗃️ Already cleaned tables: {skipped_counter}")
     print(f"✨ Newly cleaned tables: {new_counter}")
     print(f"⏱️ {elapsed_time} seconds")
 
-    return raw_tables_dict_1, new_dataframes_dict_1, vintages_dict_1           # Return raw, cleaned, and vintages
+    return raw_tables_dict_1, new_dataframes_dict_1, vintages_dict_1                # Return raw, cleaned, and vintages
 
 # _________________________________________________________________________
 # Function to clean and process Table 2 from all WR PDF files in a folder
@@ -2582,27 +2556,27 @@ def table_2_cleaner(
     Extract page 2 from each WR PDF, run the table 2 pipeline, update the record,
     optionally persist cleaned tables (Parquet/CSV), and show a concise summary.
     """
-    start_time = time.time()                                # Record script start time
-    print("\n🧹 Starting Table 2 cleaning...\n")             # Print section start message
+    start_time = time.time()                                                    # Record script start time
+    print("\n🧹 Starting Table 2 cleaning...\n")
 
-    cleaner = tables_cleaner()                              # Initialize table cleaner object
-    records = _read_records(record_folder, record_txt)       # Load processed record file
-    processed = set(records)                                 # Convert to set for fast lookup
+    cleaner = tables_cleaner()                                                  # Initialize table cleaner object
+    records = _read_records(record_folder, record_txt)                          # Load processed record file
+    processed = set(records)                                                    # Convert to set for fast lookup
 
-    raw_tables_dict_2: dict[str, pd.DataFrame] = {}          # Store extracted raw tables
-    new_dataframes_dict_2: dict[str, pd.DataFrame] = {}      # Store cleaned tables
+    raw_tables_dict_2: dict[str, pd.DataFrame] = {}                             # Store extracted raw tables
+    new_dataframes_dict_2: dict[str, pd.DataFrame] = {}                         # Store cleaned tables
 
-    new_counter = 0                                          # Count new cleaned files
-    skipped_counter = 0                                      # Count skipped files
-    skipped_years: dict[str, int] = {}                       # Track skipped counts per year
+    new_counter = 0                                                             # Count new cleaned files
+    skipped_counter = 0                                                         # Count skipped files
+    skipped_years: dict[str, int] = {}                                          # Track skipped counts per year
 
     # List year directories except '_quarantine'
     years = [d for d in sorted(os.listdir(input_pdf_folder))
              if os.path.isdir(os.path.join(input_pdf_folder, d)) and d != "_quarantine"]
-    total_year_folders = len(years)                          # Total number of valid year folders
+    total_year_folders = len(years)                                             # Total number of valid year folders
     
-    prep = vintages_preparator()                             # Initialize vintages helper
-    vintages_dict_2: dict[str, pd.DataFrame] = {}            # Store tidy (prepared) vintage data
+    prep = vintages_preparator()                                                # Initialize vintages helper
+    vintages_dict_2: dict[str, pd.DataFrame] = {}                               # Store tidy (prepared) vintage data
 
     # Create persistence folder if enabled
     if persist:
@@ -2612,13 +2586,13 @@ def table_2_cleaner(
 
     # Iterate through each year's folder
     for year in years:
-        folder_path = os.path.join(input_pdf_folder, year)   # Full path to current year folder
+        folder_path = os.path.join(input_pdf_folder, year)                      # Full path to current year folder
         pdf_files = sorted([f for f in os.listdir(folder_path) if f.endswith(".pdf")],
-                           key=_ns_sort_key)                 # Sort PDFs by NS code order
-        month_order_map = prep.build_month_order_map(folder_path)   # Map filename → month (1..12)
+                           key=_ns_sort_key)                                    # Sort PDFs by NS code order
+        month_order_map = prep.build_month_order_map(folder_path)               # Map filename → month (1..12)
 
         if not pdf_files:
-            continue                                         # Skip if no PDFs present
+            continue                                                            # Skip if no PDFs present
 
         # Skip if all PDFs already processed
         already = [f for f in pdf_files if f in processed]
@@ -2627,9 +2601,9 @@ def table_2_cleaner(
             skipped_counter += len(already)
             continue
 
-        print(f"\n📂 Processing Table 2 in {year}\n")        # Indicate the year being processed
-        folder_new_count = 0                                 # Count new tables for this year
-        folder_skipped_count = 0                             # Count skipped tables for this year
+        print(f"\n📂 Processing Table 2 in {year}\n")
+        folder_new_count = 0                                                    # Count new tables for this year
+        folder_skipped_count = 0                                                # Count skipped tables for this year
 
         # Display progress bar for current year
         pbar = tqdm(pdf_files, desc=f"🧹 {year}", unit="PDF",
@@ -2638,26 +2612,26 @@ def table_2_cleaner(
 
         for filename in pbar:
             if filename in processed:
-                folder_skipped_count += 1                    # Skip if already processed
+                folder_skipped_count += 1                                       # Skip if already processed
                 continue
 
-            issue, yr = parse_ns_meta(filename)              # Extract WR issue and year from filename
+            issue, yr = parse_ns_meta(filename)                                 # Extract WR issue and year from filename
             if not issue:
                 folder_skipped_count += 1
                 continue
 
-            pdf_path = os.path.join(folder_path, filename)   # Build full PDF path
+            pdf_path = os.path.join(folder_path, filename)                      # Build full PDF path
             try:
-                raw = _extract_table(pdf_path, page=2)       # Extract table 2 from page 2
+                raw = _extract_table(pdf_path, page=2)                          # Extract table 2 from page 2
                 if raw is None:
                     folder_skipped_count += 1
                     continue
 
                 key = f"{os.path.splitext(filename)[0].replace('-', '_')}_2"
-                raw_tables_dict_2[key] = raw.copy()          # Store raw table with unique key
+                raw_tables_dict_2[key] = raw.copy()                             # Store raw table with unique key
 
-                clean = cleaner.clean_table_2(raw)            # Clean the extracted table
-                clean.insert(0, "year", yr)                  # Add 'year' column first
+                clean = cleaner.clean_table_2(raw)                              # Clean the extracted table
+                clean.insert(0, "year", yr)                                     # Add 'year' column first
                 clean.insert(1, "wr", issue)                  
                 clean.attrs["pipeline_version"] = pipeline_version
 
@@ -2667,32 +2641,32 @@ def table_2_cleaner(
                 # build + persist the vintage (what we save/record)
                 vintage = prep.prepare_table_2(clean, filename, month_order_map)
                 vintage.attrs["pipeline_version"] = pipeline_version
-                vintages_dict_2[key] = vintage               # Keep vintage in-memory (optional)
+                vintages_dict_2[key] = vintage                                  # Keep vintage in-memory (optional)
 
-                if persist:                                  # Persist **vintage** only
-                    ns_code  = os.path.splitext(filename)[0] # e.g., ns-07-2017
+                if persist:                                                     # Persist **vintage** only
+                    ns_code  = os.path.splitext(filename)[0]                    # e.g., ns-07-2017
                     out_dir  = os.path.join(out_root, str(yr))
                     out_path = os.path.join(out_dir, f"{ns_code}.parquet")
-                    _save_df(vintage, out_path)              # Save vintage (Parquet/CSV)
+                    _save_df(vintage, out_path)                                 # Save vintage (Parquet/CSV)
 
-                processed.add(filename)                      # Record processed **by vintage**
+                processed.add(filename)                                         # Record processed **by vintage**
                 folder_new_count += 1
             except Exception as e:
-                print(f"⚠️  {filename}: {e}")                # Display any extraction/cleaning error
+                print(f"⚠️  {filename}: {e}")                                   # Display any extraction/cleaning error
                 folder_skipped_count += 1
 
-        pbar.clear(); pbar.close()                           # Close progress bar after processing
+        pbar.clear(); pbar.close()                                              # Close progress bar after processing
 
         # Display the completion bar for the current year
         fb = tqdm(total=len(pdf_files), desc=f"✔️ {year}", unit="PDF",
                   bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}", colour="#3366FF",
                   leave=True, position=0, dynamic_ncols=True)
-        fb.update(len(pdf_files))  # Update completion status
+        fb.update(len(pdf_files))                                               # Update completion status
         fb.close()
 
-        new_counter += folder_new_count                      # Update the total count of new cleaned tables
-        skipped_counter += folder_skipped_count              # Update the total skipped table count
-        _write_records(record_folder, record_txt, list(processed))  # Update processed records list
+        new_counter += folder_new_count                                         # Update the total count of new cleaned tables
+        skipped_counter += folder_skipped_count                                 # Update the total skipped table count
+        _write_records(record_folder, record_txt, list(processed))              # Update processed records list
 
     # Summary of skipped years
     if skipped_years:
@@ -2700,14 +2674,14 @@ def table_2_cleaner(
         total_skipped = sum(skipped_years.values())
         print(f"\n⏩ {total_skipped} cleaned tables already generated for years: {years_summary}")
 
-    elapsed_time = round(time.time() - start_time)            # Calculate total elapsed time
+    elapsed_time = round(time.time() - start_time)                              # Calculate total elapsed time
     print(f"\n📊 Summary:\n")
     print(f"📂 {total_year_folders} folders (years) found containing input PDFs")
     print(f"🗃️ Already cleaned tables: {skipped_counter}")
     print(f"✨ Newly cleaned tables: {new_counter}")
     print(f"⏱️ {elapsed_time} seconds")
 
-    return raw_tables_dict_2, new_dataframes_dict_2, vintages_dict_2          # Return raw, cleaned, and vintages
+    return raw_tables_dict_2, new_dataframes_dict_2, vintages_dict_2            # Return raw, cleaned, and vintages
 
 
 
