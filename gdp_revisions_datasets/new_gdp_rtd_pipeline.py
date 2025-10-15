@@ -1198,6 +1198,46 @@ def replace_services(df):
         df['economic_sectors'].replace({'services': 'other services'}, inplace=True)        # Replace 'services' with 'other services'
     return df
 
+# _________________________________________________________________________
+# Function to unify 'mineria' naming in ES sector labels
+def replace_mineria(df):
+    """
+    Replace 'mineria'→'mineria e hidrocarburos' when the latter is otherwise absent.
+    This function ensures that the label 'mineria' is standardized to 'mineria e hidrocarburos'
+    for consistency in sector labeling in the 'sectores_economicos' column.
+    """
+    if ('mineria' in df['sectores_economicos'].values) and ('mineria e hidrocarburos' not in df['sectores_economicos'].values):  
+        # Check if 'mineria' exists and 'mineria e hidrocarburos' does not exist in the 'sectores_economicos' column
+        df['sectores_economicos'].replace({'mineria': 'mineria e hidrocarburos'}, inplace=True)  # Replace 'mineria' with 'mineria e hidrocarburos'
+    return df
+
+# _________________________________________________________________________
+# Function to unify 'mining and fuels' naming in EN sector labels
+def replace_mining(df):
+    """
+    Replace 'mining and fuels'→'mining and fuel' in EN sector labels.
+    This function standardizes the sector name 'mining and fuels' to 'mining and fuel' 
+    in the 'economic_sectors' column for consistency.
+    """
+    if ('mining and fuels' in df['economic_sectors'].values):  
+        # Check if 'mining and fuels' exists in the 'economic_sectors' column
+        df['economic_sectors'].replace({'mining and fuels': 'mining and fuel'}, inplace=True)  # Replace 'mining and fuels' with 'mining and fuel'
+    return df
+
+# _________________________________________________________________________
+# Function to round all float64 columns to the given number of decimals
+def rounding_values(df, decimals=1):
+    """
+    Round float64 columns to a specified number of decimal places.
+    This function ensures that all columns with the 'float64' dtype are rounded to the given
+    number of decimal places (default is 1 decimal place).
+    """
+    for col in df.columns:  
+        if df[col].dtype == 'float64':  
+            # Check if the column is of type float64
+            df[col] = df[col].round(decimals)  # Round the values in the column to the specified number of decimal places
+    return df
+
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 # Utilities only for cleaning Table 1 
