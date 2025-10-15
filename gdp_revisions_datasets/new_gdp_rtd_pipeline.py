@@ -2478,7 +2478,7 @@ def table_1_cleaner(
 
     # Prepare output folders if persistence is enabled
     if persist:
-        base_out = persist_folder or os.path.join("data", "clean")
+        base_out = persist_folder or os.path.join("data", "input")
         out_root = os.path.join(base_out, "table_1")
         os.makedirs(out_root, exist_ok=True)                                        # Ensure the output directory exists
 
@@ -2620,7 +2620,7 @@ def table_2_cleaner(
 
     # Create persistence folder if enabled
     if persist:
-        base_out = persist_folder or os.path.join("data", "clean")
+        base_out = persist_folder or os.path.join("data", "input")
         out_root = os.path.join(base_out, "table_2")
         os.makedirs(out_root, exist_ok=True)
 
@@ -2728,6 +2728,220 @@ def table_2_cleaner(
 # ##############################################################################################
 # SECTION 4 Concatenating RTD across years by frequency
 # ##############################################################################################
+
+import os
+import pandas as pd
+from tqdm.notebook import tqdm
+import re
+import time
+
+# _________________________________________________________________________
+# Helper function to sort target_period strings chronologically
+def target_period_sort_key(tp: str):
+    m = re.match(r'(\d{4})m(\d+)', tp)
+    if m:
+        year, month = int(m.group(1)), int(m.group(2))
+        return (year, month)
+    return (9999, 0)
+
+# _________________________________________________________________________
+# Function to concatenate Table 1 CSVs
+def concatenate_table_1(input_data_subfolder, record_folder, record_txt, persist, persist_folder):
+    start_time = time.time()
+    print("\n🧹 Starting Table 1 concatenation...")
+
+    processed_files = _read_records(record_folder, record_txt)
+    table_1_folder = os.path.join(input_data_subfolder, 'table_1')
+    year_folders = sorted([f for f in os.listdir(table_1_folder) if f.isdigit()], key=int)
+
+    all_dataframes = []
+    skipped_counter = 0
+    new_counter = 0
+
+    # Load all CSVs
+    for year in year_folders:
+        year_folder = os.path.join(table_1_folder, year)
+        csv_files = sorted([f for f in os.listdir(year_folder) if f.endswith(".csv")])
+        for csv_file in csv_files:
+            if csv_file in processed_files:
+                skipped_counter += 1
+                continue
+            df = pd.read_csv(os.path.join(year_folder, csv_file))
+            # Ensure numeric values
+            for col in df.columns:
+                if col != 'target_period':
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+            all_dataframes.append(df)
+            processed_files.append(csv_file)
+            _write_records(record_folder, record_txt, processed_files)
+            new_counter += 1
+
+    if not all_dataframes:
+        print("No new CSV files to concatenate.")
+        return {}
+
+    # === ALIGN target_periods ACROSS ALL COLUMNS ===
+    all_target_periods = sorted(
+        set().union(*[df['target_period'].tolist() for df in all_dataframes]),
+        key=target_period_sort_key
+    )
+
+    aligned_dfs = []
+    for df in all_dataframes:
+        df = df.set_index('target_period').reindex(all_target_periods)
+        aligned_dfs.append(df)
+
+    concatenated_df = pd.concat(aligned_dfs, axis=1).reset_index().rename(columns={'index': 'target_period'})
+
+    # Remove duplicates from repeated CSVs if any
+    concatenated_df = concatenated_df.loc[:,~concatenated_df.columns.duplicated()]
+
+    # Order columns by sector then by year/suffix
+    target = concatenated_df['target_period']
+    other_cols = [c for c in concatenated_df.columns if c != 'target_period']
+
+    def sort_key(col):
+        m = re.match(r'([a-z_]+)_(\d{4})_(\d+)', col)
+        if m:
+            sector, year, suffix = m.groups()
+            return (sector, int(year), int(suffix))
+        return (col, 0, 0)
+
+    sorted_cols = sorted(other_cols, key=sort_key)
+    concatenated_df = concatenated_df[['target_period'] + sorted_cols]
+
+    # Split into 10-year batches
+    years_int = [int(f.split('_')[1]) for f in sorted_cols if re.match(r'.+_\d{4}_\d+', f)]
+    if not years_int:
+        years_int = [int(y) for y in year_folders]
+
+    min_year, max_year = min(years_int), max(years_int)
+    batch_start = min_year
+    batch_num = 1
+    batch_dict = {}
+
+    while batch_start <= max_year:
+        batch_end = min(batch_start + 9, max_year)
+        batch_cols = ['target_period'] + [c for c in sorted_cols if any(f'_{y}_' in c for y in range(batch_start, batch_end+1))]
+        batch_df = concatenated_df[batch_cols]
+        batch_name = f"new_gdp_rtd_table_1_batch_{batch_num}"
+        batch_dict[batch_name] = batch_df
+
+        if persist:
+            out_path = os.path.join(persist_folder, f"{batch_name}.csv")
+            batch_df.to_csv(out_path, index=False)
+            print(f"📂 Batch {batch_num} ({batch_start}-{batch_end}) saved to {out_path}")
+
+        batch_start += 10
+        batch_num += 1
+
+    elapsed_time = round(time.time() - start_time)
+    print(f"\n📊 Summary:\n📂 {len(year_folders)} folders (years) found containing input CSVs")
+    print(f"🗃️ Already processed files: {skipped_counter}")
+    print(f"✨ Newly concatenated files: {new_counter}")
+    print(f"⏱️ {elapsed_time} seconds")
+    print(f"🔹 Total batches created: {len(batch_dict)} with ranges: {[k for k in batch_dict.keys()]}")
+
+    return batch_dict
+
+# _________________________________________________________________________
+# Function to concatenate Table 2 CSVs
+def concatenate_table_2(input_data_subfolder, record_folder, record_txt, persist, persist_folder):
+    start_time = time.time()
+    print("\n🧹 Starting Table 2 concatenation...")
+
+    processed_files = _read_records(record_folder, record_txt)
+    table_2_folder = os.path.join(input_data_subfolder, 'table_2')
+    year_folders = sorted([f for f in os.listdir(table_2_folder) if f.isdigit()], key=int)
+
+    all_dataframes = []
+    skipped_counter = 0
+    new_counter = 0
+
+    for year in year_folders:
+        year_folder = os.path.join(table_2_folder, year)
+        csv_files = sorted([f for f in os.listdir(year_folder) if f.endswith(".csv")])
+        for csv_file in csv_files:
+            if csv_file in processed_files:
+                skipped_counter += 1
+                continue
+            df = pd.read_csv(os.path.join(year_folder, csv_file))
+            for col in df.columns:
+                if col != 'target_period':
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+            all_dataframes.append(df)
+            processed_files.append(csv_file)
+            _write_records(record_folder, record_txt, processed_files)
+            new_counter += 1
+
+    if not all_dataframes:
+        print("No new CSV files to concatenate.")
+        return {}
+
+    # === ALIGN target_periods ACROSS ALL COLUMNS ===
+    all_target_periods = sorted(
+        set().union(*[df['target_period'].tolist() for df in all_dataframes]),
+        key=target_period_sort_key
+    )
+
+    aligned_dfs = []
+    for df in all_dataframes:
+        df = df.set_index('target_period').reindex(all_target_periods)
+        aligned_dfs.append(df)
+
+    concatenated_df = pd.concat(aligned_dfs, axis=1).reset_index().rename(columns={'index': 'target_period'})
+    concatenated_df = concatenated_df.loc[:,~concatenated_df.columns.duplicated()]
+
+    # Order columns by sector then by year/suffix
+    target = concatenated_df['target_period']
+    other_cols = [c for c in concatenated_df.columns if c != 'target_period']
+
+    def sort_key(col):
+        m = re.match(r'([a-z_]+)_(\d{4})_(\d+)', col)
+        if m:
+            sector, year, suffix = m.groups()
+            return (sector, int(year), int(suffix))
+        return (col, 0, 0)
+
+    sorted_cols = sorted(other_cols, key=sort_key)
+    concatenated_df = concatenated_df[['target_period'] + sorted_cols]
+
+    # Split into 10-year batches
+    years_int = [int(f.split('_')[1]) for f in sorted_cols if re.match(r'.+_\d{4}_\d+', f)]
+    if not years_int:
+        years_int = [int(y) for y in year_folders]
+
+    min_year, max_year = min(years_int), max(years_int)
+    batch_start = min_year
+    batch_num = 1
+    batch_dict = {}
+
+    while batch_start <= max_year:
+        batch_end = min(batch_start + 9, max_year)
+        batch_cols = ['target_period'] + [c for c in sorted_cols if any(f'_{y}_' in c for y in range(batch_start, batch_end+1))]
+        batch_df = concatenated_df[batch_cols]
+        batch_name = f"new_gdp_rtd_table_2_batch_{batch_num}"
+        batch_dict[batch_name] = batch_df
+
+        if persist:
+            out_path = os.path.join(persist_folder, f"{batch_name}.csv")
+            batch_df.to_csv(out_path, index=False)
+            print(f"📂 Batch {batch_num} ({batch_start}-{batch_end}) saved to {out_path}")
+
+        batch_start += 10
+        batch_num += 1
+
+    elapsed_time = round(time.time() - start_time)
+    print(f"\n📊 Summary:\n📂 {len(year_folders)} folders (years) found containing input CSVs")
+    print(f"🗃️ Already processed files: {skipped_counter}")
+    print(f"✨ Newly concatenated files: {new_counter}")
+    print(f"⏱️ {elapsed_time} seconds")
+    print(f"🔹 Total batches created: {len(batch_dict)} with ranges: {[k for k in batch_dict.keys()]}")
+
+    return batch_dict
+
+
+
 
 
 
