@@ -1,9 +1,9 @@
 
 # *********************************************************************************************
-#  Pipelines for new_gdp_rtd.ipynb
+#  Pipelines for old_gdp_rtd.ipynb and new_gdp_rtd.ipynb
 # *********************************************************************************************
 #
-#   Program       : new_gdp_rtd_pipeline.py
+#   Program       : gdp_rtd_pipeline.py
 #   Project       : Building Real-Time Dataset (RTD) for GDP Revisions
 #   Author        : Jason Cruz
 #   Last updated  : 08/13/2025
@@ -14,11 +14,15 @@
 #   Sections:
 #       1. Downloading PDFs ...................................................................
 #       2. Generating input PDFs ..............................................................
-#       3. Cleaning data and building vintages ................................................
+#       3. Cleaning tables and building RTD ...................................................
+#           3.1 Creating functions for extracting, parsing and cleaning-up data from input PDFs
+#           3.2 Building friendly pipelines for running data cleaning for both Table 1 and
+#               Table 2 .......................................................................
 #       4. Concatenating RTD across years by frequency ........................................
 # 
 #   Notes:
 #       "NS/ns" (Nota Semanal, Spanish) is equivalent to "WR/wr" (Weekly Report).
+#
 # *********************************************************************************************
 
 
@@ -35,35 +39,35 @@
 # Libraries
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 
-import os                                                                   # Path utilities and directory management
-import re                                                                   # Filename parsing and natural sorting helpers
-import time                                                                 # Execution timing and simple profiling
-import random                                                               # Randomized backoff/wait durations
-import shutil                                                               # High-level file operations (move/copy/rename/delete)
+import os                                                                   # Path utilities & directory management (paths, env, makedirs)
+import re                                                                   # Filename parsing & robust pattern matching (e.g., NS codes)
+import time                                                                 # Execution timing, sleeps for rate limiting/backoff
+import random                                                               # Jittered waits to mimic human behavior and reduce rate spikes
+import shutil                                                               # High-level file ops: move/copy/rename/delete
 
-import requests                                                             # HTTP client for downloading files
-from requests.adapters import HTTPAdapter                                   # Attach retry/backoff to requests
-from urllib3.util.retry import Retry                                        # Exponential backoff policy
+import requests                                                             # HTTP client for GET/HEAD with sessions and streaming downloads
+from requests.adapters import HTTPAdapter                                   # Mount retry-enabled adapters on requests.Session
+from urllib3.util.retry import Retry                                        # Exponential backoff strategy (status_forcelist, total, factor)
 
-import pygame                                                               # Audio playback for notification sounds
+import pygame                                                               # Lightweight audio playback for desktop alerts (mp3/wav)
 
-from selenium import webdriver                                              # Browser automation
-from selenium.webdriver.common.by import By                                 # Element location strategies
-from selenium.webdriver.support.ui import WebDriverWait                     # Explicit waits
-from selenium.webdriver.support import expected_conditions as EC            # Wait conditions
-from selenium.common.exceptions import StaleElementReferenceException       # Dynamic DOM handling
+from selenium import webdriver                                              # WebDriver controllers (Chrome/Edge/Firefox)
+from selenium.webdriver.common.by import By                                 # DOM locator strategies (id/xpath/css/name)
+from selenium.webdriver.support.ui import WebDriverWait                     # Explicit waits for async/JS-heavy pages
+from selenium.webdriver.support import expected_conditions as EC            # Wait predicates (visibility/clickable/presence)
+from selenium.common.exceptions import StaleElementReferenceException       # Handle dynamic DOM reattachment/detachment
 
-from webdriver_manager.chrome import ChromeDriverManager                    # ChromeDriver provisioning
-from selenium.webdriver.chrome.options import Options as ChromeOptions      # Chrome options
-from selenium.webdriver.chrome.service import Service as ChromeService      # Chrome service
+from webdriver_manager.chrome import ChromeDriverManager                    # Auto-provision ChromeDriver (version-matched)
+from selenium.webdriver.chrome.options import Options as ChromeOptions      # Chrome flags (headless, prefs, download dir)
+from selenium.webdriver.chrome.service import Service as ChromeService      # ChromeDriver service wrapper
 
-from webdriver_manager.firefox import GeckoDriverManager                    # GeckoDriver provisioning
-from selenium.webdriver.firefox.options import Options as FirefoxOptions    # Firefox options
-from selenium.webdriver.firefox.service import Service as FirefoxService    # Firefox service
+from webdriver_manager.microsoft import EdgeChromiumDriverManager           # Auto-provision EdgeDriver (Chromium)
+from selenium.webdriver.edge.options import Options as EdgeOptions          # Edge flags (headless, prefs)
+from selenium.webdriver.edge.service import Service as EdgeService          # EdgeDriver service wrapper
 
-from webdriver_manager.microsoft import EdgeChromiumDriverManager           # EdgeDriver provisioning
-from selenium.webdriver.edge.options import Options as EdgeOptions          # Edge options
-from selenium.webdriver.edge.service import Service as EdgeService          # Edge service
+from webdriver_manager.firefox import GeckoDriverManager                    # Auto-provision GeckoDriver (Firefox)
+from selenium.webdriver.firefox.options import Options as FirefoxOptions    # Firefox flags (headless, prefs)
+from selenium.webdriver.firefox.service import Service as FirefoxService    # GeckoDriver service wrapper
 
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
@@ -679,18 +683,18 @@ def replace_defective_pdfs(
 # Libraries
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 
-import os                                                     # Path utilities and directory management
-import re                                                     # Pattern matching for NS codes and sorting
-import time                                                   # Execution timing
-import shutil                                                 # File moves for quarantine handling
+# import os                                                                 # [already imported and documented in section 1]
+# import re                                                                 # [already imported and documented in section 1]
+# import time                                                               # [already imported and documented in section 1]
+# import shutil                                                             # [already imported and documented in section 1]
+# import requests                                                           # [already imported and documented in section 1]
 
-import requests                                               # HTTP client for replacement downloads
-import fitz                                                   # Lightweight PDF editing (PyMuPDF)
-import ipywidgets as widgets                                  # Jupyter UI elements (used in this section's workflow)
-from IPython.display import display                           # Render widgets in notebooks
-from tqdm.notebook import tqdm                                # Progress bars in Jupyter
-import pdfplumber                                             # Rich PDF text extraction (not heavily used here)
-from PyPDF2 import PdfReader, PdfWriter                       # Page-level PDF edits (keep/select pages)
+import fitz                                                                 # PyMuPDF: fast PDF I/O, page extraction, lightweight edits
+import ipywidgets as widgets                                                # Jupyter UI widgets (controls/progress/inputs for workflows)
+from IPython.display import display                                         # Render widgets/HTML/images inline in notebooks
+from tqdm.notebook import tqdm                                              # Jupyter-friendly progress bar for iterative tasks
+import pdfplumber                                                           # Structured PDF text/table extraction with fine-grained control
+from PyPDF2 import PdfReader, PdfWriter                                     # Page-level edits: split/merge/select/rotate pages
 
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
@@ -932,7 +936,7 @@ def pdf_input_generator(
 
 
 # ##############################################################################################
-# SECTION 3 Cleaning data and building vintages
+# SECTION 3 Cleaning tables and building RTD
 # ##############################################################################################
 
 # ==============================================================================================
@@ -947,18 +951,11 @@ def pdf_input_generator(
 # Libraries
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 
-# Auxiliary functions (used within other functions)
-import re                                                            # Regular expressions for pattern matching
-import unicodedata                                                   # Unicode normalization (strip diacritics)
-
-# Functions for both Table 1 and Table 2
-import pandas as pd                                                  # DataFrame manipulation
-
-# Functions only for Table 1 
-import numpy as np                                                   # Numerical helpers
-
-# Functions only for Table 2
-import roman                                                         # Roman → Arabic numeral conversion
+# import re                                                                 # [already imported and documented in section 1]
+import unicodedata                                                          # Unicode normalization (strip accents/compat forms, NFC/NFKD)
+import pandas as pd                                                         # Tabular data structures, vectorized ops, IO (CSV/Parquet)
+import numpy as np                                                          # Numerical helpers (arrays, NaNs, dtype ops, vector math)
+import roman                                                                # Roman ↔ integer conversion (e.g., parsing section headings)
 
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1931,13 +1928,13 @@ def exchange_roman_nan(df):
 # Libraries
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 
-import os                                                              # Operating system utilities (e.g., file path handling)
-import re                                                              # Regular expressions for pattern matching
-import time                                                            # Time handling (e.g., for timeouts and delays)
-import hashlib                                                         # SHA-256 hash generation for file verification
-import pandas as pd                                                    # DataFrame manipulation (table operations)
-from tqdm.notebook import tqdm                                         # Progress bar for Jupyter notebooks (UI)
-import tabula                                                          # PDF table extraction (Java backend, requires tabula-py)
+# import os                                                                 # [already imported and documented in section 1]
+# import re                                                                 # [already imported and documented in section 1]
+# import time                                                               # [already imported and documented in section 1]
+# import pandas as pd                                                       # [already imported and documented in section 3.1]
+# from tqdm.notebook import tqdm                                            # [already imported and documented in section 2]
+import hashlib                                                              # SHA-256/MD5 hashing for file fingerprints & integrity checks
+import tabula                                                               # tabula-py: Java-backed PDF table extraction via Tabula
 
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2729,219 +2726,225 @@ def table_2_cleaner(
 # SECTION 4 Concatenating RTD across years by frequency
 # ##############################################################################################
 
-import os
-import pandas as pd
-from tqdm.notebook import tqdm
-import re
-import time
+# import os                                                                 # [already imported and documented in section 1]
+# import re                                                                 # [already imported and documented in section 1]
+# import time                                                               # [already imported and documented in section 1]
+# import hashlib                                                            # [already imported and documented in section 3.2]
+# import pandas as pd                                                       # [already imported and documented in section 3.1]
+# from tqdm.notebook import tqdm                                            # [already imported and documented in section 2]
+# import tabula                                                             # [already imported and documented in section 3.2]
+
 
 # _________________________________________________________________________
 # Helper function to sort target_period strings chronologically
 def target_period_sort_key(tp: str):
+    """
+    Convert a 'YYYYmMM' target_period string into a tuple (year, month) for sorting.
+    If the string does not match the expected format, return a placeholder (9999,0).
+    """
     m = re.match(r'(\d{4})m(\d+)', tp)
     if m:
         year, month = int(m.group(1)), int(m.group(2))
-        return (year, month)
-    return (9999, 0)
+        return (year, month)                                        # Tuple used for chronological sorting
+    return (9999, 0)                                                # Fallback for unexpected format
 
 # _________________________________________________________________________
-# Function to concatenate Table 1 CSVs
+# Function to concatenate Table 1 CSVs into RTD with 10-year batches
 def concatenate_table_1(input_data_subfolder, record_folder, record_txt, persist, persist_folder):
-    start_time = time.time()
-    print("\n🧹 Starting Table 1 concatenation...")
+    """
+    Concatenate Table 1 CSVs across years, align all target_periods, order columns by sector/year/suffix,
+    split into 10-year batches, and optionally persist as CSVs.
+    Returns a dictionary with batch DataFrames keyed by batch name.
+    """
+    start_time = time.time()                                                                                                            # Start measuring execution time
+    print("\n⛓️ Starting Table 1 concatenation...")
 
-    processed_files = _read_records(record_folder, record_txt)
-    table_1_folder = os.path.join(input_data_subfolder, 'table_1')
-    year_folders = sorted([f for f in os.listdir(table_1_folder) if f.isdigit()], key=int)
+    processed_files = _read_records(record_folder, record_txt)                                                                          # Load list of already processed CSVs
+    table_1_folder   = os.path.join(input_data_subfolder, 'table_1')                                                                    # Define path to Table 1 CSVs
+    year_folders     = sorted([f for f in os.listdir(table_1_folder) if f.isdigit()], key=int)                                          # Only numeric year folders
 
-    all_dataframes = []
-    skipped_counter = 0
-    new_counter = 0
+    all_dataframes = []                                                                                                                 # List to store all loaded DataFrames
+    skipped_counter = 0                                                                                                                 # Counter for already processed CSVs
+    new_counter     = 0                                                                                                                 # Counter for newly processed CSVs
 
-    # Load all CSVs
+    # Loop through all year folders
     for year in year_folders:
-        year_folder = os.path.join(table_1_folder, year)
-        csv_files = sorted([f for f in os.listdir(year_folder) if f.endswith(".csv")])
+        year_folder = os.path.join(table_1_folder, year)                                                                                # Full path for current year folder
+        csv_files   = sorted([f for f in os.listdir(year_folder) if f.endswith(".csv")])                                                # Get CSV files
         for csv_file in csv_files:
-            if csv_file in processed_files:
+            if csv_file in processed_files:                                                                                             # Skip if already processed
                 skipped_counter += 1
                 continue
-            df = pd.read_csv(os.path.join(year_folder, csv_file))
-            # Ensure numeric values
+            df = pd.read_csv(os.path.join(year_folder, csv_file))                                                                       # Read CSV into DataFrame
             for col in df.columns:
                 if col != 'target_period':
-                    df[col] = pd.to_numeric(df[col], errors='coerce')
-            all_dataframes.append(df)
-            processed_files.append(csv_file)
-            _write_records(record_folder, record_txt, processed_files)
-            new_counter += 1
+                    df[col] = pd.to_numeric(df[col], errors='coerce')                                                                   # Convert all numeric-like columns, ignore errors
+            all_dataframes.append(df)                                                                                                   # Store DataFrame
+            processed_files.append(csv_file)                                                                                            # Mark as processed
+            _write_records(record_folder, record_txt, processed_files)                                                                  # Persist processed list to TXT
+            new_counter += 1                                                                                                            # Increment new file counter
 
     if not all_dataframes:
         print("No new CSV files to concatenate.")
         return {}
 
-    # === ALIGN target_periods ACROSS ALL COLUMNS ===
+    # Align all DataFrames by complete set of target_periods
     all_target_periods = sorted(
-        set().union(*[df['target_period'].tolist() for df in all_dataframes]),
-        key=target_period_sort_key
+        set().union(*[df['target_period'].tolist() for df in all_dataframes]),                                                          # Union of all unique target_periods
+        key=target_period_sort_key                                                                                                      # Sort chronologically
     )
 
     aligned_dfs = []
     for df in all_dataframes:
-        df = df.set_index('target_period').reindex(all_target_periods)
+        df = df.set_index('target_period').reindex(all_target_periods)                                                                  # Reindex DataFrame to full target_periods
         aligned_dfs.append(df)
 
-    concatenated_df = pd.concat(aligned_dfs, axis=1).reset_index().rename(columns={'index': 'target_period'})
+    concatenated_df = pd.concat(aligned_dfs, axis=1).reset_index().rename(columns={'index': 'target_period'})                           # Horizontal concatenation
+    concatenated_df = concatenated_df.loc[:, ~concatenated_df.columns.duplicated()]                                                     # Remove duplicate columns if any
 
-    # Remove duplicates from repeated CSVs if any
-    concatenated_df = concatenated_df.loc[:,~concatenated_df.columns.duplicated()]
-
-    # Order columns by sector then by year/suffix
-    target = concatenated_df['target_period']
+    # Order columns by sector, year, and suffix
     other_cols = [c for c in concatenated_df.columns if c != 'target_period']
 
     def sort_key(col):
-        m = re.match(r'([a-z_]+)_(\d{4})_(\d+)', col)
+        m = re.match(r'([a-z_]+)_(\d{4})_(\d+)', col)                                                                                   # Regex for 'sector_YYYY_suffix'
         if m:
             sector, year, suffix = m.groups()
-            return (sector, int(year), int(suffix))
+            return (sector, int(year), int(suffix))                                                                                     # Return tuple for sorting
         return (col, 0, 0)
 
-    sorted_cols = sorted(other_cols, key=sort_key)
-    concatenated_df = concatenated_df[['target_period'] + sorted_cols]
+    sorted_cols = sorted(other_cols, key=sort_key)                                                                                      # Sort columns by sector/year/suffix
+    concatenated_df = concatenated_df[['target_period'] + sorted_cols]                                                                  # Reorder DataFrame
 
     # Split into 10-year batches
-    years_int = [int(f.split('_')[1]) for f in sorted_cols if re.match(r'.+_\d{4}_\d+', f)]
+    years_int = [int(f.split('_')[1]) for f in sorted_cols if re.match(r'.+_\d{4}_\d+', f)]                                             # Extract years
     if not years_int:
-        years_int = [int(y) for y in year_folders]
+        years_int = [int(y) for y in year_folders]                                                                                      # Fallback if column parsing fails
 
-    min_year, max_year = min(years_int), max(years_int)
+    min_year, max_year = min(years_int), max(years_int)                                                                                 # Compute batch ranges
     batch_start = min_year
-    batch_num = 1
-    batch_dict = {}
+    batch_num   = 1
+    batch_dict  = {}
 
     while batch_start <= max_year:
-        batch_end = min(batch_start + 9, max_year)
-        batch_cols = ['target_period'] + [c for c in sorted_cols if any(f'_{y}_' in c for y in range(batch_start, batch_end+1))]
-        batch_df = concatenated_df[batch_cols]
-        batch_name = f"new_gdp_rtd_table_1_batch_{batch_num}"
+        batch_end   = min(batch_start + 9, max_year)                                                                                    # Define end of 10-year batch
+        batch_cols  = ['target_period'] + [c for c in sorted_cols if any(f'_{y}_' in c for y in range(batch_start, batch_end + 1))]     # Select columns for this batch
+        batch_df    = concatenated_df[batch_cols]                                                                                       # Slice DataFrame for batch
+        batch_name  = f"new_gdp_rtd_table_1_batch_{batch_num}"                                                                          # Batch name
         batch_dict[batch_name] = batch_df
 
         if persist:
-            out_path = os.path.join(persist_folder, f"{batch_name}.csv")
-            batch_df.to_csv(out_path, index=False)
-            print(f"📂 Batch {batch_num} ({batch_start}-{batch_end}) saved to {out_path}")
+            out_path = os.path.join(persist_folder, f"{batch_name}.csv")                                                                # File path to persist
+            batch_df.to_csv(out_path, index=False)                                                                                      # Write CSV
+            print(f"📦 Batch {batch_num} ({batch_start}-{batch_end}) saved to {out_path}")
 
-        batch_start += 10
-        batch_num += 1
+        batch_start += 10                                                                                                               # Move to next 10-year block
+        batch_num   += 1                                                                                                                # Increment batch counter
 
-    elapsed_time = round(time.time() - start_time)
+    elapsed_time = round(time.time() - start_time)                                                                                      # Compute elapsed time
     print(f"\n📊 Summary:\n📂 {len(year_folders)} folders (years) found containing input CSVs")
     print(f"🗃️ Already processed files: {skipped_counter}")
-    print(f"✨ Newly concatenated files: {new_counter}")
+    print(f"🔹 Newly concatenated files: {new_counter}")
     print(f"⏱️ {elapsed_time} seconds")
-    print(f"🔹 Total batches created: {len(batch_dict)} with ranges: {[k for k in batch_dict.keys()]}")
 
     return batch_dict
 
 # _________________________________________________________________________
-# Function to concatenate Table 2 CSVs
+# Function to concatenate Table 2 CSVs into RTD with 10-year batches
 def concatenate_table_2(input_data_subfolder, record_folder, record_txt, persist, persist_folder):
-    start_time = time.time()
-    print("\n🧹 Starting Table 2 concatenation...")
+    """
+    Concatenate Table 2 CSVs across years, align all target_periods, order columns by sector/year/suffix,
+    split into 10-year batches, and optionally persist as CSVs.
+    Returns a dictionary with batch DataFrames keyed by batch name.
+    """
+    start_time = time.time()                                                                                                            # Start execution timer
+    print("\n⛓️ Starting Table 2 concatenation...")
 
-    processed_files = _read_records(record_folder, record_txt)
-    table_2_folder = os.path.join(input_data_subfolder, 'table_2')
-    year_folders = sorted([f for f in os.listdir(table_2_folder) if f.isdigit()], key=int)
+    processed_files = _read_records(record_folder, record_txt)                                                                          # Load already processed CSV filenames
+    table_2_folder   = os.path.join(input_data_subfolder, 'table_2')                                                                    # Define path to Table 2 CSVs
+    year_folders     = sorted([f for f in os.listdir(table_2_folder) if f.isdigit()], key=int)                                          # Only numeric year folders
 
-    all_dataframes = []
-    skipped_counter = 0
-    new_counter = 0
+    all_dataframes = []                                                                                                                 # List to hold loaded DataFrames
+    skipped_counter = 0                                                                                                                 # Counter for already processed CSVs
+    new_counter     = 0                                                                                                                 # Counter for newly processed CSVs
 
+    # Iterate through each year folder
     for year in year_folders:
-        year_folder = os.path.join(table_2_folder, year)
-        csv_files = sorted([f for f in os.listdir(year_folder) if f.endswith(".csv")])
+        year_folder = os.path.join(table_2_folder, year)                                                                                # Full path for current year folder
+        csv_files   = sorted([f for f in os.listdir(year_folder) if f.endswith(".csv")])                                                # List CSV files
         for csv_file in csv_files:
-            if csv_file in processed_files:
+            if csv_file in processed_files:                                                                                             # Skip files already processed
                 skipped_counter += 1
                 continue
-            df = pd.read_csv(os.path.join(year_folder, csv_file))
+            df = pd.read_csv(os.path.join(year_folder, csv_file))                                                                       # Load CSV into DataFrame
             for col in df.columns:
                 if col != 'target_period':
-                    df[col] = pd.to_numeric(df[col], errors='coerce')
-            all_dataframes.append(df)
-            processed_files.append(csv_file)
-            _write_records(record_folder, record_txt, processed_files)
-            new_counter += 1
+                    df[col] = pd.to_numeric(df[col], errors='coerce')                                                                   # Ensure numeric columns are numeric
+            all_dataframes.append(df)                                                                                                   # Append DataFrame to list
+            processed_files.append(csv_file)                                                                                            # Mark CSV as processed
+            _write_records(record_folder, record_txt, processed_files)                                                                  # Persist processed record list
+            new_counter += 1                                                                                                            # Increment newly processed counter
 
     if not all_dataframes:
         print("No new CSV files to concatenate.")
         return {}
 
-    # === ALIGN target_periods ACROSS ALL COLUMNS ===
+    # Align all DataFrames by full set of target_periods
     all_target_periods = sorted(
-        set().union(*[df['target_period'].tolist() for df in all_dataframes]),
-        key=target_period_sort_key
+        set().union(*[df['target_period'].tolist() for df in all_dataframes]),                                                          # Unique target_periods across all DataFrames
+        key=target_period_sort_key                                                                                                      # Sort them chronologically
     )
 
     aligned_dfs = []
     for df in all_dataframes:
-        df = df.set_index('target_period').reindex(all_target_periods)
+        df = df.set_index('target_period').reindex(all_target_periods)                                                                  # Reindex DataFrame to match full period list
         aligned_dfs.append(df)
 
-    concatenated_df = pd.concat(aligned_dfs, axis=1).reset_index().rename(columns={'index': 'target_period'})
-    concatenated_df = concatenated_df.loc[:,~concatenated_df.columns.duplicated()]
+    concatenated_df = pd.concat(aligned_dfs, axis=1).reset_index().rename(columns={'index': 'target_period'})                           # Concatenate horizontally
+    concatenated_df = concatenated_df.loc[:, ~concatenated_df.columns.duplicated()]                                                     # Remove duplicate columns
 
-    # Order columns by sector then by year/suffix
-    target = concatenated_df['target_period']
+    # Order columns by sector, year, and suffix
     other_cols = [c for c in concatenated_df.columns if c != 'target_period']
 
     def sort_key(col):
-        m = re.match(r'([a-z_]+)_(\d{4})_(\d+)', col)
+        m = re.match(r'([a-z_]+)_(\d{4})_(\d+)', col)                                                                                   # Match column pattern 'sector_YYYY_suffix'
         if m:
             sector, year, suffix = m.groups()
-            return (sector, int(year), int(suffix))
-        return (col, 0, 0)
+            return (sector, int(year), int(suffix))                                                                                     # Sorting tuple: sector -> year -> suffix
+        return (col, 0, 0)                                                                                                              # Default for columns that do not match pattern
 
-    sorted_cols = sorted(other_cols, key=sort_key)
-    concatenated_df = concatenated_df[['target_period'] + sorted_cols]
+    sorted_cols = sorted(other_cols, key=sort_key)                                                                                      # Sort columns according to sector/year/suffix
+    concatenated_df = concatenated_df[['target_period'] + sorted_cols]                                                                  # Reorder DataFrame
 
     # Split into 10-year batches
-    years_int = [int(f.split('_')[1]) for f in sorted_cols if re.match(r'.+_\d{4}_\d+', f)]
+    years_int = [int(f.split('_')[1]) for f in sorted_cols if re.match(r'.+_\d{4}_\d+', f)]                                             # Extract years from columns
     if not years_int:
-        years_int = [int(y) for y in year_folders]
+        years_int = [int(y) for y in year_folders]                                                                                      # Fallback if regex fails
 
-    min_year, max_year = min(years_int), max(years_int)
+    min_year, max_year = min(years_int), max(years_int)                                                                                 # Determine min/max year
     batch_start = min_year
-    batch_num = 1
-    batch_dict = {}
+    batch_num   = 1
+    batch_dict  = {}
 
     while batch_start <= max_year:
-        batch_end = min(batch_start + 9, max_year)
-        batch_cols = ['target_period'] + [c for c in sorted_cols if any(f'_{y}_' in c for y in range(batch_start, batch_end+1))]
-        batch_df = concatenated_df[batch_cols]
-        batch_name = f"new_gdp_rtd_table_2_batch_{batch_num}"
+        batch_end   = min(batch_start + 9, max_year)                                                                                    # 10-year batch end
+        batch_cols  = ['target_period'] + [c for c in sorted_cols if any(f'_{y}_' in c for y in range(batch_start, batch_end + 1))]     # Select columns for batch
+        batch_df    = concatenated_df[batch_cols]                                                                                       # Slice DataFrame for batch
+        batch_name  = f"new_gdp_rtd_table_2_batch_{batch_num}"                                                                          # Batch name
         batch_dict[batch_name] = batch_df
 
         if persist:
-            out_path = os.path.join(persist_folder, f"{batch_name}.csv")
-            batch_df.to_csv(out_path, index=False)
-            print(f"📂 Batch {batch_num} ({batch_start}-{batch_end}) saved to {out_path}")
+            out_path = os.path.join(persist_folder, f"{batch_name}.csv")                                                                # Output file path
+            batch_df.to_csv(out_path, index=False)                                                                                      # Persist batch as CSV
+            print(f"📦 Batch {batch_num} ({batch_start}-{batch_end}) saved to {out_path}")
 
-        batch_start += 10
-        batch_num += 1
+        batch_start += 10                                                                                                               # Increment to next 10-year block
+        batch_num   += 1                                                                                                                # Increment batch number
 
-    elapsed_time = round(time.time() - start_time)
+    elapsed_time = round(time.time() - start_time)                                                                                      # Total execution time
     print(f"\n📊 Summary:\n📂 {len(year_folders)} folders (years) found containing input CSVs")
     print(f"🗃️ Already processed files: {skipped_counter}")
-    print(f"✨ Newly concatenated files: {new_counter}")
+    print(f"🔹 Newly concatenated files: {new_counter}")
     print(f"⏱️ {elapsed_time} seconds")
-    print(f"🔹 Total batches created: {len(batch_dict)} with ranges: {[k for k in batch_dict.keys()]}")
 
     return batch_dict
-
-
-
-
-
 
