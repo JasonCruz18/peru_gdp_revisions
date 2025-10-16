@@ -312,7 +312,7 @@ def download_pdf(
     with open(record_path, "w", encoding="utf-8") as f:
         f.write("\n".join(records) + ("\n" if records else ""))                 # Trailing newline if non-empty
 
-    print(f"{download_counter}. ✅ Downloaded: {file_name}")
+    print(f"{download_counter}. ✔️ Downloaded: {file_name}")
     success = True
 
     driver.close(); driver.switch_to.window(windows[0])                         # Close child tab and go back to main
@@ -911,7 +911,7 @@ def pdf_input_generator(
             for name in ordered_records:
                 f_rec.write(name + "\n")
 
-        print(f"✅ Shortened PDFs saved in '{input_pdf_folder}' "
+        print(f"✔️ Shortened PDFs saved in '{input_pdf_folder}' "
               f"({folder_new_count} new, {folder_skipped_count} skipped)")
 
         new_counter += folder_new_count
