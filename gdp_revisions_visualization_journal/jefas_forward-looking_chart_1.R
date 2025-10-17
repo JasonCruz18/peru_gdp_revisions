@@ -151,6 +151,21 @@ df_adjusted <- df_filtered_with_smooth %>%
   mutate(gdp_release_adjusted = gdp_release + adjustment)
 
 #*******************************************************************************
+# NUEVO: Missing values (2013–2014 base-year adjustment)
+#*******************************************************************************
+
+xmin <- as.Date("2013-01-01")
+xmax <- as.Date("2014-01-01")
+
+df_adjusted <- df_adjusted %>%
+  mutate(
+    gdp_release_adjusted = ifelse(
+      vintages_date >= xmin & vintages_date <= xmax,
+      NA, gdp_release_adjusted
+    )
+  )
+
+#*******************************************************************************
 # NUEVO: Extraer últimos puntos para cada línea roja
 #*******************************************************************************
 
@@ -168,10 +183,10 @@ df_adjusted_last_points <- df_adjusted %>%
 plot <- ggplot() +
   
   # Regiones sombreadas
-#  geom_rect(aes(xmin = as.Date("2013-01-01"), xmax = as.Date("2014-01-01"),
-#                ymin = -Inf, ymax = Inf, fill = "2007 base year"), alpha = 0.70) +
-#  geom_rect(aes(xmin = as.Date("2020-03-01"), xmax = as.Date("2021-10-01"),
-#                ymin = -Inf, ymax = Inf, fill = "COVID-19"), alpha = 0.70) +
+  #  geom_rect(aes(xmin = as.Date("2013-01-01"), xmax = as.Date("2014-01-01"),
+  #                ymin = -Inf, ymax = Inf, fill = "2007 base year"), alpha = 0.70) +
+  #  geom_rect(aes(xmin = as.Date("2020-03-01"), xmax = as.Date("2021-10-01"),
+  #                ymin = -Inf, ymax = Inf, fill = "COVID-19"), alpha = 0.70) +
   
   # Línea principal: 1st release suavizado (línea negra)
   geom_line(
@@ -182,9 +197,9 @@ plot <- ggplot() +
   geom_point(
     data = df_h1,
     aes(x = release_date, y = gdp_release_smooth, color = "1st release"),
-    shape = 21,          # círculo con borde
-    size = 2.25,         # tamaño visual del punto
-    stroke = 0.85,       # grosor del borde
+    shape = 21,          
+    size = 2.25,         
+    stroke = 0.85,       
     fill = NA
   ) +
   
@@ -220,24 +235,21 @@ plot <- ggplot() +
     expand = c(0.02, 0.02)
   ) +
   scale_y_continuous(
-    breaks = seq(-2, 12, by = 2),            # Breaks in increments of 2
-    labels = scales::number_format(accuracy = 1)  # No decimal places
+    breaks = seq(-2, 12, by = 2),
+    labels = scales::number_format(accuracy = 1)
   ) +
   
   scale_color_manual(
-    values = c("1st release" = "#E6004C", "Ongoing releases" = "#3366FF", "Last release" = "#3366FF"),
-    breaks = c("1st release", "Ongoing releases", "Last release")  # Explicitly setting legend order
+    values = c("1st release" = "#E6004C",
+               "Ongoing releases" = "#3366FF",
+               "Last release" = "#3366FF"),
+    breaks = c("1st release", "Ongoing releases", "Last release")
   ) +
   
-  #scale_fill_manual(
-#    values = c("COVID-19" = "#F5F5F5", "2007 base year" = "#F5F5F5")
-#  ) +
-  
-  # Adjusting legend order
   guides(
     color = guide_legend(
       order = 1,
-      override.aes = list(size = 3.5) # example values
+      override.aes = list(size = 3.5)
     )
   ) +
   
@@ -254,8 +266,8 @@ plot <- ggplot() +
     axis.title.x = element_blank(),
     axis.title.y = element_text(size = 28, color = "black"),
     plot.title = element_blank(),
-    legend.position = c(0.985, 0.97),  # Use the new argument for inside legend positioning
-    legend.justification = c("right", "top"),  # Ensures it sticks to the top-right corner
+    legend.position = c(0.985, 0.97),
+    legend.justification = c("right", "top"),
     legend.title = element_blank(),
     legend.text = element_text(size = 28, color = "black"),
     legend.background = element_rect(fill = "white", color = "black", linewidth = 0.45),
@@ -273,8 +285,9 @@ ggsave(filename = file.path(output_dir, "Fig_Noodles.png"),
        plot = plot, 
        width = 16, 
        height = 9, 
-       dpi = 300,       # Set DPI to 300 for high resolution
+       dpi = 300,
        bg = "white")
+
 
 # Save as high-resolution PDF
 ggsave(filename = file.path(output_dir, "Fig_Noodles.pdf"), 
