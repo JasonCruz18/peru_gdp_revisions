@@ -1241,6 +1241,28 @@ def rounding_values(df, decimals=1):
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 
 # _________________________________________________________________________
+# Function to convert column names to lowercase and remove accents [exclusive to the OLD dataset]
+def clean_column_names(df):
+    """
+    Converts all column names to lowercase and removes any accents.
+    """
+    df.columns = df.columns.str.lower()  # Convert all column names to lowercase
+    df.columns = [unicodedata.normalize('NFKD', col).encode('ASCII', 'ignore').decode('utf-8') if isinstance(col, str) else col for col in df.columns]  # Normalize and remove accents from string column names
+    return df  # Return the modified DataFrame
+
+# _________________________________________________________________________
+# Function to adjust column names [exclusive to the OLD dataset]
+def adjust_column_names(df):
+    """
+    Adjust column names if the first and last columns have NaN values and specific conditions are met.
+    """
+    if pd.isna(df.iloc[0, 0]) and pd.isna(df.iloc[0, -1]):  # Check if the first observation in the first and last columns are NaN
+        if "sectores economicos" in df.columns[0] and "economic sectors" in df.columns[-1]:  # Verify column names in the first and last columns
+            df.iloc[0, 0] = "sectores economicos"  # Replace NaN in the first column with the correct name
+            df.iloc[0, -1] = "economic sectors"  # Replace NaN in the last column with the correct name
+    return df  # Return the modified DataFrame
+
+# _________________________________________________________________________
 # Function to relocate trailing values when the last column is already filled
 def relocate_last_columns(df):
     """
@@ -1659,6 +1681,15 @@ def replace_nan_with_previous_column_2(df):
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 # Utilities only for cleaning Table 2
 # ++++++++++++++++++++++++++++++++++++++++++++++++
+
+# _________________________________________________________________________
+# Function to replace 'TOTAL' with 'YEAR' in the first row [exclusive to the OLD dataset]
+def replace_total_with_year(df):
+    """
+    If the first row contains 'TOTAL', replace it with 'YEAR'.
+    """
+    df.iloc[0] = df.iloc[0].apply(lambda x: 'YEAR' if "TOTAL" in str(x) else x)  # Apply lambda function to replace 'TOTAL' with 'YEAR' in the first row
+    return df  # Return the modified DataFrame
 
 # _________________________________________________________________________
 # Function to split two space-separated years in the penultimate column into two columns
