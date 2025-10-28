@@ -1,2 +1,3 @@
-# Ignore old outputs
-old_wr/table_1/
+*.csv
+# Ignore old dataset
+old_wr/
