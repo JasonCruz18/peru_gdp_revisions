@@ -1,3 +1,6 @@
 *.csv
 # Ignore old dataset
+pdf/
 old_wr/
+data/
+alert_track/
