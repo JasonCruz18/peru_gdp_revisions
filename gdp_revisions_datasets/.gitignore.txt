@@ -1,2 +1,2 @@
 # Ignore all CSV files anywhere in the repo
-*.csv
+old_wr/table_1/*.csv
