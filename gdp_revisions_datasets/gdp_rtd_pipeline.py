@@ -688,12 +688,10 @@ def replace_defective_pdfs(
 # import time                                                               # [already imported and documented in section 1]
 # import shutil                                                             # [already imported and documented in section 1]
 # import requests                                                           # [already imported and documented in section 1]
-
 import fitz                                                                 # PyMuPDF: fast PDF I/O, page extraction, lightweight edits
 import ipywidgets as widgets                                                # Jupyter UI widgets (controls/progress/inputs for workflows)
 from IPython.display import display                                         # Render widgets/HTML/images inline in notebooks
 from tqdm.notebook import tqdm                                              # Jupyter-friendly progress bar for iterative tasks
-import pdfplumber                                                           # Structured PDF text/table extraction with fine-grained control
 from PyPDF2 import PdfReader, PdfWriter                                     # Page-level edits: split/merge/select/rotate pages
 
 
@@ -2069,28 +2067,6 @@ def _extract_table(pdf_path: str, page: int) -> pd.DataFrame | None:
     return tables[0] if isinstance(tables, list) else tables                            # Return the first table found
 
 # _________________________________________________________________________
-# Function to compute the SHA-256 checksum of a file
-def _compute_sha256(file_path: str, chunk: int = 1 << 20) -> str:
-    """
-    Compute the SHA-256 hash of a file in chunks, used for file integrity verification.
-
-    Args:
-        file_path (str): Path to the file to compute the hash.
-        chunk (int): Size of each read chunk (default: 1MB).
-
-    Returns:
-        str: Hexadecimal SHA-256 hash digest of the file.
-    """
-    h = hashlib.sha256()                                # Initialize SHA-256 hash object
-    with open(file_path, "rb") as fh:                   # Open the file in binary mode
-        while True:
-            b = fh.read(chunk)                          # Read a chunk of the file
-            if not b:
-                break
-            h.update(b)                                 # Update the hash with the chunk
-    return h.hexdigest()                                # Return the hexadecimal digest
-
-# _________________________________________________________________________
 # Function to save a DataFrame to either Parquet or CSV format
 def _save_df(df: pd.DataFrame, out_path: str) -> tuple[str, int, int]:
     """
@@ -2117,19 +2093,19 @@ def _save_df(df: pd.DataFrame, out_path: str) -> tuple[str, int, int]:
 # °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
 # 3.2.1 Class for Table 1 and Table 2 pipeline cleaning
 # °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
-# In this section we define a class called `tables_cleaner` that encapsulates the pipeline for 
+# In this section we define a class called `new_tables_cleaner` that encapsulates the pipeline for 
 # cleaning data extracted from WR tables. The class exposes two main functions:
-# - `clean_table_1(df)`: For cleaning data from Table 1 (monthly growth).
-# - `clean_table_2(df)`: For cleaning data from Table 2 (quarterly/annual growth).
+# - `new_clean_table_1(df)`: For cleaning data from Table 1 (monthly growth).
+# - `new_clean_table_2(df)`: For cleaning data from Table 2 (quarterly/annual growth).
 # These pipelines ensure that the raw data is properly cleaned, normalized, and formatted.
 
-class tables_cleaner:
+class new_tables_cleaner:
     """
     Pipelines for WR tables cleaning.
 
     Exposes:
-        - clean_table_1(df): Monthly (table 1) pipeline.
-        - clean_table_2(df): Quarterly/annual (table 2) pipeline.
+        - new_clean_table_1(df): Monthly (table 1) pipeline.
+        - new_clean_table_2(df): Quarterly/annual (table 2) pipeline.
 
     Note:
         The helper functions referenced below (drop_nan_rows, split_column_by_pattern, …)
@@ -2138,7 +2114,7 @@ class tables_cleaner:
 
     # _____________________________________________________________________
     # Function to clean and process Table 1 (monthly data)
-    def clean_table_1(self, df: pd.DataFrame) -> pd.DataFrame:
+    def new_clean_table_1(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Clean a raw DataFrame extracted from WR Table 1 (monthly growth).
 
@@ -2228,7 +2204,7 @@ class tables_cleaner:
 
     # _____________________________________________________________________
     # Function to clean and process Table 2 (quarterly/annual data)
-    def clean_table_2(self, df: pd.DataFrame) -> pd.DataFrame:
+    def new_clean_table_2(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Clean a raw DataFrame extracted from WR Table 2 (quarterly/annual).
 
@@ -2464,13 +2440,13 @@ class vintages_preparator:
 # 3.2.3 Runners: single-call functions per table (raw + clean dicts, records, bars, summary)
 # °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
 # In this section, we define two functions to clean and process all WR PDFs from a folder:
-# 1) `table_1_cleaner`: Extracts page 1 from each WR PDF, applies the Table 1 pipeline, updates the record, and optionally 
+# 1) `new_table_1_cleaner`: Extracts page 1 from each WR PDF, applies the Table 1 pipeline, updates the record, and optionally 
 #    persists cleaned tables (Parquet/CSV) while showing a concise summary.
-# 2) `table_2_cleaner`: Similar to `table_1_cleaner` but for Table 2 (quarterly/annual).
+# 2) `new_table_2_cleaner`: Similar to `new_table_1_cleaner` but for Table 2 (quarterly/annual).
 
 # _________________________________________________________________________
 # Function to clean and process Table 1 from all WR (PDF files) in a folder
-def table_1_cleaner(
+def new_table_1_cleaner(
     input_pdf_folder: str,
     record_folder: str,
     record_txt: str,
@@ -2485,7 +2461,7 @@ def table_1_cleaner(
     start_time = time.time()                                                        # Record the start time
     print("\n🧹 Starting Table 1 cleaning...\n")
 
-    cleaner   = tables_cleaner()                                                    # Initialize the cleaner for Table 1
+    cleaner   = new_tables_cleaner()                                                    # Initialize the cleaner for Table 1
     records   = _read_records(record_folder, record_txt)                            # Read existing record of processed files
     processed = set(records)                                                        # Convert record list to set for faster lookup
 
@@ -2557,7 +2533,7 @@ def table_1_cleaner(
                 key = f"{os.path.splitext(filename)[0].replace('-', '_')}_1"
                 raw_tables_dict_1[key] = raw.copy()                                 # Store raw table
 
-                clean = cleaner.clean_table_1(raw)                                  # Clean the raw table
+                clean = cleaner.new_clean_table_1(raw)                                  # Clean the raw table
                 clean.insert(0, "year", yr)                                         # Insert 'year' column at the start
                 clean.insert(1, "wr", issue)                                        # Insert 'wr' column (weekly report code)
                 clean.attrs["pipeline_version"] = pipeline_version
@@ -2612,7 +2588,7 @@ def table_1_cleaner(
 
 # _________________________________________________________________________
 # Function to clean and process Table 2 from all WR PDF files in a folder
-def table_2_cleaner(
+def new_table_2_cleaner(
     input_pdf_folder: str,
     record_folder: str,
     record_txt: str,
@@ -2627,8 +2603,8 @@ def table_2_cleaner(
     start_time = time.time()                                                    # Record script start time
     print("\n🧹 Starting Table 2 cleaning...\n")
 
-    cleaner = tables_cleaner()                                                  # Initialize table cleaner object
-    records = _read_records(record_folder, record_txt)                          # Load processed record file
+    cleaner   = new_tables_cleaner()                                                  # Initialize table cleaner object
+    records   = _read_records(record_folder, record_txt)                          # Load processed record file
     processed = set(records)                                                    # Convert to set for fast lookup
 
     raw_tables_dict_2: dict[str, pd.DataFrame] = {}                             # Store extracted raw tables
@@ -2698,7 +2674,7 @@ def table_2_cleaner(
                 key = f"{os.path.splitext(filename)[0].replace('-', '_')}_2"
                 raw_tables_dict_2[key] = raw.copy()                             # Store raw table with unique key
 
-                clean = cleaner.clean_table_2(raw)                              # Clean the extracted table
+                clean = cleaner.new_clean_table_2(raw)                              # Clean the extracted table
                 clean.insert(0, "year", yr)                                     # Add 'year' column first
                 clean.insert(1, "wr", issue)                  
                 clean.attrs["pipeline_version"] = pipeline_version
