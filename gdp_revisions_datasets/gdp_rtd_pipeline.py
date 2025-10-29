@@ -3395,3 +3395,168 @@ def concatenate_table_2(input_data_subfolder, record_folder, record_txt, persist
 
     return batch_dict
 
+
+
+
+
+#
+# Revision Calendar
+#
+
+
+import os
+import re
+import pandas as pd
+from tqdm import tqdm
+import fitz  # PyMuPDF
+
+def _read_records_2(record_folder: str, record_txt: str) -> list[str]:
+    """
+    Reads previously processed years from a record text file.
+    
+    Args:
+        record_folder (str): Folder path where the record file is stored.
+        record_txt (str): Name of the record file.
+    
+    Returns:
+        list[str]: List of processed years.
+    """
+    record_path = os.path.join(record_folder, record_txt)
+    if not os.path.exists(record_path):
+        return []
+    
+    with open(record_path, "r", encoding="utf-8") as f:
+        return [line.strip() for line in f if line.strip()]
+
+
+def _write_records_2(record_folder: str, record_txt: str, years: list[str]) -> None:
+    """
+    Writes the list of processed years to a record text file.
+    
+    Args:
+        record_folder (str): Folder path where the record file is stored.
+        record_txt (str): Name of the record file.
+        years (list[str]): List of processed years.
+    """
+    os.makedirs(record_folder, exist_ok=True)
+    with open(os.path.join(record_folder, record_txt), "w", encoding="utf-8") as f:
+        f.write("\n".join(sorted(years)) + "\n")
+
+
+def _extract_wr_update_from_pdf(pdf_path: str) -> tuple[str, str]:
+    """
+    Extracts the revision numbers (wr IDs) from the first and second pages of a PDF.
+    
+    Args:
+        pdf_path (str): Path to the PDF file.
+    
+    Returns:
+        tuple[str, str]: Extracted revision numbers from the first and second pages.
+    """
+    # Open the PDF using PyMuPDF
+    doc = fitz.open(pdf_path)
+    
+    # Extract text from the first page
+    page_1_text = doc[0].get_text()
+    updated_wr_1 = _extract_dd_from_text(page_1_text)
+    
+    # Extract text from the second page
+    page_2_text = doc[1].get_text()
+    updated_wr_2 = _extract_dd_from_text(page_2_text)
+    
+    return updated_wr_1, updated_wr_2
+
+
+def _extract_dd_from_text(text: str) -> str:
+    """
+    Extracts a one or two-digit number (wr ID) that follows the pattern "en la Nota N° dd" from the text.
+    
+    Args:
+        text (str): Text content of the PDF page.
+    
+    Returns:
+        str: The extracted "dd" number (1 or 2 digits) or NaN if no match is found.
+    """
+    match = re.search(r"en la Nota N°\s*(\d{1,2})", text)
+    return match.group(1) if match else "NaN"  # Default to NaN if no match is found
+
+
+def record_official_calendar(metadata_folder: str, input_pdf_folder: str, record_folder: str, record_txt: str, wr_revision_calendar_csv: str) -> pd.DataFrame:
+    """
+    Extracts weekly revision data (wr IDs) from PDF files and updates the revision calendar.
+    
+    Args:
+        metadata_folder (str): Path to the folder containing the 'wr_revision_calendar.csv'.
+        input_pdf_folder (str): Path to the folder containing year-based subfolders with PDF files.
+        record_folder (str): Folder to store and update the record file.
+        record_txt (str): Name of the text file to track processed years.
+        wr_revision_calendar_csv (str): The CSV file name to track and store the revision calendar.
+    
+    Returns:
+        pd.DataFrame: Updated 'wr_revision_calendar.csv' DataFrame.
+    """
+    # Read the existing CSV file for 'wr_revision_calendar'
+    revision_calendar_path = os.path.join(metadata_folder, wr_revision_calendar_csv)
+    if os.path.exists(revision_calendar_path):
+        revision_calendar = pd.read_csv(revision_calendar_path)
+    else:
+        revision_calendar = pd.DataFrame(columns=["year", "wr", "updated_wr_1", "updated_wr_2", "benchmark_revision"])
+
+    # Read the record of processed years
+    processed_years = _read_records_2(record_folder, record_txt)
+
+    # List all year subfolders (skip '_quarantine')
+    years = [d for d in sorted(os.listdir(input_pdf_folder))
+             if os.path.isdir(os.path.join(input_pdf_folder, d)) and d != "_quarantine"]
+    
+    # Identify the years that need processing
+    years_to_process = [year for year in years if year not in processed_years]
+
+    # Initialize the lists for new data
+    new_data = []
+
+    for year in years_to_process:
+        year_folder = os.path.join(input_pdf_folder, year)
+
+        # List all PDF files in the current year folder (sorted by wr ID)
+        pdf_files = sorted([f for f in os.listdir(year_folder) if f.endswith(".pdf")],
+                           key=lambda x: int(re.search(r"ns-(\d+)-", x).group(1)))  # Sort by wr ID (dd part)
+
+        # Iterate over the actual PDF files found
+        for pdf_filename in pdf_files:
+            pdf_path = os.path.join(year_folder, pdf_filename)
+            
+            # Extract the "dd" number (wr ID) from the filename (ns-dd-yyyy)
+            match = re.search(r"ns-(\d{1,2})-(\d{4})", pdf_filename)
+            if match:
+                wr_number = match.group(1)  # "dd" part from "ns-dd-yyyy"
+            
+            # Extract the wr numbers from the PDFs
+            updated_wr_1, updated_wr_2 = _extract_wr_update_from_pdf(pdf_path)
+            
+            # Append the extracted information for the current year and wr ID
+            new_data.append({
+                "year": year,
+                "wr": wr_number,
+                "updated_wr_1": updated_wr_1,
+                "updated_wr_2": updated_wr_2,
+                "benchmark_revision": 1 if updated_wr_1 == updated_wr_2 else 0
+            })
+
+    # Convert the new data into a DataFrame and append it to the original
+    new_data_df = pd.DataFrame(new_data)
+    revision_calendar = pd.concat([revision_calendar, new_data_df], ignore_index=True)
+
+    # Save the updated wr_revision_calendar CSV
+    revision_calendar.to_csv(revision_calendar_path, index=False)
+
+    # Update the record of processed years
+    _write_records_2(record_folder, record_txt, processed_years + years_to_process)
+
+    return revision_calendar
+
+
+
+
+
+
