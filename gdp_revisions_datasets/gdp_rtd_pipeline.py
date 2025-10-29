@@ -2594,6 +2594,7 @@ def old_table_1_cleaner(
     persist: bool = False,
     persist_folder: str | None = None,
     pipeline_version: str = "s3.0.0",
+    sep: str = ';',  # Separator argument to allow flexibility in separator choice
 ) -> tuple[dict[str, pd.DataFrame], dict[str, pd.DataFrame]]:
     """
     Process each CSV file in the folder, run the table 1 pipeline, update the record,
@@ -2666,7 +2667,7 @@ def old_table_1_cleaner(
 
             csv_path = os.path.join(folder_path, filename)                          # Build full CSV path
             try:
-                raw = pd.read_csv(csv_path, sep=';')                                # Read CSV file directly
+                raw = pd.read_csv(csv_path, sep=sep)                                # Read CSV file directly
                 if raw is None:
                     folder_skipped_count += 1
                     continue
@@ -3032,6 +3033,7 @@ def old_table_2_cleaner(
     persist: bool = False,
     persist_folder: str | None = None,
     pipeline_version: str = "s3.0.0",
+    sep: str = ';',  # Separator argument to allow flexibility in separator choice
 ) -> tuple[dict[str, pd.DataFrame], dict[str, pd.DataFrame]]:
     """
     Process each CSV file in the folder, run the table 2 pipeline, update the record,
@@ -3104,7 +3106,7 @@ def old_table_2_cleaner(
 
             csv_path = os.path.join(folder_path, filename)                          # Build full CSV path
             try:
-                raw = pd.read_csv(csv_path, sep=';')                                # Read CSV file directly
+                raw = pd.read_csv(csv_path, sep=sep)                                # Read CSV file directly
                 if raw is None:
                     folder_skipped_count += 1
                     continue
