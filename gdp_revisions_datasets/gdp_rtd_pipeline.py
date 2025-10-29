@@ -13,11 +13,10 @@
 #
 #   Sections:
 #       1. Downloading PDFs ...................................................................
-#       2. Generating input PDFs ..............................................................
+#       2. Generating input PDFs with key tables ..............................................
 #       3. Cleaning tables and building RTD ...................................................
-#           3.1 Creating functions for extracting, parsing and cleaning-up data from input PDFs
-#           3.2 Building friendly pipelines for running data cleaning for both Table 1 and
-#               Table 2 .......................................................................
+#           3.1 Creating functions for extracting, parsing and cleaning-up input tables .......
+#           3.2 Building friendly pipelines for running cleaners and RTD transformers .........
 #       4. Concatenating RTD across years by frequency ........................................
 # 
 #   Notes:
@@ -671,7 +670,7 @@ def replace_defective_pdfs(
 
 
 # ##############################################################################################
-# SECTION 2 Generating input PDFs
+# SECTION 2 Generating input PDFs with key tables
 # ##############################################################################################
 
 # In this section we build an automated input PDF generator for WR PDFs. It searches pages by
@@ -765,7 +764,7 @@ def read_input_pdf_files(input_pdf_record_folder, input_pdf_record_txt):
     if not os.path.exists(record_path):
         return set()
     with open(record_path, "r", encoding="utf-8") as f:
-        return set(ln.strip() for ln in f if ln.strip())                   # Trim blanks and deduplicate via set
+        return set(ln.strip() for ln in f if ln.strip())                   # Remove blanks and deduplicate via set
 
 # _________________________________________________________________________
 # Function to write/update the record of WR PDFs with generated input PDFs
@@ -853,7 +852,7 @@ def pdf_input_generator(
 
         pbar = tqdm(                                                                        # Year-level progress bar
             pdf_files,
-            desc=f"Generating input PDFs in {folder}",
+            desc=f"Generating input PDFs with key tables in {folder}",
             unit="PDF",
             bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}",
             colour="#E6004C"
@@ -938,7 +937,7 @@ def pdf_input_generator(
 # ##############################################################################################
 
 # ==============================================================================================
-# SECTION 3.1  Creating functions for extracting, parsing and cleaning-up data from input PDFs 
+# SECTION 3.1  Creating functions for extracting, parsing and cleaning-up input tables 
 # ==============================================================================================
 # In this section we prepare reusable helpers to parse WR-derived tables (Table 1 and Table 2)
 # extracted from input PDFs. Utilities include text normalization, column/row fixes, selective
@@ -1179,9 +1178,9 @@ def replace_set_sep(df):
 # _________________________________________________________________________
 # Function to strip extra spaces in sector label columns
 def spaces_se_es(df):
-    """Trim surrounding spaces from sector label columns in ES/EN."""
-    df['sectores_economicos'] = df['sectores_economicos'].str.strip()        # Trim spaces from 'sectores_economicos'
-    df['economic_sectors']    = df['economic_sectors'].str.strip()           # Trim spaces from 'economic_sectors'
+    """Remove surrounding spaces from sector label columns in ES/EN."""
+    df['sectores_economicos'] = df['sectores_economicos'].str.strip()        # Remove spaces from 'sectores_economicos'
+    df['economic_sectors']    = df['economic_sectors'].str.strip()           # Remove spaces from 'economic_sectors'
     return df
 
 # _________________________________________________________________________
@@ -1947,11 +1946,12 @@ def exchange_roman_nan(df):
 
 
 # ==============================================================================================
-# SECTION 3.2 Building friendly pipelines for running data cleaning for both Table 1 and Table 2
+# SECTION 3.2 Building friendly pipelines for running cleaners
 # ==============================================================================================
-# In this section we define utility functions that support the processing of WR-derived data.
-# These pipelines run previous tools for extracting metadata from filenames, reading/writing records,
-# extracting tables from PDFs, and saving cleaned data to disk in appropriate formats.
+# In this section we define utility functions that support the processing of OLD and NEW
+# WR-derived data. These pipelines run previous tools for extracting metadata from filenames,
+# reading/writing records, extracting tables from CSV and PDFs, and saving cleaned data to disk in
+# appropriate formats.
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 # Libraries
@@ -1967,8 +1967,8 @@ import tabula                                                               # ta
 
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
-# Utility functions for handling WR file metadata,
-# records, and table extraction
+# Utility functions for handling old and new WR
+# file metadata, records, and table extraction
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 
 # _________________________________________________________________________
@@ -2064,7 +2064,7 @@ def _extract_table(pdf_path: str, page: int) -> pd.DataFrame | None:
         return None
     if isinstance(tables, list) and len(tables) == 0:
         return None
-    return tables[0] if isinstance(tables, list) else tables                            # Return the first table found
+    return tables[0] if isinstance(tables, list) else tables                            # Return the 1st table found
 
 # _________________________________________________________________________
 # Function to save a DataFrame to either Parquet or CSV format
@@ -2099,6 +2099,130 @@ def _save_df(df: pd.DataFrame, out_path: str) -> tuple[str, int, int]:
 # - `new_clean_table_2(df)`: For cleaning data from Table 2 (quarterly/annual growth).
 # These pipelines ensure that the raw data is properly cleaned, normalized, and formatted.
 
+
+
+
+class old_tables_cleaner:
+    """
+    Pipelines for WR tables cleaning.
+
+    Exposes:
+        - new_clean_table_1(df): Monthly (table 1) pipeline.
+        - new_clean_table_2(df): Quarterly/annual (table 2) pipeline.
+
+    Note:
+        The helper functions referenced below (drop_nan_rows, split_column_by_pattern, …)
+        must exist in this module (Section 3 cleaning helpers).
+    """
+
+    # _____________________________________________________________________
+    # Function to clean and process Table 1 (monthly data) from the OLD db 
+    def old_clean_table_1(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Clean a raw DataFrame extracted from old WR Table 1 (monthly growth).
+
+        Args:
+            df (pd.DataFrame): Raw table 1 dataframe.
+
+        Returns:
+            pd.DataFrame: Cleaned table 1 dataframe.
+        """
+        d = df.copy()  # Work on a copy to avoid modifying the original DataFrame
+
+        # Branch A — if the first column contains economic sectors
+        if d.columns[1] == 'economic_sectors':
+            d = drop_nan_rows(d)                    # 1. Drop rows where all values are NaN
+            d = drop_nan_columns(d)                 # 2. Drop columns where all values are NaN
+            d = clean_columns_values(d)             # 3. Normalize column names and values (e.g., remove tildes)
+            d = convert_float(d)                    # 4. Convert columns to numeric, handling errors gracefully
+            d = replace_set_sep(d)                  # 5. Replace 'set' with 'sep' in column names
+            d = spaces_se_es(d)                     # 6. Remove spaces in the 'sectores_economicos' and 'economic_sectors' columns
+            d = replace_mineria(d)                  # 7. Harmonize 'mineria' labels (ES)
+            d = replace_mining(d)                   # 8. Harmonize 'mining' labels (EN)
+            d = rounding_values(d, decimals=1)      # 9. Round float values to 1 decimal place
+            return d                                # Return the cleaned DataFrame
+        else:
+            # Branch B
+            d = clean_column_names(d)               # 1. Convert column names to lowercase and remove accents
+            d = adjust_column_names(d)              # 2. Adjust column names
+            d = drop_rare_caracter_row(d)           # 3. Remove rows containing rare character '}'
+            d = drop_nan_rows(d)                    # 4. Drop rows where all values are NaN
+            d = drop_nan_columns(d)                 # 5. Drop columns where all values are NaN
+            d = reset_index(d)                      # 6. Reset DataFrame index after cleaning
+            d = remove_digit_slash(d)               # 7. Remove digits followed by a slash in the edge columns
+            d = replace_var_perc_first_column(d)    # 8. Normalize 'Var. %' in the first column
+            d = replace_var_perc_last_columns(d)    # 9. Normalize 'Var. %' in the last columns
+            d = replace_number_moving_average(d)    # 10. Normalize moving-average label
+            d = relocate_last_column(d)             # 11. Move the last column to position 2
+            d = clean_first_row(d)                  # 12. Normalize text in the header row (e.g., lowercase)
+            d = find_year_column(d)                 # 13. Align the 'year' column with the numeric-year column
+            years = extract_years(d)                # 14. Collect year columns for use in future steps
+            d = get_months_sublist_list(d, years)   # 15. Create month headers for each year
+            d = first_row_columns(d)                # 16. Promote the first row to column headers
+            d = clean_columns_values(d)             # 17. Normalize column names and values (e.g., remove tildes)
+            d = convert_float(d)                    # 18. Convert columns to numeric, handling errors gracefully
+            d = replace_set_sep(d)                  # 19. Replace 'set' with 'sep' in column names
+            d = spaces_se_es(d)                     # 20. Remove spaces in the 'sectores_economicos' and 'economic_sectors' columns
+            d = replace_mineria(d)                  # 21. Harmonize 'mineria' labels (ES)
+            d = replace_mining(d)                   # 22. Harmonize 'mining' labels (EN)
+            d = rounding_values(d, decimals=1)      # 23. Round float values to 1 decimal place
+            return d                                # Return the cleaned DataFrame
+
+    # _____________________________________________________________________
+    # Function to clean and process Table 2 (quarterly/annual data)
+    def old_clean_table_2(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Clean a raw DataFrame extracted from old WR Table 2 (quarterly/annual).
+
+        Args:
+            df (pd.DataFrame): Raw table 2 dataframe.
+
+        Returns:
+            pd.DataFrame: Cleaned table 2 dataframe.
+        """
+        d = df.copy()  # Work on a copy to avoid modifying the original DataFrame
+
+        # Branch A — if the first column contains economic sectors
+        if d.columns[1] == 'economic_sectors':
+            d = drop_nan_rows(d)                    # 1. Drop rows where all values are NaN
+            d = drop_nan_columns(d)                 # 2. Drop columns where all values are NaN
+            d = clean_columns_values(d)             # 3. Normalize column names and values (e.g., remove tildes)
+            d = convert_float(d)                    # 4. Convert columns to numeric, handling errors gracefully
+            d = replace_set_sep(d)                  # 5. Replace 'set' with 'sep' in column names
+            d = spaces_se_es(d)                     # 6. Remove spaces in the 'sectores_economicos' and 'economic_sectors' columns
+            d = replace_mineria(d)                  # 7. Harmonize 'mineria' labels (ES)
+            d = replace_mining(d)                   # 8. Harmonize 'mining' labels (EN)
+            d = rounding_values(d, decimals=1)      # 9. Round float values to 1 decimal place
+            return d                                # Return the cleaned DataFrame
+        else:
+            # Branch B
+            d = replace_total_with_year(d)          # 1. Replace 'TOTAL' with 'YEAR' in the first row
+            d = drop_nan_rows(d)                    # 2. Drop rows where all values are NaN
+            d = drop_nan_columns(d)                 # 3. Drop columns where all values are NaN
+            years = extract_years(d)                # 4. Collect year columns for use in future steps
+            d = roman_arabic(d)                     # 5. Convert Roman numerals to Arabic numerals
+            d = fix_duplicates(d)                   # 6. Fix duplicate numeric headers
+            d = relocate_last_column(d)             # 7. Move the last column to position 2
+            d = replace_first_row_nan(d)            # 8. Fill NaNs in the first row with column names
+            d = clean_first_row(d)                  # 9. Normalize text in the header row (e.g., lowercase)
+            d = get_quarters_sublist_list(d, years) # 10. Build quarter headers per year
+            d = reset_index(d)                      # 11. Reset DataFrame index after cleaning
+            d = first_row_columns(d)                # 12. Promote the first row to column headers
+            d = clean_columns_values(d)             # 13. Normalize column names and values (e.g., remove tildes)
+            d = reset_index(d)                      # 14. Reset DataFrame index after cleaning
+            d = convert_float(d)             # 15. Convert columns to numeric, handling errors gracefully
+            d = replace_set_sep(d)                  # 16. Replace 'set' with 'sep' in column names
+            d = spaces_se_es(d)                     # 17. Remove spaces in the 'sectores_economicos' and 'economic_sectors' columns
+            d = replace_mineria(d)                  # 18. Harmonize 'mineria' labels (ES)
+            d = replace_mining(d)                   # 19. Harmonize 'mining' labels (EN)
+            d = rounding_values(d, decimals=1)      # 20. Round float values to 1 decimal place
+            return d                                # Return the cleaned DataFrame
+
+
+
+
+
+
 class new_tables_cleaner:
     """
     Pipelines for WR tables cleaning.
@@ -2113,10 +2237,10 @@ class new_tables_cleaner:
     """
 
     # _____________________________________________________________________
-    # Function to clean and process Table 1 (monthly data)
+    # Function to clean and process Table 1 (monthly data) from the NEW db
     def new_clean_table_1(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Clean a raw DataFrame extracted from WR Table 1 (monthly growth).
+        Clean a raw DataFrame extracted from new WR Table 1 (monthly growth).
 
         Args:
             df (pd.DataFrame): Raw table 1 dataframe.
@@ -2153,7 +2277,7 @@ class new_tables_cleaner:
             d = clean_columns_values(d)             # 23. Normalize column names and values (e.g., remove tildes)
             d = convert_float(d)                    # 24. Convert columns to numeric, handling errors gracefully
             d = replace_set_sep(d)                  # 25. Replace 'set' with 'sep' in column names
-            d = spaces_se_es(d)                     # 26. Trim spaces in the 'sectores_economicos' and 'economic_sectors' columns
+            d = spaces_se_es(d)                     # 26. Remove spaces in the 'sectores_economicos' and 'economic_sectors' columns
             d = replace_services(d)                 # 27. Harmonize 'services' labels
             d = replace_mineria(d)                  # 28. Harmonize 'mineria' labels (ES)
             d = replace_mining(d)                   # 29. Harmonize 'mining' labels (EN)
@@ -2195,7 +2319,7 @@ class new_tables_cleaner:
         d = replace_nan_with_previous_column_2(d)   # 32. Fill NaNs from neighboring columns (v2)
         d = replace_nan_with_previous_column_3(d)   # 33. Fill NaNs from neighboring columns (v3)
         d = replace_set_sep(d)                      # 34. Replace 'set' with 'sep' in column names
-        d = spaces_se_es(d)                         # 35. Trim spaces in the 'sectores_economicos' and 'economic_sectors' columns
+        d = spaces_se_es(d)                         # 35. Remove spaces in the 'sectores_economicos' and 'economic_sectors' columns
         d = replace_services(d)                     # 36. Harmonize 'services' labels
         d = replace_mineria(d)                      # 37. Harmonize 'mineria' labels (ES)
         d = replace_mining(d)                       # 38. Harmonize 'mining' labels (EN)
@@ -2240,7 +2364,7 @@ class new_tables_cleaner:
             d = reset_index(d)                          # 20. Reset DataFrame index
             d = convert_float(d)                        # 21. Coerce numeric columns
             d = replace_set_sep(d)                      # 22. Replace 'set' with 'sep' in column names
-            d = spaces_se_es(d)                         # 23. Trim spaces in the ES/EN sector columns
+            d = spaces_se_es(d)                         # 23. Remove spaces in the ES/EN sector columns
             d = replace_services(d)                     # 24. Harmonize 'services' labels
             d = replace_mineria(d)                      # 25. Harmonize 'mineria' labels (ES)
             d = replace_mining(d)                       # 26. Harmonize 'mining' labels (EN)
@@ -2268,7 +2392,7 @@ class new_tables_cleaner:
         d = reset_index(d)                              # 18. Reset DataFrame index
         d = convert_float(d)                            # 19. Coerce numeric columns
         d = replace_set_sep(d)                          # 20. Replace 'set' with 'sep' in column names
-        d = spaces_se_es(d)                             # 21. Trim spaces in ES/EN sector columns
+        d = spaces_se_es(d)                             # 21. Remove spaces in ES/EN sector columns
         d = replace_services(d)                         # 22. Harmonize 'services' labels
         d = replace_mineria(d)                          # 23. Harmonize 'mineria' labels (ES)
         d = replace_mining(d)                           # 24. Harmonize 'mining' labels (EN)
@@ -2296,24 +2420,32 @@ class vintages_preparator:
     
     # _____________________________________________________________________
     # Function to build month order mapping from WR filenames
-    def build_month_order_map(self, year_folder: str) -> dict[str, int]:
+    def build_month_order_map(self, year_folder: str, extensions: tuple[str, ...] = (".pdf", ".csv")) -> dict[str, int]:
         """
-        Create {filename: month_order} mapping for files under a given year folder.
+        Create a {filename: month_order} mapping for files under a given year folder.
 
         Args:
-            year_folder (str): Folder path containing the year's PDFs.
+            year_folder (str): Folder path containing the year's files.
+            extensions (tuple[str, ...], optional): File extensions to include (e.g., (".pdf", ".csv")).
+                Defaults to (".pdf", ".csv").
 
         Returns:
-            dict[str, int]: filename → month_order (1..12) inferred from ns-dd-yyyy.pdf (dd).
+            dict[str, int]: filename → month_order (1..12) inferred from filenames matching
+                pattern 'ns-dd-yyyy.<ext>', where <ext> is one of the allowed extensions.
         """
-        files = [f for f in os.listdir(year_folder) if f.endswith(".pdf")]      # Get list of PDF files in the year folder
-        pairs = []                                                              # Initialize list for filename-month pairs
+        files = [
+            f for f in os.listdir(year_folder)
+            if f.lower().endswith(extensions)
+        ]                                                                           # Get list of files matching allowed extensions
+
+        pairs = []                                                                  # Initialize list for filename-month pairs
         for f in files:
-            m = re.search(r"ns-(\d{2})-\d{4}\.pdf$", f, re.IGNORECASE)          # Match filenames like 'ns-07-2017.pdf'
+            m = re.search(r"ns-(\d{2})-\d{4}\.[a-zA-Z0-9]+$", f, re.IGNORECASE)     # Match 'ns-07-2017.pdf' or 'ns-07-2017.csv'
             if m:
-                pairs.append((f, int(m.group(1))))                              # Extract day (dd) as month order
-        sorted_files = sorted(pairs, key=lambda x: x[1])                        # Sort filenames by the extracted month
-        return {fname: i + 1 for i, (fname, _) in enumerate(sorted_files)}      # Create month order mapping (1..12)
+                pairs.append((f, int(m.group(1))))                                  # Extract day (dd) as month order
+
+        sorted_files = sorted(pairs, key=lambda x: x[1])                            # Sort filenames by extracted month
+        return {fname: i + 1 for i, (fname, _) in enumerate(sorted_files)}          # Map filenames to month order (1..12)
 
     # _____________________________________________________________________
     # Function to prepare Table 1 data into vintage format
@@ -2378,7 +2510,7 @@ class vintages_preparator:
             mm = month_map.get(mmm, "01")                                       # Convert month abbreviation to month number
             return f"{y}m{int(mm)}"                                             # Return 'yyyymX' format (no leading zero in month)
 
-        t["target_period"] = t["target_period"].astype(str).map(_to_yyyymx)  # Apply the conversion
+        t["target_period"] = t["target_period"].astype(str).map(_to_yyyymx)     # Apply the conversion
         return t                                                                # Return the reshaped (tidy) dataframe
 
     # _____________________________________________________________________
@@ -2436,16 +2568,169 @@ class vintages_preparator:
         return t                                                                # Return the reshaped (tidy) vintage dataframe
 
 
+
+
+
 # °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
 # 3.2.3 Runners: single-call functions per table (raw + clean dicts, records, bars, summary)
 # °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
+
+
+
+
 # In this section, we define two functions to clean and process all WR PDFs from a folder:
 # 1) `new_table_1_cleaner`: Extracts page 1 from each WR PDF, applies the Table 1 pipeline, updates the record, and optionally 
 #    persists cleaned tables (Parquet/CSV) while showing a concise summary.
 # 2) `new_table_2_cleaner`: Similar to `new_table_1_cleaner` but for Table 2 (quarterly/annual).
 
+
+
+# _________________________________________________________________________ 
+# Function to clean and process Table 1 from all old WR (CSV files) in a folder
+def old_table_1_cleaner(
+    input_csv_folder: str,
+    record_folder: str,
+    record_txt: str,
+    persist: bool = False,
+    persist_folder: str | None = None,
+    pipeline_version: str = "s3.0.0",
+) -> tuple[dict[str, pd.DataFrame], dict[str, pd.DataFrame]]:
+    """
+    Process each CSV file in the folder, run the table 1 pipeline, update the record,
+    optionally persist cleaned tables (Parquet/CSV), and show a concise summary.
+    """
+    start_time = time.time()                                                        # Record the start time
+    print("\n🧹 Starting Table 1 cleaning...\n")
+
+    cleaner   = old_tables_cleaner()                                                # Initialize the cleaner for Table 1
+    records   = _read_records(record_folder, record_txt)                            # Read existing record of processed files
+    processed = set(records)                                                        # Convert record list to set for faster lookup
+
+    raw_tables_dict_1: dict[str, pd.DataFrame]   = {}                               # Store raw tables extracted from CSVs
+    clean_tables_dict_1: dict[str, pd.DataFrame] = {}                               # Store cleaned dataframes
+
+    new_counter = 0                                                                 # Counter for newly cleaned tables
+    skipped_counter = 0                                                             # Counter for skipped tables
+    skipped_years: dict[str, int] = {}                                              # Track skipped years and counts
+
+    # List all year folders except '_quarantine'
+    years = [d for d in sorted(os.listdir(input_csv_folder))
+             if os.path.isdir(os.path.join(input_csv_folder, d)) and d != "_quarantine"]
+    total_year_folders = len(years)                                                 # Total number of year folders found
+    
+    prep = vintages_preparator()                                                    # Initialize vintages helper
+    vintages_dict_1: dict[str, pd.DataFrame] = {}                                   # Store tidy (prepared) vintage data
+
+    # Prepare output folders if persistence is enabled
+    if persist:
+        base_out = persist_folder or os.path.join("data", "input")
+        out_root = os.path.join(base_out, "table_1")
+        os.makedirs(out_root, exist_ok=True)                                        # Ensure the output directory exists
+
+    # Iterate through year folders
+    for year in years:
+        folder_path = os.path.join(input_csv_folder, year)                          # Full path to current year folder
+        csv_files = sorted([f for f in os.listdir(folder_path) if f.endswith(".csv")],
+                           key=_ns_sort_key)                                        # Sort CSV files by NS code
+        
+        month_order_map = prep.build_month_order_map(folder_path)                   # Map filename → month (1..12)
+
+        if not csv_files:
+            continue                                                                # Skip if no CSVs found
+
+        # Skip if all CSVs already processed
+        already = [f for f in csv_files if f in processed]
+        if len(already) == len(csv_files):
+            skipped_years[year] = len(already)
+            skipped_counter += len(already)
+            continue
+
+        print(f"\n📂 Processing Table 1 in {year}\n")
+        folder_new_count = 0                                                        # Count new tables for this year
+        folder_skipped_count = 0                                                    # Count skipped tables for this year
+
+        # Progress bar for CSVs in the current year
+        pbar = tqdm(csv_files, desc=f"🧹 {year}", unit="CSV",
+                    bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}", colour="#E6004C",
+                    leave=False, position=0, dynamic_ncols=True)
+
+        for filename in pbar:
+            if filename in processed:
+                folder_skipped_count += 1                                           # Skip if already processed
+                continue
+
+            issue, yr = parse_ns_meta(filename)                                     # Extract WR issue and year from filename
+            if not issue:
+                folder_skipped_count += 1
+                continue
+
+            csv_path = os.path.join(folder_path, filename)                          # Build full CSV path
+            try:
+                raw = pd.read_csv(csv_path, sep=';')                                # Read CSV file directly
+                if raw is None:
+                    folder_skipped_count += 1
+                    continue
+
+                key = f"{os.path.splitext(filename)[0].replace('-', '_')}_1"
+                raw_tables_dict_1[key] = raw.copy()                                 # Store raw table
+
+                clean = cleaner.old_clean_table_1(raw)                              # Clean the raw table
+                clean.insert(0, "year", yr)                                         # Insert 'year' column at the start
+                clean.insert(1, "wr", issue)                                        # Insert 'wr' column (weekly report code)
+                clean.attrs["pipeline_version"] = pipeline_version
+
+                # Keep a copy of the cleaned table in-memory for inspection
+                clean_tables_dict_1[key] = clean.copy()
+
+                # Prepare and persist the vintage (final output)
+                vintage = prep.prepare_table_1(clean, filename, month_order_map)
+                vintage.attrs["pipeline_version"] = pipeline_version
+                vintages_dict_1[key] = vintage                                      # Store vintage data in-memory (optional)
+                
+                if persist:                                                         # Persist only the vintage (not raw data)
+                    ns_code  = os.path.splitext(filename)[0]                        # e.g., ns-07-2017
+                    out_dir  = os.path.join(out_root, str(yr))
+                    out_path = os.path.join(out_dir, f"{ns_code}.parquet")
+                    _save_df(vintage, out_path)                                     # Save vintage (Parquet/CSV)
+
+                processed.add(filename)                                             # Mark the file as processed
+                folder_new_count += 1
+            except Exception as e:
+                print(f"⚠️  {filename}: {e}")                                       
+                folder_skipped_count += 1
+
+        pbar.clear(); pbar.close()                                                  # Clear progress bar after processing
+
+        # Display the completion bar for the current year
+        fb = tqdm(total=len(csv_files), desc=f"✔️ {year}", unit="CSV",
+                  bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}", colour="#3366FF",
+                  leave=True, position=0, dynamic_ncols=True)
+        fb.update(len(csv_files))  # Update completion status
+        fb.close()
+
+        new_counter += folder_new_count                                             # Update the total count of new cleaned tables
+        skipped_counter += folder_skipped_count                                     # Update the total skipped table count
+        _write_records(record_folder, record_txt, list(processed))                  # Update the processed records list
+
+    # Summary of skipped years
+    if skipped_years:
+        years_summary = ", ".join(skipped_years.keys())
+        total_skipped = sum(skipped_years.values())
+        print(f"\n⏩ {total_skipped} cleaned tables already generated for years: {years_summary}")
+
+    elapsed_time = round(time.time() - start_time)                                  # Calculate total elapsed time
+    print(f"\n📊 Summary:\n")
+    print(f"📂 {total_year_folders} folders (years) found containing input CSVs")
+    print(f"🗃️ Already cleaned tables: {skipped_counter}")
+    print(f"✨ Newly cleaned tables: {new_counter}")
+    print(f"⏱️ {elapsed_time} seconds")
+
+    return raw_tables_dict_1, clean_tables_dict_1, vintages_dict_1                  # Return raw, cleaned, and vintages
+
+
+
 # _________________________________________________________________________
-# Function to clean and process Table 1 from all WR (PDF files) in a folder
+# Function to clean and process Table 1 from all new WR (PDF files) in a folder
 def new_table_1_cleaner(
     input_pdf_folder: str,
     record_folder: str,
@@ -2461,12 +2746,12 @@ def new_table_1_cleaner(
     start_time = time.time()                                                        # Record the start time
     print("\n🧹 Starting Table 1 cleaning...\n")
 
-    cleaner   = new_tables_cleaner()                                                    # Initialize the cleaner for Table 1
+    cleaner   = new_tables_cleaner()                                                # Initialize the cleaner for Table 1
     records   = _read_records(record_folder, record_txt)                            # Read existing record of processed files
     processed = set(records)                                                        # Convert record list to set for faster lookup
 
     raw_tables_dict_1: dict[str, pd.DataFrame]   = {}                               # Store raw tables extracted from PDFs
-    new_dataframes_dict_1: dict[str, pd.DataFrame] = {}                             # Store cleaned dataframes
+    clean_tables_dict_1: dict[str, pd.DataFrame] = {}                               # Store cleaned dataframes
 
     new_counter = 0                                                                 # Counter for newly cleaned tables
     skipped_counter = 0                                                             # Counter for skipped tables
@@ -2533,13 +2818,13 @@ def new_table_1_cleaner(
                 key = f"{os.path.splitext(filename)[0].replace('-', '_')}_1"
                 raw_tables_dict_1[key] = raw.copy()                                 # Store raw table
 
-                clean = cleaner.new_clean_table_1(raw)                                  # Clean the raw table
+                clean = cleaner.new_clean_table_1(raw)                              # Clean the raw table
                 clean.insert(0, "year", yr)                                         # Insert 'year' column at the start
                 clean.insert(1, "wr", issue)                                        # Insert 'wr' column (weekly report code)
                 clean.attrs["pipeline_version"] = pipeline_version
 
                 # Keep a copy of the cleaned table in-memory for inspection
-                new_dataframes_dict_1[key] = clean.copy()
+                clean_tables_dict_1[key] = clean.copy()
 
                 # Prepare and persist the vintage (final output)
                 vintage = prep.prepare_table_1(clean, filename, month_order_map)
@@ -2555,7 +2840,7 @@ def new_table_1_cleaner(
                 processed.add(filename)                                             # Mark the file as processed
                 folder_new_count += 1
             except Exception as e:
-                print(f"⚠️  {filename}: {e}")                                       # Handle and print any extraction/cleaning errors
+                print(f"⚠️  {filename}: {e}")                                      
                 folder_skipped_count += 1
 
         pbar.clear(); pbar.close()                                                  # Clear progress bar after processing
@@ -2584,10 +2869,19 @@ def new_table_1_cleaner(
     print(f"✨ Newly cleaned tables: {new_counter}")
     print(f"⏱️ {elapsed_time} seconds")
 
-    return raw_tables_dict_1, new_dataframes_dict_1, vintages_dict_1                # Return raw, cleaned, and vintages
+    return raw_tables_dict_1, clean_tables_dict_1, vintages_dict_1                  # Return raw, cleaned, and vintages
+
+
+
+
+
+
+
+
+
 
 # _________________________________________________________________________
-# Function to clean and process Table 2 from all WR PDF files in a folder
+# Function to clean and process Table 2 from all new WR PDF files in a folder
 def new_table_2_cleaner(
     input_pdf_folder: str,
     record_folder: str,
@@ -2603,12 +2897,12 @@ def new_table_2_cleaner(
     start_time = time.time()                                                    # Record script start time
     print("\n🧹 Starting Table 2 cleaning...\n")
 
-    cleaner   = new_tables_cleaner()                                                  # Initialize table cleaner object
-    records   = _read_records(record_folder, record_txt)                          # Load processed record file
+    cleaner   = new_tables_cleaner()                                            # Initialize table cleaner object
+    records   = _read_records(record_folder, record_txt)                        # Load processed record file
     processed = set(records)                                                    # Convert to set for fast lookup
 
     raw_tables_dict_2: dict[str, pd.DataFrame] = {}                             # Store extracted raw tables
-    new_dataframes_dict_2: dict[str, pd.DataFrame] = {}                         # Store cleaned tables
+    clean_tables_dict_2: dict[str, pd.DataFrame] = {}                           # Store cleaned tables
 
     new_counter = 0                                                             # Count new cleaned files
     skipped_counter = 0                                                         # Count skipped files
@@ -2674,15 +2968,15 @@ def new_table_2_cleaner(
                 key = f"{os.path.splitext(filename)[0].replace('-', '_')}_2"
                 raw_tables_dict_2[key] = raw.copy()                             # Store raw table with unique key
 
-                clean = cleaner.new_clean_table_2(raw)                              # Clean the extracted table
+                clean = cleaner.new_clean_table_2(raw)                          # Clean the extracted table
                 clean.insert(0, "year", yr)                                     # Add 'year' column first
                 clean.insert(1, "wr", issue)                  
                 clean.attrs["pipeline_version"] = pipeline_version
 
-                # ▶ keep a copy in-memory so you can inspect `clean_2`
-                new_dataframes_dict_2[key] = clean.copy()
+                # Keep a copy in-memory so you can inspect `clean_2`
+                clean_tables_dict_2[key] = clean.copy()
 
-                # build + persist the vintage (what we save/record)
+                # Build + persist the vintage (what we save/record)
                 vintage = prep.prepare_table_2(clean, filename, month_order_map)
                 vintage.attrs["pipeline_version"] = pipeline_version
                 vintages_dict_2[key] = vintage                                  # Keep vintage in-memory (optional)
@@ -2696,7 +2990,7 @@ def new_table_2_cleaner(
                 processed.add(filename)                                         # Record processed **by vintage**
                 folder_new_count += 1
             except Exception as e:
-                print(f"⚠️  {filename}: {e}")                                   # Display any extraction/cleaning error
+                print(f"⚠️  {filename}: {e}")                                 
                 folder_skipped_count += 1
 
         pbar.clear(); pbar.close()                                              # Close progress bar after processing
@@ -2725,7 +3019,151 @@ def new_table_2_cleaner(
     print(f"✨ Newly cleaned tables: {new_counter}")
     print(f"⏱️ {elapsed_time} seconds")
 
-    return raw_tables_dict_2, new_dataframes_dict_2, vintages_dict_2            # Return raw, cleaned, and vintages
+    return raw_tables_dict_2, clean_tables_dict_2, vintages_dict_2              # Return raw, cleaned, and vintages
+
+
+
+# _________________________________________________________________________ 
+# Function to clean and process Table 1 from all old WR (CSV files) in a folder
+def old_table_2_cleaner(
+    input_csv_folder: str,
+    record_folder: str,
+    record_txt: str,
+    persist: bool = False,
+    persist_folder: str | None = None,
+    pipeline_version: str = "s3.0.0",
+) -> tuple[dict[str, pd.DataFrame], dict[str, pd.DataFrame]]:
+    """
+    Process each CSV file in the folder, run the table 2 pipeline, update the record,
+    optionally persist cleaned tables (Parquet/CSV), and show a concise summary.
+    """
+    start_time = time.time()                                                        # Record the start time
+    print("\n🧹 Starting Table 2 cleaning...\n")
+
+    cleaner   = old_tables_cleaner()                                                # Initialize the cleaner for Table 2
+    records   = _read_records(record_folder, record_txt)                            # Read existing record of processed files
+    processed = set(records)                                                        # Convert record list to set for faster lookup
+
+    raw_tables_dict_2: dict[str, pd.DataFrame]   = {}                               # Store raw tables extracted from CSVs
+    clean_tables_dict_2: dict[str, pd.DataFrame] = {}                               # Store cleaned dataframes
+
+    new_counter = 0                                                                 # Counter for newly cleaned tables
+    skipped_counter = 0                                                             # Counter for skipped tables
+    skipped_years: dict[str, int] = {}                                              # Track skipped years and counts
+
+    # List all year folders except '_quarantine'
+    years = [d for d in sorted(os.listdir(input_csv_folder))
+             if os.path.isdir(os.path.join(input_csv_folder, d)) and d != "_quarantine"]
+    total_year_folders = len(years)                                                 # Total number of year folders found
+    
+    prep = vintages_preparator()                                                    # Initialize vintages helper
+    vintages_dict_2: dict[str, pd.DataFrame] = {}                                   # Store tidy (prepared) vintage data
+
+    # Prepare output folders if persistence is enabled
+    if persist:
+        base_out = persist_folder or os.path.join("data", "input")
+        out_root = os.path.join(base_out, "table_2")
+        os.makedirs(out_root, exist_ok=True)                                        # Ensure the output directory exists
+
+    # Iterate through year folders
+    for year in years:
+        folder_path = os.path.join(input_csv_folder, year)                          # Full path to current year folder
+        csv_files = sorted([f for f in os.listdir(folder_path) if f.endswith(".csv")],
+                           key=_ns_sort_key)                                        # Sort CSV files by NS code
+        
+        month_order_map = prep.build_month_order_map(folder_path)                   # Map filename → month (1..12)
+
+        if not csv_files:
+            continue                                                                # Skip if no CSVs found
+
+        # Skip if all CSVs already processed
+        already = [f for f in csv_files if f in processed]
+        if len(already) == len(csv_files):
+            skipped_years[year] = len(already)
+            skipped_counter += len(already)
+            continue
+
+        print(f"\n📂 Processing Table 2 in {year}\n")
+        folder_new_count = 0                                                        # Count new tables for this year
+        folder_skipped_count = 0                                                    # Count skipped tables for this year
+
+        # Progress bar for CSVs in the current year
+        pbar = tqdm(csv_files, desc=f"🧹 {year}", unit="CSV",
+                    bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}", colour="#E6004C",
+                    leave=False, position=0, dynamic_ncols=True)
+
+        for filename in pbar:
+            if filename in processed:
+                folder_skipped_count += 1                                           # Skip if already processed
+                continue
+
+            issue, yr = parse_ns_meta(filename)                                     # Extract WR issue and year from filename
+            if not issue:
+                folder_skipped_count += 1
+                continue
+
+            csv_path = os.path.join(folder_path, filename)                          # Build full CSV path
+            try:
+                raw = pd.read_csv(csv_path, sep=';')                                # Read CSV file directly
+                if raw is None:
+                    folder_skipped_count += 1
+                    continue
+
+                key = f"{os.path.splitext(filename)[0].replace('-', '_')}_2"
+                raw_tables_dict_2[key] = raw.copy()                                 # Store raw table
+
+                clean = cleaner.old_clean_table_2(raw)                              # Clean the raw table
+                clean.insert(0, "year", yr)                                         # Insert 'year' column at the start
+                clean.insert(1, "wr", issue)                                        # Insert 'wr' column (weekly report code)
+                clean.attrs["pipeline_version"] = pipeline_version
+
+                # Keep a copy of the cleaned table in-memory for inspection
+                clean_tables_dict_2[key] = clean.copy()
+
+                # Prepare and persist the vintage (final output)
+                vintage = prep.prepare_table_2(clean, filename, month_order_map)
+                vintage.attrs["pipeline_version"] = pipeline_version
+                vintages_dict_2[key] = vintage                                      # Store vintage data in-memory (optional)
+                
+                if persist:                                                         # Persist only the vintage (not raw data)
+                    ns_code  = os.path.splitext(filename)[0]                        # e.g., ns-07-2017
+                    out_dir  = os.path.join(out_root, str(yr))
+                    out_path = os.path.join(out_dir, f"{ns_code}.parquet")
+                    _save_df(vintage, out_path)                                     # Save vintage (Parquet/CSV)
+
+                processed.add(filename)                                             # Mark the file as processed
+                folder_new_count += 1
+            except Exception as e:
+                print(f"⚠️  {filename}: {e}")                                       
+                folder_skipped_count += 1
+
+        pbar.clear(); pbar.close()                                                  # Clear progress bar after processing
+
+        # Display the completion bar for the current year
+        fb = tqdm(total=len(csv_files), desc=f"✔️ {year}", unit="CSV",
+                  bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}", colour="#3366FF",
+                  leave=True, position=0, dynamic_ncols=True)
+        fb.update(len(csv_files))  # Update completion status
+        fb.close()
+
+        new_counter += folder_new_count                                             # Update the total count of new cleaned tables
+        skipped_counter += folder_skipped_count                                     # Update the total skipped table count
+        _write_records(record_folder, record_txt, list(processed))                  # Update the processed records list
+
+    # Summary of skipped years
+    if skipped_years:
+        years_summary = ", ".join(skipped_years.keys())
+        total_skipped = sum(skipped_years.values())
+        print(f"\n⏩ {total_skipped} cleaned tables already generated for years: {years_summary}")
+
+    elapsed_time = round(time.time() - start_time)                                  # Calculate total elapsed time
+    print(f"\n📊 Summary:\n")
+    print(f"📂 {total_year_folders} folders (years) found containing input CSVs")
+    print(f"🗃️ Already cleaned tables: {skipped_counter}")
+    print(f"✨ Newly cleaned tables: {new_counter}")
+    print(f"⏱️ {elapsed_time} seconds")
+
+    return raw_tables_dict_2, clean_tables_dict_2, vintages_dict_2                  # Return raw, cleaned, and vintages
 
 
 
