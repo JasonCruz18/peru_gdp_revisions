@@ -3263,217 +3263,300 @@ def old_table_2_cleaner(
 
 
 # _________________________________________________________________________
-# Helper function to sort target_period strings chronologically
+# Helper function to sort target_period-like strings chronologically
 def target_period_sort_key(tp: str):
     """
-    Convert a 'YYYYmMM' target_period string into a tuple (year, month) for sorting.
-    If the string does not match the expected format, return a placeholder (9999,0).
+    Convert a 'YYYYmMM' target_period-like string (e.g. 'tp_1993m10' or '1993m10')
+    into a tuple (year, month) for sorting.
+    If it does not match, return a placeholder.
     """
+    # accept both 'tp_1993m10' and '1993m10'
+    if tp.startswith("tp_"):
+        tp = tp[3:]  # drop 'tp_'
     m = re.match(r'(\d{4})m(\d+)', tp)
     if m:
         year, month = int(m.group(1)), int(m.group(2))
-        return (year, month)                                        # Tuple used for chronological sorting
-    return (9999, 0)                                                # Fallback for unexpected format
+        return (year, month)
+    return (9999, 0)
+
 
 # _________________________________________________________________________
-# Function to concatenate Table 1 CSVs into RTD with 10-year batches
+# Function to concatenate Table 1 CSVs into ONE unified RTD (row-based)
 def concatenate_table_1(input_data_subfolder, record_folder, record_txt, persist, persist_folder):
     """
-    Concatenate Table 1 CSVs across years, align all target_periods, order columns by sector/year/suffix,
-    split into 10-year batches, and optionally persist as CSVs.
-    Returns a dictionary with batch DataFrames keyed by batch name.
+    New simpler concatenation:
+    - read ALL year-based subfolders under .../table_1
+    - load ALL CSVs (except those already in record)
+    - build the FULL set of tp_* columns that appear in ANY CSV
+    - reindex every CSV to that same column set
+    - VERTICALLY concatenate (rows = industry × vintage)
+    - dtypes: industry str, vintage str, all tp_* float
+    - optionally persist ONE unified CSV
+
+    Returns:
+        pd.DataFrame: unified, row-based RTD.
     """
-    start_time = time.time()                                                                                                            # Start measuring execution time
-    print("\n⛓️ Starting Table 1 concatenation...")
+    start_time = time.time()
+    print("\n⛓️ Starting Table 1 concatenation (row-based)...")
 
-    processed_files = _read_records(record_folder, record_txt)                                                                          # Load list of already processed CSVs
-    table_1_folder   = os.path.join(input_data_subfolder, 'table_1')                                                                    # Define path to Table 1 CSVs
-    year_folders     = sorted([f for f in os.listdir(table_1_folder) if f.isdigit()], key=int)                                          # Only numeric year folders
+    processed_files = _read_records(record_folder, record_txt)
+    table_1_folder  = os.path.join(input_data_subfolder, "table_1")
+    year_folders    = sorted([f for f in os.listdir(table_1_folder) if f.isdigit()], key=int)
 
-    all_dataframes = []                                                                                                                 # List to store all loaded DataFrames
-    skipped_counter = 0                                                                                                                 # Counter for already processed CSVs
-    new_counter     = 0                                                                                                                 # Counter for newly processed CSVs
+    loaded_dfs      = []
+    skipped_counter = 0
+    new_counter     = 0
 
-    # Loop through all year folders
+    # 1) load all CSVs from each year folder
     for year in year_folders:
-        year_folder = os.path.join(table_1_folder, year)                                                                                # Full path for current year folder
-        csv_files   = sorted([f for f in os.listdir(year_folder) if f.endswith(".csv")])                                                # Get CSV files
+        year_folder = os.path.join(table_1_folder, year)
+        csv_files   = sorted([f for f in os.listdir(year_folder) if f.endswith(".csv")])
         for csv_file in csv_files:
-            if csv_file in processed_files:                                                                                             # Skip if already processed
+            if csv_file in processed_files:
                 skipped_counter += 1
                 continue
-            df = pd.read_csv(os.path.join(year_folder, csv_file))                                                                       # Read CSV into DataFrame
-            for col in df.columns:
-                if col != 'target_period':
-                    df[col] = pd.to_numeric(df[col], errors='coerce')                                                                   # Convert all numeric-like columns, ignore errors
-            all_dataframes.append(df)                                                                                                   # Store DataFrame
-            processed_files.append(csv_file)                                                                                            # Mark as processed
-            _write_records(record_folder, record_txt, processed_files)                                                                  # Persist processed list to TXT
-            new_counter += 1                                                                                                            # Increment new file counter
 
-    if not all_dataframes:
+            full_path = os.path.join(year_folder, csv_file)
+            df = pd.read_csv(full_path)
+
+            # keep as-is: df already has structure like
+            #   industry | vintage | tp_1992m1 | ...
+            loaded_dfs.append(df)
+
+            processed_files.append(csv_file)
+            _write_records(record_folder, record_txt, processed_files)
+            new_counter += 1
+
+    if not loaded_dfs:
         print("No new CSV files to concatenate.")
-        return {}
+        return pd.DataFrame()
 
-    # Align all DataFrames by complete set of target_periods
-    all_target_periods = sorted(
-        set().union(*[df['target_period'].tolist() for df in all_dataframes]),                                                          # Union of all unique target_periods
-        key=target_period_sort_key                                                                                                      # Sort chronologically
-    )
+    # 2) build the FULL set of columns
+    # mandatory columns:
+    base_cols = ["industry", "vintage"]
 
+    # collect all tp_... columns from every df
+    all_tp_cols = set()
+    for df in loaded_dfs:
+        for col in df.columns:
+            if col.startswith("tp_"):
+                all_tp_cols.add(col)
+
+    # 3) sort the tp_ columns chronologically
+    # strip 'tp_' when sorting, then rebuild order
+    tp_cols_sorted = sorted(list(all_tp_cols), key=target_period_sort_key)
+
+    # final column order
+    final_cols = base_cols + tp_cols_sorted
+
+    # 4) reindex each df to that final column order
     aligned_dfs = []
-    for df in all_dataframes:
-        df = df.set_index('target_period').reindex(all_target_periods)                                                                  # Reindex DataFrame to full target_periods
+    for df in loaded_dfs:
+        # make sure base cols exist
+        # (older CSVs should have them, but let's be safe)
+        if "industry" not in df.columns:
+            raise ValueError(f"'industry' column is missing in file among loaded CSVs.")
+        if "vintage" not in df.columns:
+            raise ValueError(f"'vintage' column is missing in file among loaded CSVs.")
+
+        # add missing tp_* columns as NaN
+        for col in tp_cols_sorted:
+            if col not in df.columns:
+                df[col] = pd.NA
+
+        # keep only final columns (in order)
+        df = df[final_cols].copy()
         aligned_dfs.append(df)
 
-    concatenated_df = pd.concat(aligned_dfs, axis=1).reset_index().rename(columns={'index': 'target_period'})                           # Horizontal concatenation
-    concatenated_df = concatenated_df.loc[:, ~concatenated_df.columns.duplicated()]                                                     # Remove duplicate columns if any
+    # 5) vertical concat
+    unified_df = pd.concat(aligned_dfs, axis=0, ignore_index=True)
 
-    # Order columns by sector, year, and suffix
-    other_cols = [c for c in concatenated_df.columns if c != 'target_period']
+    # 6) enforce dtypes
+    unified_df["industry"] = unified_df["industry"].astype(str)
+    unified_df["vintage"]  = unified_df["vintage"].astype(str)
 
-    def sort_key(col):
-        m = re.match(r'([a-z_]+)_(\d{4})_(\d+)', col)                                                                                   # Regex for 'sector_YYYY_suffix'
-        if m:
-            sector, year, suffix = m.groups()
-            return (sector, int(year), int(suffix))                                                                                     # Return tuple for sorting
-        return (col, 0, 0)
+    for col in tp_cols_sorted:
+        unified_df[col] = pd.to_numeric(unified_df[col], errors="coerce").astype(float)
 
-    sorted_cols = sorted(other_cols, key=sort_key)                                                                                      # Sort columns by sector/year/suffix
-    concatenated_df = concatenated_df[['target_period'] + sorted_cols]                                                                  # Reorder DataFrame
+    # 7) optionally persist
+    if persist:
+        os.makedirs(persist_folder, exist_ok=True)
+        out_path = os.path.join(persist_folder, "new_gdp_rtd_table_1_unified.csv")
+        unified_df.to_csv(out_path, index=False)
+        print(f"📦 Unified RTD saved to {out_path}")
 
-    # Split into 10-year batches
-    years_int = [int(f.split('_')[1]) for f in sorted_cols if re.match(r'.+_\d{4}_\d+', f)]                                             # Extract years
-    if not years_int:
-        years_int = [int(y) for y in year_folders]                                                                                      # Fallback if column parsing fails
-
-    min_year, max_year = min(years_int), max(years_int)                                                                                 # Compute batch ranges
-    batch_start = min_year
-    batch_num   = 1
-    batch_dict  = {}
-
-    while batch_start <= max_year:
-        batch_end   = min(batch_start + 9, max_year)                                                                                    # Define end of 10-year batch
-        batch_cols  = ['target_period'] + [c for c in sorted_cols if any(f'_{y}_' in c for y in range(batch_start, batch_end + 1))]     # Select columns for this batch
-        batch_df    = concatenated_df[batch_cols]                                                                                       # Slice DataFrame for batch
-        batch_name  = f"new_gdp_rtd_table_1_batch_{batch_num}"                                                                          # Batch name
-        batch_dict[batch_name] = batch_df
-
-        if persist:
-            out_path = os.path.join(persist_folder, f"{batch_name}.csv")                                                                # File path to persist
-            batch_df.to_csv(out_path, index=False)                                                                                      # Write CSV
-            print(f"📦 Batch {batch_num} ({batch_start}-{batch_end}) saved to {out_path}")
-
-        batch_start += 10                                                                                                               # Move to next 10-year block
-        batch_num   += 1                                                                                                                # Increment batch counter
-
-    elapsed_time = round(time.time() - start_time)                                                                                      # Compute elapsed time
-    print(f"\n📊 Summary:\n📂 {len(year_folders)} folders (years) found containing input CSVs")
+    # 8) summary
+    elapsed_time = round(time.time() - start_time)
+    print(f"\n📊 Summary:")
+    print(f"📂 {len(year_folders)} year folders found")
     print(f"🗃️ Already processed files: {skipped_counter}")
     print(f"🔹 Newly concatenated files: {new_counter}")
     print(f"⏱️ {elapsed_time} seconds")
 
-    return batch_dict
+    return unified_df
+
+
 
 # _________________________________________________________________________
-# Function to concatenate Table 2 CSVs into RTD with 10-year batches
+# Helper to sort tp_YYYYqN and tp_YYYY chronologically
+def tp_quarter_year_sort_key(col: str):
+    """
+    Sort key for columns like:
+        - 'tp_1994q1', 'tp_1994q2', 'tp_1994q3', 'tp_1994q4'
+        - 'tp_1994' (annual)
+    Order: for the same year -> q1..q4 -> annual.
+    If pattern doesn't match, push to the end.
+    """
+    if not col.startswith("tp_"):
+        return (9999, 9, col)
+
+    body = col[3:]  # '1994q1' or '1994'
+    # quarterly?
+    m = re.match(r"^(\d{4})q(\d)$", body)
+    if m:
+        year = int(m.group(1))
+        q    = int(m.group(2))
+        return (year, 0, q)   # quarterly first
+    # annual?
+    m2 = re.match(r"^(\d{4})$", body)
+    if m2:
+        year = int(m2.group(1))
+        return (year, 1, 0)   # annual after quarters of that year
+
+    # fallback
+    return (9999, 9, col)
+
+
+# _________________________________________________________________________
+# Function to concatenate Table 2 CSVs into ONE unified RTD (row-based)
 def concatenate_table_2(input_data_subfolder, record_folder, record_txt, persist, persist_folder):
     """
-    Concatenate Table 2 CSVs across years, align all target_periods, order columns by sector/year/suffix,
-    split into 10-year batches, and optionally persist as CSVs.
-    Returns a dictionary with batch DataFrames keyed by batch name.
+    Concatenate Table 2 CSVs (quarterly/annual) across year subfolders into
+    one single, row-based RTD.
+
+    Expected CSV structure (from prepare_table_2):
+        industry | vintage | tp_YYYYqN | tp_YYYY | ...
+
+    Steps:
+        - read all CSVs (skipping those in record)
+        - collect union of all tp_* columns
+        - sort tp_* columns chronologically (q1..q4..annual)
+        - reindex each df to that full schema
+        - vertical concat
+        - enforce dtypes
+        - optionally persist one CSV
     """
-    start_time = time.time()                                                                                                            # Start execution timer
-    print("\n⛓️ Starting Table 2 concatenation...")
+    start_time = time.time()
+    print("\n⛓️ Starting Table 2 concatenation (row-based)...")
 
-    processed_files = _read_records(record_folder, record_txt)                                                                          # Load already processed CSV filenames
-    table_2_folder   = os.path.join(input_data_subfolder, 'table_2')                                                                    # Define path to Table 2 CSVs
-    year_folders     = sorted([f for f in os.listdir(table_2_folder) if f.isdigit()], key=int)                                          # Only numeric year folders
+    processed_files = _read_records(record_folder, record_txt)
+    table_2_folder  = os.path.join(input_data_subfolder, "table_2")
+    year_folders    = sorted([f for f in os.listdir(table_2_folder) if f.isdigit()], key=int)
 
-    all_dataframes = []                                                                                                                 # List to hold loaded DataFrames
-    skipped_counter = 0                                                                                                                 # Counter for already processed CSVs
-    new_counter     = 0                                                                                                                 # Counter for newly processed CSVs
+    loaded_dfs      = []
+    skipped_counter = 0
+    new_counter     = 0
 
-    # Iterate through each year folder
+    # 1) load all CSVs from each year folder
     for year in year_folders:
-        year_folder = os.path.join(table_2_folder, year)                                                                                # Full path for current year folder
-        csv_files   = sorted([f for f in os.listdir(year_folder) if f.endswith(".csv")])                                                # List CSV files
+        year_folder = os.path.join(table_2_folder, year)
+        csv_files   = sorted([f for f in os.listdir(year_folder) if f.endswith(".csv")])
         for csv_file in csv_files:
-            if csv_file in processed_files:                                                                                             # Skip files already processed
+            if csv_file in processed_files:
                 skipped_counter += 1
                 continue
-            df = pd.read_csv(os.path.join(year_folder, csv_file))                                                                       # Load CSV into DataFrame
-            for col in df.columns:
-                if col != 'target_period':
-                    df[col] = pd.to_numeric(df[col], errors='coerce')                                                                   # Ensure numeric columns are numeric
-            all_dataframes.append(df)                                                                                                   # Append DataFrame to list
-            processed_files.append(csv_file)                                                                                            # Mark CSV as processed
-            _write_records(record_folder, record_txt, processed_files)                                                                  # Persist processed record list
-            new_counter += 1                                                                                                            # Increment newly processed counter
 
-    if not all_dataframes:
+            full_path = os.path.join(year_folder, csv_file)
+            df = pd.read_csv(full_path)
+
+            loaded_dfs.append(df)
+
+            processed_files.append(csv_file)
+            _write_records(record_folder, record_txt, processed_files)
+            new_counter += 1
+
+    if not loaded_dfs:
         print("No new CSV files to concatenate.")
-        return {}
+        return pd.DataFrame()
 
-    # Align all DataFrames by full set of target_periods
-    all_target_periods = sorted(
-        set().union(*[df['target_period'].tolist() for df in all_dataframes]),                                                          # Unique target_periods across all DataFrames
-        key=target_period_sort_key                                                                                                      # Sort them chronologically
-    )
+    # 2) base columns
+    base_cols = ["industry", "vintage"]
 
+    # 3) collect all tp_* columns
+    all_tp_cols = set()
+    for df in loaded_dfs:
+        for col in df.columns:
+            if col.startswith("tp_"):
+                all_tp_cols.add(col)
+
+    # 4) sort tp_* columns (quarters then annual)
+    tp_cols_sorted = sorted(list(all_tp_cols), key=tp_quarter_year_sort_key)
+
+    # 5) final schema
+    final_cols = base_cols + tp_cols_sorted
+
+    # 6) align each df to final schema
     aligned_dfs = []
-    for df in all_dataframes:
-        df = df.set_index('target_period').reindex(all_target_periods)                                                                  # Reindex DataFrame to match full period list
+    for df in loaded_dfs:
+        if "industry" not in df.columns:
+            raise ValueError("Missing 'industry' column in one of the Table 2 CSVs.")
+        if "vintage" not in df.columns:
+            raise ValueError("Missing 'vintage' column in one of the Table 2 CSVs.")
+
+        # add missing tp_* as NaN
+        for col in tp_cols_sorted:
+            if col not in df.columns:
+                df[col] = pd.NA
+
+        # keep only wanted columns in correct order
+        df = df[final_cols].copy()
         aligned_dfs.append(df)
 
-    concatenated_df = pd.concat(aligned_dfs, axis=1).reset_index().rename(columns={'index': 'target_period'})                           # Concatenate horizontally
-    concatenated_df = concatenated_df.loc[:, ~concatenated_df.columns.duplicated()]                                                     # Remove duplicate columns
+    # 7) vertical concat
+    unified_df = pd.concat(aligned_dfs, axis=0, ignore_index=True)
 
-    # Order columns by sector, year, and suffix
-    other_cols = [c for c in concatenated_df.columns if c != 'target_period']
+    # 8) enforce dtypes
+    unified_df["industry"] = unified_df["industry"].astype(str)
+    unified_df["vintage"]  = unified_df["vintage"].astype(str)
+    for col in tp_cols_sorted:
+        unified_df[col] = pd.to_numeric(unified_df[col], errors="coerce").astype(float)
 
-    def sort_key(col):
-        m = re.match(r'([a-z_]+)_(\d{4})_(\d+)', col)                                                                                   # Match column pattern 'sector_YYYY_suffix'
-        if m:
-            sector, year, suffix = m.groups()
-            return (sector, int(year), int(suffix))                                                                                     # Sorting tuple: sector -> year -> suffix
-        return (col, 0, 0)                                                                                                              # Default for columns that do not match pattern
+    # 9) optionally persist
+    if persist:
+        os.makedirs(persist_folder, exist_ok=True)
+        out_path = os.path.join(persist_folder, "new_gdp_rtd_table_2_unified.csv")
+        unified_df.to_csv(out_path, index=False)
+        print(f"📦 Unified Table 2 RTD saved to {out_path}")
 
-    sorted_cols = sorted(other_cols, key=sort_key)                                                                                      # Sort columns according to sector/year/suffix
-    concatenated_df = concatenated_df[['target_period'] + sorted_cols]                                                                  # Reorder DataFrame
-
-    # Split into 10-year batches
-    years_int = [int(f.split('_')[1]) for f in sorted_cols if re.match(r'.+_\d{4}_\d+', f)]                                             # Extract years from columns
-    if not years_int:
-        years_int = [int(y) for y in year_folders]                                                                                      # Fallback if regex fails
-
-    min_year, max_year = min(years_int), max(years_int)                                                                                 # Determine min/max year
-    batch_start = min_year
-    batch_num   = 1
-    batch_dict  = {}
-
-    while batch_start <= max_year:
-        batch_end   = min(batch_start + 9, max_year)                                                                                    # 10-year batch end
-        batch_cols  = ['target_period'] + [c for c in sorted_cols if any(f'_{y}_' in c for y in range(batch_start, batch_end + 1))]     # Select columns for batch
-        batch_df    = concatenated_df[batch_cols]                                                                                       # Slice DataFrame for batch
-        batch_name  = f"new_gdp_rtd_table_2_batch_{batch_num}"                                                                          # Batch name
-        batch_dict[batch_name] = batch_df
-
-        if persist:
-            out_path = os.path.join(persist_folder, f"{batch_name}.csv")                                                                # Output file path
-            batch_df.to_csv(out_path, index=False)                                                                                      # Persist batch as CSV
-            print(f"📦 Batch {batch_num} ({batch_start}-{batch_end}) saved to {out_path}")
-
-        batch_start += 10                                                                                                               # Increment to next 10-year block
-        batch_num   += 1                                                                                                                # Increment batch number
-
-    elapsed_time = round(time.time() - start_time)                                                                                      # Total execution time
-    print(f"\n📊 Summary:\n📂 {len(year_folders)} folders (years) found containing input CSVs")
+    # 10) summary
+    elapsed_time = round(time.time() - start_time)
+    print(f"\n📊 Summary:")
+    print(f"📂 {len(year_folders)} year folders found containing input CSVs")
     print(f"🗃️ Already processed files: {skipped_counter}")
     print(f"🔹 Newly concatenated files: {new_counter}")
     print(f"⏱️ {elapsed_time} seconds")
 
-    return batch_dict
+    return unified_df
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

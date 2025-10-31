@@ -3,4 +3,6 @@
 pdf/
 old_wr/
 data/
+data/input/
+data/output/
 alert_track/
