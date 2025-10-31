@@ -3606,56 +3606,64 @@ def _extract_dd_from_text(text: str) -> str:
 
 def apply_base_years_block(df: pd.DataFrame, base_year_list: list[dict]) -> pd.DataFrame:
     """
-    Apply base-year mapping to *a block of new rows* only.
-    It assumes df has columns: 'year', 'wr'. If 'base_year' exists,
-    we only fill rows where it is NA.
+    Generic version.
+    Given a df with at least ['year', 'wr'], fill 'base_year'
+    according to an ordered list of change points:
 
-    The logic is:
-    - from (1994, 1) up to (<2000, any wr) AND (year == 2000 & wr <= 27) -> 1990
-    - from (2000, 28) up to (<2014, any wr) AND (year == 2014 & wr <= 10) -> 1994
-    - from (2014, 11) onward -> 2007
+        [{"year": y1, "wr": w1, "base_year": b1},
+         {"year": y2, "wr": w2, "base_year": b2},
+         ...
+         {"year": yN, "wr": wN, "base_year": bN}]
 
-    We derive this from the ordered base_year_list.
+    Semantics:
+      - rows BEFORE (y1, w1) get b1
+      - rows from (y1, w1) up to BEFORE (y2, w2) get b1
+      - rows from (y2, w2) up to BEFORE (y3, w3) get b2
+      - ...
+      - rows from (yN, wN) onward get bN
+
+    Important: we only fill rows where base_year is NA, so we respect existing data.
     """
     df = df.copy()
 
-    # ensure columns exist
     if "base_year" not in df.columns:
         df["base_year"] = pd.NA
 
-    # unpack change points (we assume they come exactly as user defined them)
-    # [
-    #   {"year": 1994, "wr": 1, "base_year": 1990},
-    #   {"year": 2000, "wr": 28, "base_year": 1994},
-    #   {"year": 2014, "wr": 11, "base_year": 2007},
-    # ]
-    # sort just in case
-    bsorted = sorted(base_year_list, key=lambda x: (x["year"], x["wr"]))
+    # sort change points
+    points = sorted(base_year_list, key=lambda x: (x["year"], x["wr"]))
 
-    # first change
-    y1, w1, by1 = bsorted[0]["year"], bsorted[0]["wr"], bsorted[0]["base_year"]
-    # second change
-    y2, w2, by2 = bsorted[1]["year"], bsorted[1]["wr"], bsorted[1]["base_year"]
-    # third change
-    y3, w3, by3 = bsorted[2]["year"], bsorted[2]["wr"], bsorted[2]["base_year"]
+    # helper to build a mask for (year, wr) >= (Y, W)
+    def geq(df, Y, W):
+        return (df["year"] > Y) | ((df["year"] == Y) & (df["wr"] >= W))
 
-    # mask 1: from start up to (year < 2000) OR (year == 2000 & wr <= 27)
-    m1 = (df["year"] < y2) | ((df["year"] == y2) & (df["wr"] < w2))
-    # mask 2: from (year == 2000 & wr >= 28) up to (<2014) OR (year == 2014 & wr <= 10)
-    m2 = (
-        ((df["year"] > y2) & (df["year"] < y3)) |
-        ((df["year"] == y2) & (df["wr"] >= w2)) |
-        ((df["year"] == y3) & (df["wr"] < w3))
-    )
-    # mask 3: from (2014, 11) onward
-    m3 = (df["year"] > y3) | ((df["year"] == y3) & (df["wr"] >= w3))
+    # helper to build a mask for (year, wr) < (Y, W)
+    def lt(df, Y, W):
+        return (df["year"] < Y) | ((df["year"] == Y) & (df["wr"] < W))
 
-    # only fill where it's NA (respect existing values!)
-    df.loc[m1 & df["base_year"].isna(), "base_year"] = by1
-    df.loc[m2 & df["base_year"].isna(), "base_year"] = by2
-    df.loc[m3 & df["base_year"].isna(), "base_year"] = by3
+    # 1) handle everything before the first point
+    first = points[0]
+    first_by = first["base_year"]
+    first_y, first_w = first["year"], first["wr"]
+    mask_before = lt(df, first_y, first_w)
+    df.loc[mask_before & df["base_year"].isna(), "base_year"] = first_by
+
+    # 2) handle each interval [point_i, point_{i+1})
+    for i, pt in enumerate(points):
+        y, w, by = pt["year"], pt["wr"], pt["base_year"]
+
+        if i < len(points) - 1:
+            nxt = points[i + 1]
+            ny, nw = nxt["year"], nxt["wr"]
+
+            mask_interval = geq(df, y, w) & lt(df, ny, nw)
+        else:
+            # last point: from here to the end
+            mask_interval = geq(df, y, w)
+
+        df.loc[mask_interval & df["base_year"].isna(), "base_year"] = by
 
     return df
+
 
 def mark_base_year_affected(df: pd.DataFrame) -> pd.DataFrame:
     """
