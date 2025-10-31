@@ -136,3 +136,8 @@ ns-11-2024.pdf
 ns-15-2024.pdf
 ns-19-2024.pdf
 ns-23-2024.pdf
+ns-27-2024.pdf
+ns-31-2024.pdf
+ns-35-2024.pdf
+ns-39-2024.pdf
+ns-43-2024.pdf

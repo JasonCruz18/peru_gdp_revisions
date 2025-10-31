@@ -3810,3 +3810,98 @@ def update_metadata(
     return updated
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+def apply_base_year_sentinel(
+    base_year_list: list[str],
+    sentinel: float = -999999.0,
+    output_data_subfolder: str = ".",
+    csv_file_label: str = "rtd_table_1_with_sentinel.csv",
+) -> pd.DataFrame:
+    """
+    Given a *concatenated* RTD (already saved as CSV in `output_data_subfolder/csv_file_label`),
+    find the vintages where a base-year change happened and, for each of those vintages:
+
+        - keep the current row (that vintage) as is
+        - for every tp_* column, go UPWARDS in the same column and replace all
+          *non-NaN* values with `sentinel`
+        - leave NaNs untouched (they stay NaN, not sentinel)
+
+    Finally, re-save the updated CSV (overwriting the same path) and return the updated DataFrame.
+
+    Args:
+        base_year_list: list of vintage strings, e.g. ["2000m7", "2014m3"]
+        sentinel: numeric value to mark “invalid due to base-year change”
+        output_data_subfolder: folder where the concatenated CSV lives
+        csv_file_label: name of the concatenated CSV to load & overwrite
+
+    Returns:
+        Updated pandas DataFrame
+    """
+    # 1) load the concatenated CSV
+    csv_path = os.path.join(output_data_subfolder, csv_file_label)
+    if not os.path.exists(csv_path):
+        raise FileNotFoundError(f"Concatenated CSV not found at: {csv_path}")
+
+    df = pd.read_csv(csv_path)
+
+    # 2) basic validations
+    if "industry" not in df.columns or "vintage" not in df.columns:
+        raise ValueError("CSV must have at least 'industry' and 'vintage' columns.")
+
+    # 3) ensure industry and vintage are strings
+    df["industry"] = df["industry"].astype(str)
+    df["vintage"]  = df["vintage"].astype(str)
+
+    # 4) detect all tp_* columns
+    tp_cols = [c for c in df.columns if c.startswith("tp_")]
+
+    # 5) for each base-year vintage
+    for by_vintage in base_year_list:
+        # make sure it's string
+        by_vintage = str(by_vintage)
+        # find the row index where this vintage appears
+        # (could be several rows, one per industry)
+        mask_v = df["vintage"] == by_vintage
+        if not mask_v.any():
+            # this base-year vintage not present — skip
+            continue
+
+        # get all row indices where vintage == base-year
+        base_idxs = df.index[mask_v].tolist()
+
+        # for every tp_ column, we replace “above” rows ONLY
+        for col in tp_cols:
+            # we want to replace **per column**, **per base-row**:
+            #   for each base-row idx i:
+            #       rows 0..i-1 in that column: replace non-NaN with sentinel
+            for i in base_idxs:
+                # rows above i
+                above_slice = df.loc[: i - 1, col]
+
+                # only non-NaN
+                not_nan_mask = above_slice.notna()
+
+                # set to sentinel
+                df.loc[: i - 1, col] = above_slice.where(~not_nan_mask, other=sentinel)
+
+    # 6) enforce dtypes at the end: industry/vintage str, tp_* float
+    df["industry"] = df["industry"].astype(str)
+    df["vintage"]  = df["vintage"].astype(str)
+    for col in tp_cols:
+        df[col] = pd.to_numeric(df[col], errors="coerce").astype(float)
+
+    # 7) save back
+    df.to_csv(csv_path, index=False)
+
+    return df
