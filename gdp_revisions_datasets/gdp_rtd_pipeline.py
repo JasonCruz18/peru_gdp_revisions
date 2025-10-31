@@ -3280,21 +3280,16 @@ def target_period_sort_key(tp: str):
     return (9999, 0)
 
 
-# _________________________________________________________________________
-# Function to concatenate Table 1 CSVs into ONE unified RTD (row-based)
 def concatenate_table_1(input_data_subfolder, record_folder, record_txt, persist, persist_folder):
     """
-    New simpler concatenation:
-    - read ALL year-based subfolders under .../table_1
-    - load ALL CSVs (except those already in record)
-    - build the FULL set of tp_* columns that appear in ANY CSV
-    - reindex every CSV to that same column set
-    - VERTICALLY concatenate (rows = industry × vintage)
-    - dtypes: industry str, vintage str, all tp_* float
-    - optionally persist ONE unified CSV
-
-    Returns:
-        pd.DataFrame: unified, row-based RTD.
+    Row-based concatenation for Table 1 (monthly):
+    - reads all year subfolders under .../table_1
+    - loads all CSVs not in record
+    - builds union of tp_* columns
+    - sorts tp_* chronologically
+    - reindexes EACH df to that full column set (in ONE shot)
+    - vertical concat
+    - enforce dtypes
     """
     start_time = time.time()
     print("\n⛓️ Starting Table 1 concatenation (row-based)...")
@@ -3307,7 +3302,7 @@ def concatenate_table_1(input_data_subfolder, record_folder, record_txt, persist
     skipped_counter = 0
     new_counter     = 0
 
-    # 1) load all CSVs from each year folder
+    # 1) load
     for year in year_folders:
         year_folder = os.path.join(table_1_folder, year)
         csv_files   = sorted([f for f in os.listdir(year_folder) if f.endswith(".csv")])
@@ -3315,14 +3310,9 @@ def concatenate_table_1(input_data_subfolder, record_folder, record_txt, persist
             if csv_file in processed_files:
                 skipped_counter += 1
                 continue
-
             full_path = os.path.join(year_folder, csv_file)
             df = pd.read_csv(full_path)
-
-            # keep as-is: df already has structure like
-            #   industry | vintage | tp_1992m1 | ...
             loaded_dfs.append(df)
-
             processed_files.append(csv_file)
             _write_records(record_folder, record_txt, processed_files)
             new_counter += 1
@@ -3331,61 +3321,49 @@ def concatenate_table_1(input_data_subfolder, record_folder, record_txt, persist
         print("No new CSV files to concatenate.")
         return pd.DataFrame()
 
-    # 2) build the FULL set of columns
-    # mandatory columns:
+    # 2) base + union tp_*
     base_cols = ["industry", "vintage"]
-
-    # collect all tp_... columns from every df
     all_tp_cols = set()
     for df in loaded_dfs:
         for col in df.columns:
             if col.startswith("tp_"):
                 all_tp_cols.add(col)
 
-    # 3) sort the tp_ columns chronologically
-    # strip 'tp_' when sorting, then rebuild order
+    # 3) sort tp_* using your key
     tp_cols_sorted = sorted(list(all_tp_cols), key=target_period_sort_key)
 
-    # final column order
+    # 4) final schema
     final_cols = base_cols + tp_cols_sorted
 
-    # 4) reindex each df to that final column order
+    # 5) reindex each df IN ONE SHOT (no fragmentation)
     aligned_dfs = []
     for df in loaded_dfs:
-        # make sure base cols exist
-        # (older CSVs should have them, but let's be safe)
         if "industry" not in df.columns:
-            raise ValueError(f"'industry' column is missing in file among loaded CSVs.")
+            raise ValueError("Missing 'industry' column in a Table 1 CSV.")
         if "vintage" not in df.columns:
-            raise ValueError(f"'vintage' column is missing in file among loaded CSVs.")
+            raise ValueError("Missing 'vintage' column in a Table 1 CSV.")
 
-        # add missing tp_* columns as NaN
-        for col in tp_cols_sorted:
-            if col not in df.columns:
-                df[col] = pd.NA
-
-        # keep only final columns (in order)
-        df = df[final_cols].copy()
+        # this will create missing tp_* as NaN in one go
+        df = df.reindex(columns=final_cols)
         aligned_dfs.append(df)
 
-    # 5) vertical concat
+    # 6) vertical concat
     unified_df = pd.concat(aligned_dfs, axis=0, ignore_index=True)
 
-    # 6) enforce dtypes
+    # 7) enforce dtypes
     unified_df["industry"] = unified_df["industry"].astype(str)
     unified_df["vintage"]  = unified_df["vintage"].astype(str)
 
     for col in tp_cols_sorted:
         unified_df[col] = pd.to_numeric(unified_df[col], errors="coerce").astype(float)
 
-    # 7) optionally persist
+    # 8) persist (single file)
     if persist:
         os.makedirs(persist_folder, exist_ok=True)
         out_path = os.path.join(persist_folder, "new_gdp_rtd_table_1_unified.csv")
         unified_df.to_csv(out_path, index=False)
         print(f"📦 Unified RTD saved to {out_path}")
 
-    # 8) summary
     elapsed_time = round(time.time() - start_time)
     print(f"\n📊 Summary:")
     print(f"📂 {len(year_folders)} year folders found")
@@ -3394,6 +3372,7 @@ def concatenate_table_1(input_data_subfolder, record_folder, record_txt, persist
     print(f"⏱️ {elapsed_time} seconds")
 
     return unified_df
+
 
 
 
@@ -3427,24 +3406,12 @@ def tp_quarter_year_sort_key(col: str):
     return (9999, 9, col)
 
 
-# _________________________________________________________________________
-# Function to concatenate Table 2 CSVs into ONE unified RTD (row-based)
 def concatenate_table_2(input_data_subfolder, record_folder, record_txt, persist, persist_folder):
     """
-    Concatenate Table 2 CSVs (quarterly/annual) across year subfolders into
-    one single, row-based RTD.
-
-    Expected CSV structure (from prepare_table_2):
-        industry | vintage | tp_YYYYqN | tp_YYYY | ...
-
-    Steps:
-        - read all CSVs (skipping those in record)
-        - collect union of all tp_* columns
-        - sort tp_* columns chronologically (q1..q4..annual)
-        - reindex each df to that full schema
-        - vertical concat
-        - enforce dtypes
-        - optionally persist one CSV
+    Row-based concatenation for Table 2 (quarterly/annual).
+    Same idea as Table 1, but tp_* are like:
+        - tp_1994q1 ... tp_1994q4
+        - tp_1994
     """
     start_time = time.time()
     print("\n⛓️ Starting Table 2 concatenation (row-based)...")
@@ -3457,7 +3424,7 @@ def concatenate_table_2(input_data_subfolder, record_folder, record_txt, persist
     skipped_counter = 0
     new_counter     = 0
 
-    # 1) load all CSVs from each year folder
+    # 1) load
     for year in year_folders:
         year_folder = os.path.join(table_2_folder, year)
         csv_files   = sorted([f for f in os.listdir(year_folder) if f.endswith(".csv")])
@@ -3465,12 +3432,9 @@ def concatenate_table_2(input_data_subfolder, record_folder, record_txt, persist
             if csv_file in processed_files:
                 skipped_counter += 1
                 continue
-
             full_path = os.path.join(year_folder, csv_file)
             df = pd.read_csv(full_path)
-
             loaded_dfs.append(df)
-
             processed_files.append(csv_file)
             _write_records(record_folder, record_txt, processed_files)
             new_counter += 1
@@ -3479,56 +3443,63 @@ def concatenate_table_2(input_data_subfolder, record_folder, record_txt, persist
         print("No new CSV files to concatenate.")
         return pd.DataFrame()
 
-    # 2) base columns
+    # 2) base + union tp_*
     base_cols = ["industry", "vintage"]
-
-    # 3) collect all tp_* columns
     all_tp_cols = set()
     for df in loaded_dfs:
         for col in df.columns:
             if col.startswith("tp_"):
                 all_tp_cols.add(col)
 
-    # 4) sort tp_* columns (quarters then annual)
+    # 3) sort tp_* (quarters first, then annual)
+    def tp_quarter_year_sort_key(col: str):
+        if not col.startswith("tp_"):
+            return (9999, 9, col)
+        body = col[3:]
+        m = re.match(r"^(\d{4})q(\d)$", body)
+        if m:
+            year = int(m.group(1))
+            q    = int(m.group(2))
+            return (year, 0, q)  # quarters first
+        m2 = re.match(r"^(\d{4})$", body)
+        if m2:
+            year = int(m2.group(1))
+            return (year, 1, 0)  # annual after quarters
+        return (9999, 9, col)
+
     tp_cols_sorted = sorted(list(all_tp_cols), key=tp_quarter_year_sort_key)
 
-    # 5) final schema
+    # 4) final schema
     final_cols = base_cols + tp_cols_sorted
 
-    # 6) align each df to final schema
+    # 5) reindex each df IN ONE SHOT
     aligned_dfs = []
     for df in loaded_dfs:
         if "industry" not in df.columns:
-            raise ValueError("Missing 'industry' column in one of the Table 2 CSVs.")
+            raise ValueError("Missing 'industry' column in a Table 2 CSV.")
         if "vintage" not in df.columns:
-            raise ValueError("Missing 'vintage' column in one of the Table 2 CSVs.")
+            raise ValueError("Missing 'vintage' column in a Table 2 CSV.")
 
-        # add missing tp_* as NaN
-        for col in tp_cols_sorted:
-            if col not in df.columns:
-                df[col] = pd.NA
-
-        # keep only wanted columns in correct order
-        df = df[final_cols].copy()
+        df = df.reindex(columns=final_cols)
         aligned_dfs.append(df)
 
-    # 7) vertical concat
+    # 6) vertical concat
     unified_df = pd.concat(aligned_dfs, axis=0, ignore_index=True)
 
-    # 8) enforce dtypes
+    # 7) enforce dtypes
     unified_df["industry"] = unified_df["industry"].astype(str)
     unified_df["vintage"]  = unified_df["vintage"].astype(str)
     for col in tp_cols_sorted:
         unified_df[col] = pd.to_numeric(unified_df[col], errors="coerce").astype(float)
 
-    # 9) optionally persist
+    # 8) persist
     if persist:
         os.makedirs(persist_folder, exist_ok=True)
         out_path = os.path.join(persist_folder, "new_gdp_rtd_table_2_unified.csv")
         unified_df.to_csv(out_path, index=False)
         print(f"📦 Unified Table 2 RTD saved to {out_path}")
 
-    # 10) summary
+    # 9) summary
     elapsed_time = round(time.time() - start_time)
     print(f"\n📊 Summary:")
     print(f"📂 {len(year_folders)} year folders found containing input CSVs")
@@ -3537,6 +3508,7 @@ def concatenate_table_2(input_data_subfolder, record_folder, record_txt, persist
     print(f"⏱️ {elapsed_time} seconds")
 
     return unified_df
+
 
 
 
