@@ -2447,32 +2447,31 @@ class vintages_preparator:
         sorted_files = sorted(pairs, key=lambda x: x[1])                            # Sort filenames by extracted month
         return {fname: i + 1 for i, (fname, _) in enumerate(sorted_files)}          # Map filenames to month order (1..12)
 
-    # _____________________________________________________________________
+
     # Function to prepare Table 1 data into vintage format
+    # _____________________________________________________________________
+    # Function to prepare Table 1 data into *row-based* vintage format
     def prepare_table_1(self, df: pd.DataFrame, filename: str, month_order_map: dict[str, int]) -> pd.DataFrame:
         """
-        Prepare a cleaned Table 1 (monthly) into tidy vintage format.
+        Prepare a cleaned Table 1 (monthly) into tidy *row-based* vintage format.
 
-        Args:
-            df (pd.DataFrame): Cleaned Table 1 dataframe (already has 'year' and 'wr').
-            filename (str): Original PDF filename (ns-xx-yyyy.pdf) to pick its month order.
-            month_order_map (dict[str,int]): filename → month order (1..12).
-
-        Returns:
-            pd.DataFrame: Tidy vintage dataframe with:
-                - index (row id removed)
-                - 'target_period' like '2019m7'
-                - one column per vintage_id (economic_sector_year_month)
+        Output columns:
+            - industry (str)
+            - vintage  (str, e.g. '2017m1')
+            - tp_YYYYmM (float) for every target period present in the WR
         """
-        d = df.copy()                                                       # Work on a copy of the dataframe to avoid modifying the original
 
-        # 1) Determine month from filename
-        d["month"] = month_order_map.get(filename)                          # Map filename to month order using the month_order_map
+        # 1) work on a copy
+        d = df.copy()
 
-        # 2) Drop unused columns (retain only 'economic_sector')
-        d = d.drop(columns=["wr", "sectores_economicos"], errors="ignore")  # Drop 'wr' and 'sectores_economicos' columns
+        # 2) determine month (1..12) from filename
+        wr_month = month_order_map.get(filename)
+        d["month"] = wr_month  # single value for the whole WR
 
-        # 3) Map economic sector names to shorter labels
+        # 3) drop unused columns
+        d = d.drop(columns=["wr", "sectores_economicos"], errors="ignore")
+
+        # 4) sector map
         sector_map = {
             "agriculture and livestock": "agriculture",
             "fishing": "fishing",
@@ -2484,55 +2483,88 @@ class vintages_preparator:
             "other services": "services",
             "gdp": "gdp",
         }
-        d["economic_sector"] = d["economic_sectors"].map(sector_map)            # Map full sector names to short labels
-        d = d[d["economic_sector"].notna()].copy()                              # Keep only rows with valid economic sectors
 
-        # 4) Build vintage_id (sector_year_month)
-        d["vintage_id"] = d["economic_sector"] + "_" + d["year"].astype(str) + "_" + d["month"].astype(str)
+        # normalize sector column name
+        if "economic_sectors" not in d.columns:
+            if "economic_sector" in d.columns:
+                d["economic_sectors"] = d["economic_sector"]
+            else:
+                raise ValueError("Expected 'economic_sectors' column not found in cleaned Table 1 dataframe.")
 
-        # 5) Retain only the 'yyyy_mmm' columns based on month names (e.g., 2020_ene, 2020_feb)
+        d["industry"] = d["economic_sectors"].map(sector_map)
+        d = d[d["industry"].notna()].copy()
+
+        # 5) build vintage = year + m + wr_month
+        d["vintage"] = d["year"].astype(int).astype(str) + "m" + d["month"].astype(int).astype(str)
+
+        # 6) detect period columns like '2015_ene'
         pat = re.compile(r"^\d{4}_(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)$", re.IGNORECASE)
-        keep = ["vintage_id"] + [c for c in d.columns if pat.match(str(c))]     # Select only relevant columns
-        d = d[keep]                                                             # Keep the selected columns
+        period_cols = [c for c in d.columns if pat.match(str(c))]
 
-        # 6) Reshape the dataframe to a tidy format (rows: target_period, columns: vintage_id)
-        t = d.set_index("vintage_id").T.reset_index().rename(columns={"index": "target_period"})
+        # 7) rename to tp_yyyymX
+        month_map = {
+            "ene": 1, "feb": 2, "mar": 3, "abr": 4, "may": 5, "jun": 6,
+            "jul": 7, "ago": 8, "sep": 9, "oct": 10, "nov": 11, "dic": 12,
+        }
 
-        # 7) Convert 'YYYY_mmm' → 'yyyymX' (e.g., '2020_ene' → '2020m1')
-        month_map = {"ene":"01","feb":"02","mar":"03","abr":"04","may":"05","jun":"06",
-                     "jul":"07","ago":"08","sep":"09","oct":"10","nov":"11","dic":"12"}
-        def _to_yyyymx(s: str) -> str:
-            m = re.match(r"^(\d{4})_(\w{3})$", s, re.IGNORECASE)                # Match the 'YYYY_mmm' format
+        def period_to_tp(col: str) -> str:
+            m = re.match(r"^(\d{4})_(\w{3})$", col, re.IGNORECASE)
             if not m:
-                return s
-            y = m.group(1)                                                      # Extract year
-            mmm = m.group(2).lower()                                            # Extract month abbreviation
-            mm = month_map.get(mmm, "01")                                       # Convert month abbreviation to month number
-            return f"{y}m{int(mm)}"                                             # Return 'yyyymX' format (no leading zero in month)
+                return col
+            yy = m.group(1)
+            mmm = m.group(2).lower()
+            mm = month_map.get(mmm, 1)
+            return f"tp_{yy}m{mm}"
 
-        t["target_period"] = t["target_period"].astype(str).map(_to_yyyymx)     # Apply the conversion
-        return t                                                                # Return the reshaped (tidy) dataframe
+        rename_dict = {c: period_to_tp(c) for c in period_cols}
+        d = d.rename(columns=rename_dict)
+
+        # 8) order columns
+        tp_cols = [rename_dict[c] for c in period_cols]
+
+        def _tp_key(c: str):
+            # c = 'tp_2016m10'
+            s = c[3:]          # '2016m10'
+            y, m = s.split("m")
+            return (int(y), int(m))
+
+        tp_cols_sorted = sorted(tp_cols, key=_tp_key)
+        final_cols = ["industry", "vintage"] + tp_cols_sorted
+
+        d_out = d[final_cols].reset_index(drop=True)
+
+        # 9) 🔒 enforce dtypes:
+        #    - 'industry' and 'vintage' → str
+        #    - everything else (tp_...) → float
+        d_out["industry"] = d_out["industry"].astype(str)
+        d_out["vintage"]  = d_out["vintage"].astype(str)
+
+        for col in tp_cols_sorted:
+            # to_numeric with errors='coerce' will turn bad values into NaN
+            d_out[col] = pd.to_numeric(d_out[col], errors="coerce").astype(float)
+
+        return d_out
 
     # _____________________________________________________________________
-    # Function to prepare Table 2 data into vintage format
+    # Function to prepare Table 2 data into *row-based* vintage format
     def prepare_table_2(self, df: pd.DataFrame, filename: str, month_order_map: dict[str, int]) -> pd.DataFrame:
         """
-        Prepare a cleaned Table 2 (quarterly/annual) into tidy vintage format.
+        Prepare a cleaned Table 2 (quarterly/annual) into tidy *row-based* vintage format.
 
-        Args:
-            df (pd.DataFrame): Cleaned Table 2 dataframe (already has 'year' and 'wr').
-            filename (str): Original PDF filename (ns-xx-yyyy.pdf).
-            month_order_map (dict[str,int]): filename → month order (not used but kept for symmetry).
-
-        Returns:
-            pd.DataFrame: Tidy vintage dataframe with 'target_period' as 'yyyyqN' or 'yyyy'.
+        Output columns:
+            - industry (str)
+            - vintage  (str, e.g. '2017m1')
+            - tp_YYYYqN (float) for quarterly targets
+            - tp_YYYY   (float) for annual targets
         """
-        d = df.copy()                                                           # Work on a copy to avoid modifying the original DataFrame
 
-        # 1) Drop unused columns (retain only relevant columns)
-        d = d.drop(columns=["wr", "sectores_economicos"], errors="ignore")      # Drop 'wr' and 'sectores_economicos'
+        # 1) copy
+        d = df.copy()
 
-        # 2) Map economic sector names to shorter labels
+        # 2) drop unused
+        d = d.drop(columns=["wr", "sectores_economicos"], errors="ignore")
+
+        # 3) sector map
         sector_map = {
             "agriculture and livestock": "agriculture",
             "fishing": "fishing",
@@ -2544,29 +2576,77 @@ class vintages_preparator:
             "other services": "services",
             "gdp": "gdp",
         }
-        d["economic_sector"] = d["economic_sectors"].map(sector_map)
-        d = d[d["economic_sector"].notna()].copy()                              # Keep only valid rows
 
-        # 3) Build vintage_id (sector_year_monthorder) — keeps the same structure as table_1 for later concatenation
-        d["month"] = month_order_map.get(filename)                              # Get month from the filename using the month_order_map
-        d["vintage_id"] = d["economic_sector"] + "_" + d["year"].astype(str) + "_" + d["month"].astype(str)
+        # normalize sector column name
+        if "economic_sectors" not in d.columns:
+            if "economic_sector" in d.columns:
+                d["economic_sectors"] = d["economic_sector"]
+            else:
+                raise ValueError("Expected 'economic_sectors' column not found in cleaned Table 2 dataframe.")
 
-        # 4) Retain only the relevant columns (e.g., year and quarterly/year columns)
-        pat = re.compile(r"^\d{4}_(1|2|3|4|year)$", re.IGNORECASE)              # Match year and quarter columns
-        keep = ["vintage_id"] + [c for c in d.columns if pat.match(str(c))]     # Keep only necessary columns
-        d = d[keep]  # Retain selected columns
+        d["industry"] = d["economic_sectors"].map(sector_map)
+        d = d[d["industry"].notna()].copy()
 
-        # 5) Reshape the DataFrame to a tidy format (rows: target_period, columns: vintage_id)
-        t = d.set_index("vintage_id").T.reset_index().rename(columns={"index": "target_period"})
+        # 4) vintage from year + month in filename (to stay consistent with table 1)
+        wr_month = month_order_map.get(filename)
+        d["month"] = wr_month
+        d["vintage"] = d["year"].astype(int).astype(str) + "m" + d["month"].astype(int).astype(str)
 
-        # 6) Convert 'YYYY_1..4' → 'yyyyqN' (e.g., '2020_1' → '2020q1')
-        t["target_period"] = (
-            t["target_period"].astype(str)
-            .str.replace(r"^(\d{4})_(\d)$", r"\1q\2", regex=True)               # Convert to 'yyyyqN'
-            .str.replace(r"^(\d{4})_year$", r"\1", regex=True)                  # Convert 'yyyy_year' to 'yyyy'
-        )
-        return t                                                                # Return the reshaped (tidy) vintage dataframe
+        # 5) detect quarterly/annual columns: 2020_1, 2020_2, 2020_3, 2020_4, 2020_year
+        pat = re.compile(r"^\d{4}_(1|2|3|4|year)$", re.IGNORECASE)
+        period_cols = [c for c in d.columns if pat.match(str(c))]
 
+        # 6) rename to tp_...
+        #    2020_1    -> tp_2020q1
+        #    2020_year -> tp_2020
+        def quarter_to_tp(col: str) -> str:
+            m = re.match(r"^(\d{4})_(\d)$", col, re.IGNORECASE)
+            if m:
+                yy = m.group(1)
+                q = m.group(2)
+                return f"tp_{yy}q{q}"
+            m2 = re.match(r"^(\d{4})_year$", col, re.IGNORECASE)
+            if m2:
+                yy = m2.group(1)
+                return f"tp_{yy}"
+            return col
+
+        rename_dict = {c: quarter_to_tp(c) for c in period_cols}
+        d = d.rename(columns=rename_dict)
+
+        # 7) order columns
+        # we have a mix: tp_YYYYqN and tp_YYYY
+        tp_cols = [rename_dict[c] for c in period_cols]
+
+        def _tp_key(c: str):
+            # we want annuals (tp_YYYY) to appear AFTER quarterlies of the same year or at the end?
+            # From your monthly example, order was chronological; here we’ll go:
+            #   (year, is_annual, quarter)
+            # so: 2019q1, 2019q2, 2019q3, 2019q4, 2019
+            assert c.startswith("tp_")
+            body = c[3:]      # '2020q1' or '2020'
+            if "q" in body:
+                yy, q = body.split("q")
+                return (int(yy), 0, int(q))
+            else:
+                # annual
+                return (int(body), 1, 0)
+
+        tp_cols_sorted = sorted(tp_cols, key=_tp_key)
+
+        final_cols = ["industry", "vintage"] + tp_cols_sorted
+        d_out = d[final_cols].reset_index(drop=True)
+
+        # 8) enforce dtypes:
+        #    - industry, vintage -> str
+        #    - all tp_* -> float
+        d_out["industry"] = d_out["industry"].astype(str)
+        d_out["vintage"] = d_out["vintage"].astype(str)
+
+        for col in tp_cols_sorted:
+            d_out[col] = pd.to_numeric(d_out[col], errors="coerce").astype(float)
+
+        return d_out
 
 
 
