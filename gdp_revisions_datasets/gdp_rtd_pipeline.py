@@ -3481,123 +3481,201 @@ def _extract_dd_from_text(text: str) -> str:
     return match.group(1) if match else "NaN"  # Default to NaN if no match is found
 
 
-def mapping_base_years(year: int, wr: int, base_year_list: list[dict]) -> int:
+def apply_base_years_block(df: pd.DataFrame, base_year_list: list[dict]) -> pd.DataFrame:
     """
-    Maps the base year based on the given year and wr (weekly report ID).
-    
-    Args:
-        year (int): Year for the current row.
-        wr (int): Weekly report ID for the current row.
-        base_year_list (list): List of dictionaries containing base year mappings.
-    
-    Returns:
-        int: The mapped base year for the given year and wr.
+    Apply base-year mapping to *a block of new rows* only.
+    It assumes df has columns: 'year', 'wr'. If 'base_year' exists,
+    we only fill rows where it is NA.
+
+    The logic is:
+    - from (1994, 1) up to (<2000, any wr) AND (year == 2000 & wr <= 27) -> 1990
+    - from (2000, 28) up to (<2014, any wr) AND (year == 2014 & wr <= 10) -> 1994
+    - from (2014, 11) onward -> 2007
+
+    We derive this from the ordered base_year_list.
     """
-    # Loop through the base_year_list and find the appropriate mapping
-    for i, mapping in enumerate(base_year_list):
-        # Apply the base year mapping when year and wr match
-        if year >= mapping["year"] and wr >= mapping["wr"]:
-            # Check if there is a next entry, if so, apply the next base_year transition
-            if i + 1 < len(base_year_list) and year == base_year_list[i + 1]["year"] and wr >= base_year_list[i + 1]["wr"]:
-                return base_year_list[i + 1]["base_year"]
-            return mapping["base_year"]
-    return np.nan  # Default value if no match is found
+    df = df.copy()
+
+    # ensure columns exist
+    if "base_year" not in df.columns:
+        df["base_year"] = pd.NA
+
+    # unpack change points (we assume they come exactly as user defined them)
+    # [
+    #   {"year": 1994, "wr": 1, "base_year": 1990},
+    #   {"year": 2000, "wr": 28, "base_year": 1994},
+    #   {"year": 2014, "wr": 11, "base_year": 2007},
+    # ]
+    # sort just in case
+    bsorted = sorted(base_year_list, key=lambda x: (x["year"], x["wr"]))
+
+    # first change
+    y1, w1, by1 = bsorted[0]["year"], bsorted[0]["wr"], bsorted[0]["base_year"]
+    # second change
+    y2, w2, by2 = bsorted[1]["year"], bsorted[1]["wr"], bsorted[1]["base_year"]
+    # third change
+    y3, w3, by3 = bsorted[2]["year"], bsorted[2]["wr"], bsorted[2]["base_year"]
+
+    # mask 1: from start up to (year < 2000) OR (year == 2000 & wr <= 27)
+    m1 = (df["year"] < y2) | ((df["year"] == y2) & (df["wr"] < w2))
+    # mask 2: from (year == 2000 & wr >= 28) up to (<2014) OR (year == 2014 & wr <= 10)
+    m2 = (
+        ((df["year"] > y2) & (df["year"] < y3)) |
+        ((df["year"] == y2) & (df["wr"] >= w2)) |
+        ((df["year"] == y3) & (df["wr"] < w3))
+    )
+    # mask 3: from (2014, 11) onward
+    m3 = (df["year"] > y3) | ((df["year"] == y3) & (df["wr"] >= w3))
+
+    # only fill where it's NA (respect existing values!)
+    df.loc[m1 & df["base_year"].isna(), "base_year"] = by1
+    df.loc[m2 & df["base_year"].isna(), "base_year"] = by2
+    df.loc[m3 & df["base_year"].isna(), "base_year"] = by3
+
+    return df
+
+def mark_base_year_affected(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Given a *new* block (already sorted by year, wr) that has 'base_year',
+    create/overwrite 'base_year_affected' = 1 whenever 'base_year' changes
+    within this block; 0 otherwise. First row = 0.
+    """
+    df = df.sort_values(["year", "wr"]).reset_index(drop=True).copy()
+
+    if "base_year_affected" not in df.columns:
+        df["base_year_affected"] = 0
+
+    # compare with previous row
+    changed = df["base_year"].ne(df["base_year"].shift())
+    df.loc[:, "base_year_affected"] = changed.astype(int)
+    # first row must be 0
+    df.loc[0, "base_year_affected"] = 0
+    return df
 
 
-def update_metadata(metadata_folder: str, input_pdf_folder: str, record_folder: str, record_txt: str, wr_metadata_csv: str, base_year_list: list[dict]) -> pd.DataFrame:
-    """
-    Extracts weekly revision data (wr IDs) from PDF files and updates the metadata (wr_metadata.csv).
-    
-    Args:
-        metadata_folder (str): Path to the folder containing the 'wr_metadata.csv'.
-        input_pdf_folder (str): Path to the folder containing year-based subfolders with PDF files.
-        record_folder (str): Folder to store and update the record file.
-        record_txt (str): Name of the text file to track processed years.
-        wr_metadata_csv (str): The CSV file name to track and store the metadata.
-        base_year_list (list[dict]): List of base year mappings based on year and wr.
-    
-    Returns:
-        pd.DataFrame: Updated 'wr_metadata.csv' DataFrame.
-    """
-    # Read the existing CSV file for 'wr_metadata'
+import os
+import re
+import pandas as pd
+import numpy as np
+import fitz  # PyMuPDF
+
+
+def update_metadata(
+    metadata_folder: str,
+    input_pdf_folder: str,
+    record_folder: str,
+    record_txt: str,
+    wr_metadata_csv: str,
+    base_year_list: list[dict],
+) -> pd.DataFrame:
+    # 1. read current metadata
     metadata_path = os.path.join(metadata_folder, wr_metadata_csv)
     if os.path.exists(metadata_path):
         metadata = pd.read_csv(metadata_path)
     else:
-        metadata = pd.DataFrame(columns=["year", "wr", "month", "revision_calendar_tab_1", "revision_calendar_tab_2", "benchmark_revision", "base_year", "base_year_affected"])
+        metadata = pd.DataFrame(
+            columns=[
+                "year",
+                "wr",
+                "month",
+                "revision_calendar_tab_1",
+                "revision_calendar_tab_2",
+                "benchmark_revision",
+                "base_year",
+                "base_year_affected",
+            ]
+        )
 
-    # Ensure columns are read as integers and handle NaN values
-    metadata = metadata.apply(pd.to_numeric, errors='ignore', downcast='integer')
-
-    # Read the record of processed years
+    # 2. read processed years
     processed_years = _read_records_2(record_folder, record_txt)
 
-    # List all year subfolders (skip '_quarantine')
-    years = [d for d in sorted(os.listdir(input_pdf_folder))
-             if os.path.isdir(os.path.join(input_pdf_folder, d)) and d != "_quarantine"]
-    
-    # Identify the years that need processing
-    years_to_process = [year for year in years if year not in processed_years]
+    # 3. list folders (years) to process
+    years = [
+        d
+        for d in sorted(os.listdir(input_pdf_folder))
+        if os.path.isdir(os.path.join(input_pdf_folder, d))
+        and d != "_quarantine"
+    ]
+    years_to_process = [y for y in years if y not in processed_years]
 
-    # Initialize the lists for new data
-    new_data = []
+    new_rows = []
 
     for year in years_to_process:
         year_folder = os.path.join(input_pdf_folder, year)
+        pdf_files = sorted(
+            [f for f in os.listdir(year_folder) if f.endswith(".pdf")],
+            key=lambda x: int(re.search(r"ns-(\d+)-", x).group(1)),
+        )
 
-        # List all PDF files in the current year folder (sorted by wr ID)
-        pdf_files = sorted([f for f in os.listdir(year_folder) if f.endswith(".pdf")],
-                           key=lambda x: int(re.search(r"ns-(\d+)-", x).group(1)))  # Sort by wr ID (dd part)
-
-        # Iterate over the actual PDF files found
-        for month_index, pdf_filename in enumerate(pdf_files, start=1):  # Fill month column with 1-12 sequentially
+        for month_idx, pdf_filename in enumerate(pdf_files, start=1):
             pdf_path = os.path.join(year_folder, pdf_filename)
-            
-            # Extract the "dd" number (wr ID) from the filename (ns-dd-yyyy)
-            match = re.search(r"ns-(\d{1,2})-(\d{4})", pdf_filename)
-            if match:
-                wr_number = match.group(1)  # "dd" part from "ns-dd-yyyy"
-                year_int = int(match.group(2))  # Extract the year and convert to integer
-            
-            # Extract the wr id from the PDFs
-            revision_calendar_tab_1, revision_calendar_tab_2 = _extract_wr_update_from_pdf(pdf_path)
-            
-            # Map the base year for the current year and wr
-            base_year = mapping_base_years(year_int, int(wr_number), base_year_list)
-            
-            # Set base_year_affected based on the base_year_list mappings
-            base_year_affected = 0  # Default value
-            for mapping in base_year_list[1:]:  # Start from the second element
-                if year_int == mapping["year"] and int(wr_number) == mapping["wr"]:
-                    base_year_affected = 1
-                    break
 
-            # Append the extracted information for the current year and wr ID
-            new_data.append({
-                "year": int(year_int),
-                "wr": int(wr_number),
-                "month": int(month_index),  # Correctly populate the "month" column with values from 1 to 12
-                "revision_calendar_tab_1": int(revision_calendar_tab_1),
-                "revision_calendar_tab_2": int(revision_calendar_tab_2),
-                "benchmark_revision": int(1 if revision_calendar_tab_1 == revision_calendar_tab_2 else 0),
-                "base_year": int(base_year),
-                "base_year_affected": int(base_year_affected)
-            })
+            m = re.search(r"ns-(\d{1,2})-(\d{4})", pdf_filename)
+            if not m:
+                continue
+            wr_number = int(m.group(1))
+            year_int = int(m.group(2))
 
-    # Convert the new data into a DataFrame and append it to the original
-    new_data_df = pd.DataFrame(new_data)
-    metadata = pd.concat([metadata, new_data_df], ignore_index=True)
+            # extract numbers from PDF pages
+            rev1, rev2 = _extract_wr_update_from_pdf(pdf_path)
 
-    # Ensure all columns are of integer type
-    metadata = metadata.apply(pd.to_numeric, errors='ignore', downcast='integer')
+            # build raw row (we'll fill base_year later, for all new rows together)
+            new_rows.append(
+                {
+                    "year": year_int,
+                    "wr": wr_number,
+                    "month": month_idx,  # 1..len(pdf_files)
+                    "revision_calendar_tab_1": int(rev1) if str(rev1).isdigit() else np.nan,
+                    "revision_calendar_tab_2": int(rev2) if str(rev2).isdigit() else np.nan,
+                    "benchmark_revision": (
+                        1 if (str(rev1).isdigit() and str(rev2).isdigit() and int(rev1) == int(rev2)) else 0
+                    ),
+                    # temp placeholders, will fill below
+                    "base_year": np.nan,
+                    "base_year_affected": 0,
+                }
+            )
 
-    # Save the updated wr_metadata CSV
-    metadata.to_csv(metadata_path, index=False)
+    # if nothing new, just return
+    if not new_rows:
+        return metadata
 
-    # Update the record of processed years
+    # 4. build df for *only* the new rows
+    new_df = pd.DataFrame(new_rows)
+
+    # 5. apply base-year mapping ONLY to new_df
+    new_df = apply_base_years_block(new_df, base_year_list)
+
+    # 6. mark where base_year changed ONLY inside new_df
+    new_df = mark_base_year_affected(new_df)
+
+    # 7. concat old + new
+    updated = pd.concat([metadata, new_df], ignore_index=True)
+
+    # 8. dtypes: we want ints, but we may have NaN in revision columns → use Int64
+    int_cols = [
+        "year",
+        "wr",
+        "month",
+        "benchmark_revision",
+        "base_year",
+        "base_year_affected",
+    ]
+    for col in int_cols:
+        if col in updated.columns:
+            updated[col] = updated[col].astype("Int64")
+
+    # for the two revision columns we must allow NA
+    for col in ["revision_calendar_tab_1", "revision_calendar_tab_2"]:
+        if col in updated.columns:
+            updated[col] = pd.to_numeric(updated[col], errors="coerce").astype("Int64")
+
+    # 9. save
+    updated.to_csv(metadata_path, index=False)
+
+    # 10. update record
     _write_records_2(record_folder, record_txt, processed_years + years_to_process)
 
-    return metadata
-
+    return updated
 
 
