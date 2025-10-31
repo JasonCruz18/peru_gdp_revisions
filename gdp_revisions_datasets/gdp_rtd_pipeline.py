@@ -3400,7 +3400,7 @@ def concatenate_table_2(input_data_subfolder, record_folder, record_txt, persist
 
 
 #
-# Revision Calendar
+# METADATA
 #
 
 
@@ -3458,13 +3458,13 @@ def _extract_wr_update_from_pdf(pdf_path: str) -> tuple[str, str]:
     
     # Extract text from the first page
     page_1_text = doc[0].get_text()
-    updated_wr_1 = _extract_dd_from_text(page_1_text)
+    revision_calendar_tab_1 = _extract_dd_from_text(page_1_text)
     
     # Extract text from the second page
     page_2_text = doc[1].get_text()
-    updated_wr_2 = _extract_dd_from_text(page_2_text)
+    revision_calendar_tab_2 = _extract_dd_from_text(page_2_text)
     
-    return updated_wr_1, updated_wr_2
+    return revision_calendar_tab_1, revision_calendar_tab_2
 
 
 def _extract_dd_from_text(text: str) -> str:
@@ -3481,26 +3481,53 @@ def _extract_dd_from_text(text: str) -> str:
     return match.group(1) if match else "NaN"  # Default to NaN if no match is found
 
 
-def record_official_calendar(metadata_folder: str, input_pdf_folder: str, record_folder: str, record_txt: str, wr_revision_calendar_csv: str) -> pd.DataFrame:
+def mapping_base_years(year: int, wr: int, base_year_list: list[dict]) -> int:
     """
-    Extracts weekly revision data (wr IDs) from PDF files and updates the revision calendar.
+    Maps the base year based on the given year and wr (weekly report ID).
     
     Args:
-        metadata_folder (str): Path to the folder containing the 'wr_revision_calendar.csv'.
+        year (int): Year for the current row.
+        wr (int): Weekly report ID for the current row.
+        base_year_list (list): List of dictionaries containing base year mappings.
+    
+    Returns:
+        int: The mapped base year for the given year and wr.
+    """
+    # Loop through the base_year_list and find the appropriate mapping
+    for i, mapping in enumerate(base_year_list):
+        # Apply the base year mapping when year and wr match
+        if year >= mapping["year"] and wr >= mapping["wr"]:
+            # Check if there is a next entry, if so, apply the next base_year transition
+            if i + 1 < len(base_year_list) and year == base_year_list[i + 1]["year"] and wr >= base_year_list[i + 1]["wr"]:
+                return base_year_list[i + 1]["base_year"]
+            return mapping["base_year"]
+    return np.nan  # Default value if no match is found
+
+
+def update_metadata(metadata_folder: str, input_pdf_folder: str, record_folder: str, record_txt: str, wr_metadata_csv: str, base_year_list: list[dict]) -> pd.DataFrame:
+    """
+    Extracts weekly revision data (wr IDs) from PDF files and updates the metadata (wr_metadata.csv).
+    
+    Args:
+        metadata_folder (str): Path to the folder containing the 'wr_metadata.csv'.
         input_pdf_folder (str): Path to the folder containing year-based subfolders with PDF files.
         record_folder (str): Folder to store and update the record file.
         record_txt (str): Name of the text file to track processed years.
-        wr_revision_calendar_csv (str): The CSV file name to track and store the revision calendar.
+        wr_metadata_csv (str): The CSV file name to track and store the metadata.
+        base_year_list (list[dict]): List of base year mappings based on year and wr.
     
     Returns:
-        pd.DataFrame: Updated 'wr_revision_calendar.csv' DataFrame.
+        pd.DataFrame: Updated 'wr_metadata.csv' DataFrame.
     """
-    # Read the existing CSV file for 'wr_revision_calendar'
-    revision_calendar_path = os.path.join(metadata_folder, wr_revision_calendar_csv)
-    if os.path.exists(revision_calendar_path):
-        revision_calendar = pd.read_csv(revision_calendar_path)
+    # Read the existing CSV file for 'wr_metadata'
+    metadata_path = os.path.join(metadata_folder, wr_metadata_csv)
+    if os.path.exists(metadata_path):
+        metadata = pd.read_csv(metadata_path)
     else:
-        revision_calendar = pd.DataFrame(columns=["year", "wr", "updated_wr_1", "updated_wr_2", "benchmark_revision"])
+        metadata = pd.DataFrame(columns=["year", "wr", "month", "revision_calendar_tab_1", "revision_calendar_tab_2", "benchmark_revision", "base_year", "base_year_affected"])
+
+    # Ensure columns are read as integers and handle NaN values
+    metadata = metadata.apply(pd.to_numeric, errors='ignore', downcast='integer')
 
     # Read the record of processed years
     processed_years = _read_records_2(record_folder, record_txt)
@@ -3523,40 +3550,54 @@ def record_official_calendar(metadata_folder: str, input_pdf_folder: str, record
                            key=lambda x: int(re.search(r"ns-(\d+)-", x).group(1)))  # Sort by wr ID (dd part)
 
         # Iterate over the actual PDF files found
-        for pdf_filename in pdf_files:
+        for month_index, pdf_filename in enumerate(pdf_files, start=1):  # Fill month column with 1-12 sequentially
             pdf_path = os.path.join(year_folder, pdf_filename)
             
             # Extract the "dd" number (wr ID) from the filename (ns-dd-yyyy)
             match = re.search(r"ns-(\d{1,2})-(\d{4})", pdf_filename)
             if match:
                 wr_number = match.group(1)  # "dd" part from "ns-dd-yyyy"
+                year_int = int(match.group(2))  # Extract the year and convert to integer
             
-            # Extract the wr numbers from the PDFs
-            updated_wr_1, updated_wr_2 = _extract_wr_update_from_pdf(pdf_path)
+            # Extract the wr id from the PDFs
+            revision_calendar_tab_1, revision_calendar_tab_2 = _extract_wr_update_from_pdf(pdf_path)
             
+            # Map the base year for the current year and wr
+            base_year = mapping_base_years(year_int, int(wr_number), base_year_list)
+            
+            # Set base_year_affected based on the base_year_list mappings
+            base_year_affected = 0  # Default value
+            for mapping in base_year_list[1:]:  # Start from the second element
+                if year_int == mapping["year"] and int(wr_number) == mapping["wr"]:
+                    base_year_affected = 1
+                    break
+
             # Append the extracted information for the current year and wr ID
             new_data.append({
-                "year": year,
-                "wr": wr_number,
-                "updated_wr_1": updated_wr_1,
-                "updated_wr_2": updated_wr_2,
-                "benchmark_revision": 1 if updated_wr_1 == updated_wr_2 else 0
+                "year": int(year_int),
+                "wr": int(wr_number),
+                "month": int(month_index),  # Correctly populate the "month" column with values from 1 to 12
+                "revision_calendar_tab_1": int(revision_calendar_tab_1),
+                "revision_calendar_tab_2": int(revision_calendar_tab_2),
+                "benchmark_revision": int(1 if revision_calendar_tab_1 == revision_calendar_tab_2 else 0),
+                "base_year": int(base_year),
+                "base_year_affected": int(base_year_affected)
             })
 
     # Convert the new data into a DataFrame and append it to the original
     new_data_df = pd.DataFrame(new_data)
-    revision_calendar = pd.concat([revision_calendar, new_data_df], ignore_index=True)
+    metadata = pd.concat([metadata, new_data_df], ignore_index=True)
 
-    # Save the updated wr_revision_calendar CSV
-    revision_calendar.to_csv(revision_calendar_path, index=False)
+    # Ensure all columns are of integer type
+    metadata = metadata.apply(pd.to_numeric, errors='ignore', downcast='integer')
+
+    # Save the updated wr_metadata CSV
+    metadata.to_csv(metadata_path, index=False)
 
     # Update the record of processed years
     _write_records_2(record_folder, record_txt, processed_years + years_to_process)
 
-    return revision_calendar
-
-
-
+    return metadata
 
 
 
