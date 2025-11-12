@@ -3691,6 +3691,8 @@ import numpy as np
 import fitz  # PyMuPDF
 
 
+# _________________________________________________________________________
+# Function to update metadata with new revisions and base-year changes
 def update_metadata(
     metadata_folder: str,
     input_pdf_folder: str,
@@ -3699,7 +3701,31 @@ def update_metadata(
     wr_metadata_csv: str,
     base_year_list: list[dict],
 ) -> pd.DataFrame:
-    # 1. read current metadata
+    """
+    Updates metadata by processing new revision PDF files and applying base-year changes.
+    - Reads current metadata from CSV
+    - Lists folders (years) to process
+    - Extracts revision data from PDF files
+    - Applies base-year mapping only to new rows
+    - Marks where base-year has changed in the new rows
+    - Concatenates the updated rows to the existing metadata
+    - Saves the updated metadata to CSV
+
+    Args:
+        metadata_folder: Folder where the metadata CSV is stored
+        input_pdf_folder: Folder where the revision PDFs are stored
+        record_folder: Folder where the processed records are stored
+        record_txt: Record file to keep track of processed files
+        wr_metadata_csv: The metadata CSV file name
+        base_year_list: List of base-year mappings
+
+    Returns:
+        Updated pandas DataFrame containing the metadata with new revisions
+    """
+    start_time = time.time()  # Timer to measure elapsed time
+    print("\n🔄📋 Starting metadata update process...")
+
+    # 1) Read current metadata
     metadata_path = os.path.join(metadata_folder, wr_metadata_csv)
     if os.path.exists(metadata_path):
         metadata = pd.read_csv(metadata_path)
@@ -3717,10 +3743,10 @@ def update_metadata(
             ]
         )
 
-    # 2. read processed years
+    # 2) Read processed years from record
     processed_years = _read_records_2(record_folder, record_txt)
 
-    # 3. list folders (years) to process
+    # 3) List years to process
     years = [
         d
         for d in sorted(os.listdir(input_pdf_folder))
@@ -3731,6 +3757,7 @@ def update_metadata(
 
     new_rows = []
 
+    # 4) Extract revision data from PDF files
     for year in years_to_process:
         year_folder = os.path.join(input_pdf_folder, year)
         pdf_files = sorted(
@@ -3741,16 +3768,17 @@ def update_metadata(
         for month_idx, pdf_filename in enumerate(pdf_files, start=1):
             pdf_path = os.path.join(year_folder, pdf_filename)
 
+            # Extract wr_number and year from the PDF filename
             m = re.search(r"ns-(\d{1,2})-(\d{4})", pdf_filename)
             if not m:
                 continue
             wr_number = int(m.group(1))
             year_int = int(m.group(2))
 
-            # extract numbers from PDF pages
+            # Extract numbers from PDF pages
             rev1, rev2 = _extract_wr_update_from_pdf(pdf_path)
 
-            # build raw row (we'll fill base_year later, for all new rows together)
+            # Build the row for new data (base_year will be filled later)
             new_rows.append(
                 {
                     "year": year_int,
@@ -3761,29 +3789,30 @@ def update_metadata(
                     "benchmark_revision": (
                         1 if (str(rev1).isdigit() and str(rev2).isdigit() and int(rev1) == int(rev2)) else 0
                     ),
-                    # temp placeholders, will fill below
+                    # Temp placeholders, will fill base_year later for all new rows together
                     "base_year": np.nan,
                     "base_year_affected": 0,
                 }
             )
 
-    # if nothing new, just return
+    # 5) If there are no new rows, return the current metadata
     if not new_rows:
+        print("No new revisions to process.")
         return metadata
 
-    # 4. build df for *only* the new rows
+    # 6) Build a DataFrame for the new rows
     new_df = pd.DataFrame(new_rows)
 
-    # 5. apply base-year mapping ONLY to new_df
+    # 7) Apply base-year mapping only to new rows (new_df)
     new_df = apply_base_years_block(new_df, base_year_list)
 
-    # 6. mark where base_year changed ONLY inside new_df
+    # 8) Mark where base_year has changed only inside new_df
     new_df = mark_base_year_affected(new_df)
 
-    # 7. concat old + new
+    # 9) Concatenate the old metadata with the new rows
     updated = pd.concat([metadata, new_df], ignore_index=True)
 
-    # 8. dtypes: we want ints, but we may have NaN in revision columns → use Int64
+    # 10) Enforce dtypes: use Int64 for integer columns that allow NA
     int_cols = [
         "year",
         "wr",
@@ -3796,16 +3825,25 @@ def update_metadata(
         if col in updated.columns:
             updated[col] = updated[col].astype("Int64")
 
-    # for the two revision columns we must allow NA
+    # 11) For revision columns, allow NA and convert to Int64
     for col in ["revision_calendar_tab_1", "revision_calendar_tab_2"]:
         if col in updated.columns:
             updated[col] = pd.to_numeric(updated[col], errors="coerce").astype("Int64")
 
-    # 9. save
+    # 12) Save the updated metadata back to the CSV file
     updated.to_csv(metadata_path, index=False)
+    print(f"💾📋 Updated metadata saved to {metadata_path}")
 
-    # 10. update record
+    # 13) Update the processed records
     _write_records_2(record_folder, record_txt, processed_years + years_to_process)
+
+    # 14) Summary
+    elapsed_time = round(time.time() - start_time)
+    print(f"\n📊 Summary (Metadata Update):")
+    print(f"📂 {len(years)} years found for processing")
+    print(f"🗃️ Already processed years: {len(processed_years)}")
+    print(f"🔹 New years processed: {len(years_to_process)}")
+    print(f"⏱️ Total elapsed time: {elapsed_time} seconds")
 
     return updated
 
