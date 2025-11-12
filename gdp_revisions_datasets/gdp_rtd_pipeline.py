@@ -3815,93 +3815,96 @@ def update_metadata(
 
 
 
-
-
-
-
-
-
-
+# _________________________________________________________________________
+# Function to apply base-year sentinel
 def apply_base_year_sentinel(
     base_year_list: list[str],
     sentinel: float = -999999.0,
     output_data_subfolder: str = ".",
-    csv_file_label: str = "rtd_table_1_with_sentinel.csv",
-) -> pd.DataFrame:
+    csv_file_labels: list[str] = None,  # List of CSV file labels (monthly and quarterly files)
+) -> dict:
     """
-    Given a *concatenated* RTD (already saved as CSV in `output_data_subfolder/csv_file_label`),
-    find the vintages where a base-year change happened and, for each of those vintages:
-
-        - keep the current row (that vintage) as is
-        - for every tp_* column, go UPWARDS in the same column and replace all
-          *non-NaN* values with `sentinel`
-        - leave NaNs untouched (they stay NaN, not sentinel)
-
-    Finally, re-save the updated CSV (overwriting the same path) and return the updated DataFrame.
+    Efficiently applies the base-year adjustment:
+    - Replaces non-NaN values above mapped rows in the relevant tp_* columns.
+    - Ensures columns to the left of the mapped value are not replaced.
+    - Leaves NaN values untouched.
 
     Args:
-        base_year_list: list of vintage strings, e.g. ["2000m7", "2014m3"]
-        sentinel: numeric value to mark “invalid due to base-year change”
-        output_data_subfolder: folder where the concatenated CSV lives
-        csv_file_label: name of the concatenated CSV to load & overwrite
+        base_year_list: List of vintage strings (e.g., ["2000m7", "2014m3"]).
+        sentinel: Numeric value to mark “invalid due to base-year change”.
+        output_data_subfolder: Folder where the concatenated CSV files are located.
+        csv_file_labels: List of CSV file labels to process (e.g., ["monthly_gdp_rtd.csv", "quarterly_annual_gdp_rtd.csv"]).
 
     Returns:
-        Updated pandas DataFrame
+        A dictionary with filenames as keys and updated pandas DataFrames as values.
     """
-    # 1) load the concatenated CSV
-    csv_path = os.path.join(output_data_subfolder, csv_file_label)
-    if not os.path.exists(csv_path):
-        raise FileNotFoundError(f"Concatenated CSV not found at: {csv_path}")
+    start_time = time.time()  # Timer to measure elapsed time
+    print("\n🔧 Starting base-year sentinel application...")
 
-    df = pd.read_csv(csv_path)
+    if csv_file_labels is None:
+        csv_file_labels = ["monthly_gdp_rtd.csv", "quarterly_annual_gdp_rtd.csv"]
 
-    # 2) basic validations
-    if "industry" not in df.columns or "vintage" not in df.columns:
-        raise ValueError("CSV must have at least 'industry' and 'vintage' columns.")
+    processed_data = {}
 
-    # 3) ensure industry and vintage are strings
-    df["industry"] = df["industry"].astype(str)
-    df["vintage"]  = df["vintage"].astype(str)
+    # Iterate over all CSV file labels
+    for csv_file_label in csv_file_labels:
+        # 1) Load the CSV
+        csv_path = os.path.join(output_data_subfolder, csv_file_label)
+        if not os.path.exists(csv_path):
+            raise FileNotFoundError(f"File not found at: {csv_path}")
 
-    # 4) detect all tp_* columns
-    tp_cols = [c for c in df.columns if c.startswith("tp_")]
+        df = pd.read_csv(csv_path)
 
-    # 5) for each base-year vintage
-    for by_vintage in base_year_list:
-        # make sure it's string
-        by_vintage = str(by_vintage)
-        # find the row index where this vintage appears
-        # (could be several rows, one per industry)
-        mask_v = df["vintage"] == by_vintage
-        if not mask_v.any():
-            # this base-year vintage not present — skip
-            continue
+        # 2) Basic validation for required columns
+        if "industry" not in df.columns or "vintage" not in df.columns:
+            raise ValueError("CSV must have 'industry' and 'vintage' columns.")
 
-        # get all row indices where vintage == base-year
-        base_idxs = df.index[mask_v].tolist()
+        df["industry"] = df["industry"].astype(str)
+        df["vintage"]  = df["vintage"].astype(str)
 
-        # for every tp_ column, we replace “above” rows ONLY
+        # 3) Identify all tp_* columns in the dataset
+        tp_cols = [col for col in df.columns if col.startswith("tp_")]
+
+        # 4) Process each base-year vintage in the base_year_list
+        for by_vintage in base_year_list:
+            by_vintage = str(by_vintage)
+
+            # Find rows where the vintage matches the base-year
+            mask_v = df["vintage"] == by_vintage
+            if not mask_v.any():
+                continue
+
+            # Get the index of the first base-year row
+            base_idx = df.index[mask_v].tolist()[0]
+
+            # 5) Identify relevant tp_* columns based on non-NaN values in the base-year row
+            relevant_cols = []
+            for col in tp_cols:
+                if pd.notna(df.loc[base_idx, col]):
+                    relevant_cols.append(col)
+
+            # 6) Replace non-NaN values above the base-row in the relevant columns
+            for col in relevant_cols:
+                for i in range(base_idx):
+                    if pd.notna(df.loc[i, col]):  # Only replace non-NaN values
+                        df.loc[i, col] = sentinel
+
+        # 7) Enforce dtypes at the end: industry/vintage str, tp_* float
         for col in tp_cols:
-            # we want to replace **per column**, **per base-row**:
-            #   for each base-row idx i:
-            #       rows 0..i-1 in that column: replace non-NaN with sentinel
-            for i in base_idxs:
-                # rows above i
-                above_slice = df.loc[: i - 1, col]
+            df[col] = pd.to_numeric(df[col], errors="coerce")
 
-                # only non-NaN
-                not_nan_mask = above_slice.notna()
+        # 8) Save the updated DataFrame to a new CSV file
+        adjusted_csv_file_label = f"by_adjusted_{csv_file_label}"
+        adjusted_csv_path = os.path.join(output_data_subfolder, adjusted_csv_file_label)
+        df.to_csv(adjusted_csv_path, index=False)
 
-                # set to sentinel
-                df.loc[: i - 1, col] = above_slice.where(~not_nan_mask, other=sentinel)
+        # Store the processed DataFrame in the dictionary
+        processed_data[adjusted_csv_file_label] = df
 
-    # 6) enforce dtypes at the end: industry/vintage str, tp_* float
-    df["industry"] = df["industry"].astype(str)
-    df["vintage"]  = df["vintage"].astype(str)
-    for col in tp_cols:
-        df[col] = pd.to_numeric(df[col], errors="coerce").astype(float)
+    # 9) Summary
+    elapsed_time = round(time.time() - start_time)
+    print(f"\n📊 Summary (Base-Year Sentinel Application):")
+    print(f"📂 {len(csv_file_labels)} files processed")
+    print(f"⏱️ Total elapsed time: {elapsed_time} seconds")
 
-    # 7) save back
-    df.to_csv(csv_path, index=False)
-
-    return df
+    return processed_data
