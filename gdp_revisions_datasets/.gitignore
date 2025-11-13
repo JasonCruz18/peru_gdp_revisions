@@ -10,9 +10,9 @@
 # ---------------------------------------------------------------------
 # Generated datasets and working files
 # ---------------------------------------------------------------------
-/data/          # Stores processed or intermediate datasets (e.g., CSVs)
-/old_wr/        # Historical releases
-/new_wr/        # Newly generated releases or temporary outputs
+/data/          		# Stores processed or intermediate datasets (e.g., CSVs)
+/old_weekly_reports/        	# Historical releases
+/new_weekly_reports/        	# Newly generated releases or temporary outputs
 
 # ---------------------------------------------------------------------
 # Alerts, sounds, and temporary notifications
