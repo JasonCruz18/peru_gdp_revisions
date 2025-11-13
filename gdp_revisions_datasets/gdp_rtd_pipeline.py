@@ -3946,3 +3946,157 @@ def apply_base_year_sentinel(
     print(f"⏱️ Total elapsed time: {elapsed_time} seconds")
 
     return processed_data
+
+
+import os
+import time
+import numpy as np
+import pandas as pd
+
+def convert_to_releases_and_transpose(
+    output_data_subfolder: str,
+    csv_file_labels: list[str],
+    record_folder: str,
+    record_txt: str,
+    releases_dataset_csv: list[str],
+) -> dict:
+    """
+    Converts real-time GDP growth rates dataset(s) into releases dataset(s) and transposes the results.
+    Ensures target_periods like '2010m1', '2010m10', '2010m2' are correctly ordered chronologically.
+
+    Args:
+        output_data_subfolder: Folder where the CSV files are located and saved.
+        csv_file_labels: List of input CSV filenames (without .csv extension).
+        record_folder: Folder where record files are kept.
+        record_txt: File name for the record of processed files.
+        releases_dataset_csv: List of output CSV filenames (without .csv extension).
+
+    Returns:
+        Dictionary of output file names (key) and their corresponding DataFrames (value).
+    """
+
+    start_time = time.time()
+    print("\n🔄 Starting conversion to releases dataset(s) and transposing...")
+
+    # 1) Validation
+    if len(csv_file_labels) != len(releases_dataset_csv):
+        raise ValueError("csv_file_labels and releases_dataset_csv must have the same length.")
+
+    # 2) Read processed files record
+    processed_files = _read_records_2(record_folder, record_txt)
+    processed_results = {}
+
+    # 3) Iterate over files
+    for csv_label, release_label in zip(csv_file_labels, releases_dataset_csv):
+        if csv_label in processed_files:
+            print(f"⏭️📄 Skipping already processed file: {csv_label}.csv")
+            continue
+
+        csv_path = os.path.join(output_data_subfolder, f"{csv_label}.csv")
+        if not os.path.exists(csv_path):
+            raise FileNotFoundError(f"File not found: {csv_path}")
+
+        print(f"\n🌀 Processing file: {csv_label}.csv")
+        df = pd.read_csv(csv_path)
+
+        # 4) Validate essential columns
+        if "industry" not in df.columns or "vintage" not in df.columns:
+            raise ValueError(f"CSV file '{csv_label}.csv' must have 'industry' and 'vintage' columns.")
+
+        df["industry"] = df["industry"].astype(str)
+        df["vintage"] = df["vintage"].astype(str)
+
+        # 5) Sort by industry
+        df = df.sort_values(by=["industry"], ignore_index=True)
+
+        # 6) Identify tp_* columns
+        tp_cols = [col for col in df.columns if col.startswith("tp_")]
+        releases_df_list = []
+
+        # 7) Process each industry
+        for industry, group in df.groupby("industry"):
+            group = group.reset_index(drop=True)
+            tp_values = group[tp_cols].to_numpy()
+
+            # Max possible releases
+            max_releases = np.max([
+                np.count_nonzero(~np.isnan(tp_values[:, i])) for i in range(tp_values.shape[1])
+            ])
+
+            industry_releases = np.full((max_releases, len(tp_cols)), np.nan)
+
+            for j, col in enumerate(tp_cols):
+                non_nan_vals = tp_values[~np.isnan(tp_values[:, j]), j]
+                industry_releases[:len(non_nan_vals), j] = non_nan_vals
+
+            industry_df = pd.DataFrame(industry_releases, columns=tp_cols)
+            industry_df.insert(0, "release", range(1, len(industry_df) + 1))
+            industry_df.insert(0, "industry", industry)
+            industry_df.dropna(how="all", subset=tp_cols, inplace=True)
+            releases_df_list.append(industry_df)
+
+        # 8) Combine all industries
+        releases_df = pd.concat(releases_df_list, ignore_index=True)
+
+        # 9) Transpose structure (long form)
+        releases_df = releases_df.melt(
+            id_vars=["industry", "release"],
+            value_vars=tp_cols,
+            var_name="target_period",
+            value_name="value"
+        )
+
+        # 10) Clean target_period
+        releases_df["target_period"] = releases_df["target_period"].str.replace("tp_", "", regex=False)
+
+        # 11) Label industries with release number
+        releases_df["industry"] = releases_df["industry"] + "_" + releases_df["release"].astype(str)
+
+        # 12) Extract year and month for sorting (before pivot)
+        releases_df["year"] = (
+            releases_df["target_period"].str.extract(r"(\d{4})")[0].astype("Int64")
+        )
+        releases_df["month"] = (
+            releases_df["target_period"].str.extract(r"m(\d{1,2})")[0].astype("Int64")
+        )
+        releases_df = releases_df.sort_values(["year", "month"]).drop(columns=["year", "month"])
+
+        # 13) Pivot: target_period as index
+        transposed_df = releases_df.pivot(index="target_period", columns="industry", values="value")
+
+        # 🔧 FIX: reorder index numerically (after pivot)
+        transposed_df = transposed_df.reindex(
+            sorted(
+                transposed_df.index,
+                key=lambda x: (int(x.split("m")[0]), int(x.split("m")[1]))
+            )
+        )
+
+        # 14) Sort columns by industry and release number
+        transposed_df = transposed_df.reindex(
+            columns=sorted(
+                transposed_df.columns,
+                key=lambda x: (x.split("_")[0], int(x.split("_")[1]))
+            )
+        )
+
+        # 15) Save output
+        release_path = os.path.join(output_data_subfolder, f"{release_label}.csv")
+        transposed_df.to_csv(release_path)
+        processed_results[release_label] = transposed_df
+
+        # 16) Update processed record
+        processed_files.append(csv_label)
+        _write_records_2(record_folder, record_txt, processed_files)
+
+        print(f"💾 Saved transposed release dataset → {release_path}")
+        print(f"   Rows: {len(transposed_df)}, Columns: {len(transposed_df.columns)}")
+
+    # 17) Summary
+    elapsed_time = round(time.time() - start_time)
+    print(f"\n📊 Summary (Conversion to Releases Dataset and Transpose):")
+    print(f"📂 {len(csv_file_labels)} files processed")
+    print(f"🗃️ Records updated: {record_txt}")
+    print(f"⏱️ Total elapsed time: {elapsed_time} seconds")
+
+    return processed_results
