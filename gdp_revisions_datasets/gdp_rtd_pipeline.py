@@ -3948,21 +3948,42 @@ def apply_base_year_sentinel(
     return processed_data
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 import os
+import pandas as pd
 import time
 import numpy as np
-import pandas as pd
 
-def convert_to_releases_and_transpose(
+# _________________________________________________________________________
+# Function to convert real-time GDP growth rates dataset(s) into releases dataset(s)
+def convert_to_releases_dataset(
     output_data_subfolder: str,
-    csv_file_labels: list[str],
-    record_folder: str,
-    record_txt: str,
-    releases_dataset_csv: list[str],
+    csv_file_labels: list[str],           # Input CSV files (without .csv extension)
+    record_folder: str,                   # Folder where the record txt is stored
+    record_txt: str,                      # Name of record txt
+    releases_dataset_csv: list[str],      # Output CSV filenames for releases datasets
 ) -> dict:
     """
-    Converts real-time GDP growth rates dataset(s) into releases dataset(s) and transposes the results.
-    Ensures target_periods like '2010m1', '2010m10', '2010m2' are correctly ordered chronologically.
+    Converts real-time GDP growth rates dataset(s) into releases dataset(s).
+    - Reads dataset for each file in csv_file_labels.
+    - Sorts by 'industry' and 'vintage'.
+    - For each 'industry', aligns the first, second, ... non-NaN values across tp_* columns.
+    - Adds a 'release' column (1, 2, 3, ...).
+    - Drops fully NaN rows.
+    - Removes the 'vintage' column (no longer needed).
+    - Saves the converted dataset with its corresponding release file name.
 
     Args:
         output_data_subfolder: Folder where the CSV files are located and saved.
@@ -3974,129 +3995,118 @@ def convert_to_releases_and_transpose(
     Returns:
         Dictionary of output file names (key) and their corresponding DataFrames (value).
     """
+    start_time = time.time()  # Timer to measure elapsed time
+    print("\n🧮 Starting conversion to releases dataset(s)...")
 
-    start_time = time.time()
-    print("\n🔄 Starting conversion to releases dataset(s) and transposing...")
-
-    # 1) Validation
+    # 1) Validation: ensure both lists match in length
     if len(csv_file_labels) != len(releases_dataset_csv):
         raise ValueError("csv_file_labels and releases_dataset_csv must have the same length.")
 
-    # 2) Read processed files record
-    processed_files = _read_records_2(record_folder, record_txt)
+    processed_files = _read_records_2(record_folder, record_txt)  # Load processed files from record
     processed_results = {}
 
-    # 3) Iterate over files
+    # 2) Iterate over each pair of input/output filenames
     for csv_label, release_label in zip(csv_file_labels, releases_dataset_csv):
+        csv_path = os.path.join(output_data_subfolder, f"{csv_label}.csv")
+        
+        # Check if file has already been processed
         if csv_label in processed_files:
             print(f"⏭️📄 Skipping already processed file: {csv_label}.csv")
-            continue
+            continue  # Skip to the next file if this one has been processed
 
-        csv_path = os.path.join(output_data_subfolder, f"{csv_label}.csv")
         if not os.path.exists(csv_path):
             raise FileNotFoundError(f"File not found: {csv_path}")
 
-        print(f"\n🌀 Processing file: {csv_label}.csv")
+        print(f"\n🔄 Processing file: {csv_label}.csv")
+
         df = pd.read_csv(csv_path)
 
-        # 4) Validate essential columns
+        # 3) Ensure required columns exist
         if "industry" not in df.columns or "vintage" not in df.columns:
             raise ValueError(f"CSV file '{csv_label}.csv' must have 'industry' and 'vintage' columns.")
 
         df["industry"] = df["industry"].astype(str)
-        df["vintage"] = df["vintage"].astype(str)
+        df["vintage"]  = df["vintage"].astype(str)
 
-        # 5) Sort by industry
-        df = df.sort_values(by=["industry"], ignore_index=True)
+        # 4) Extract year and month from vintage and sort by chronological order
+        df["year"] = df["vintage"].str.extract(r"(\d{4})").astype(int)
+        df["month"] = df["vintage"].str.extract(r"m(\d{1,2})").astype(int)
+        df = df.sort_values(["industry", "year", "month"], ignore_index=True)
 
-        # 6) Identify tp_* columns
+        # 5) Identify tp_* columns
         tp_cols = [col for col in df.columns if col.startswith("tp_")]
         releases_df_list = []
 
-        # 7) Process each industry
+        # 6) Process each industry group independently
         for industry, group in df.groupby("industry"):
             group = group.reset_index(drop=True)
+
+            # Convert tp_* data into NumPy for efficient column-wise processing
             tp_values = group[tp_cols].to_numpy()
 
-            # Max possible releases
-            max_releases = np.max([
-                np.count_nonzero(~np.isnan(tp_values[:, i])) for i in range(tp_values.shape[1])
-            ])
+            # Determine the maximum possible number of releases
+            max_releases = np.max([np.count_nonzero(~np.isnan(tp_values[:, i])) for i in range(tp_values.shape[1])])
 
+            # Create a structure for the release-aligned data
             industry_releases = np.full((max_releases, len(tp_cols)), np.nan)
 
+            # Align non-NaN values vertically (release by release)
             for j, col in enumerate(tp_cols):
                 non_nan_vals = tp_values[~np.isnan(tp_values[:, j]), j]
                 industry_releases[:len(non_nan_vals), j] = non_nan_vals
 
+            # Build the DataFrame for this industry
             industry_df = pd.DataFrame(industry_releases, columns=tp_cols)
             industry_df.insert(0, "release", range(1, len(industry_df) + 1))
             industry_df.insert(0, "industry", industry)
+
+            # Drop rows that are completely NaN (after alignment)
             industry_df.dropna(how="all", subset=tp_cols, inplace=True)
+
             releases_df_list.append(industry_df)
 
-        # 8) Combine all industries
+        # 7) Concatenate all industries
         releases_df = pd.concat(releases_df_list, ignore_index=True)
 
-        # 9) Transpose structure (long form)
-        releases_df = releases_df.melt(
-            id_vars=["industry", "release"],
-            value_vars=tp_cols,
-            var_name="target_period",
-            value_name="value"
-        )
-
-        # 10) Clean target_period
+        # 8) Transpose the dataset: Create target_period and rearrange industries with releases
+        releases_df = releases_df.melt(id_vars=["industry", "release"], value_vars=tp_cols,
+                                        var_name="target_period", value_name="value")
+        
+        # Clean target_period by removing the 'tp_' prefix
         releases_df["target_period"] = releases_df["target_period"].str.replace("tp_", "", regex=False)
 
-        # 11) Label industries with release number
-        releases_df["industry"] = releases_df["industry"] + "_" + releases_df["release"].astype(str)
+        # 9) Pivot the table to get each industry with its corresponding releases in columns
+        releases_df_pivot = releases_df.pivot_table(index="target_period", columns=["industry", "release"], values="value")
 
-        # 12) Extract year and month for sorting (before pivot)
-        releases_df["year"] = (
-            releases_df["target_period"].str.extract(r"(\d{4})")[0].astype("Int64")
-        )
-        releases_df["month"] = (
-            releases_df["target_period"].str.extract(r"m(\d{1,2})")[0].astype("Int64")
-        )
-        releases_df = releases_df.sort_values(["year", "month"]).drop(columns=["year", "month"])
-
-        # 13) Pivot: target_period as index
-        transposed_df = releases_df.pivot(index="target_period", columns="industry", values="value")
-
-        # 🔧 FIX: reorder index numerically (after pivot)
-        transposed_df = transposed_df.reindex(
-            sorted(
-                transposed_df.index,
-                key=lambda x: (int(x.split("m")[0]), int(x.split("m")[1]))
-            )
-        )
-
-        # 14) Sort columns by industry and release number
-        transposed_df = transposed_df.reindex(
-            columns=sorted(
-                transposed_df.columns,
-                key=lambda x: (x.split("_")[0], int(x.split("_")[1]))
-            )
-        )
-
-        # 15) Save output
+        # Flatten the multi-level columns and rename them
+        releases_df_pivot.columns = [f"{industry}_{release}" for industry, release in releases_df_pivot.columns]
+        releases_df_pivot.reset_index(inplace=True)
+        
+        # 10) Sort target_period to match the chronological order (same as vintage sorting)
+        releases_df_pivot["year"] = releases_df_pivot["target_period"].str.extract(r"(\d{4})").astype("Int64")
+        releases_df_pivot["month"] = releases_df_pivot["target_period"].str.extract(r"m(\d{1,2})").astype("Int64")
+        releases_df_pivot = releases_df_pivot.sort_values(["year", "month"], ignore_index=True)
+        
+        # Remove "year" and "month" columns
+        releases_df_pivot.drop(columns=["year", "month"], inplace=True)
+        
+        # 11) Save the release dataset
         release_path = os.path.join(output_data_subfolder, f"{release_label}.csv")
-        transposed_df.to_csv(release_path)
-        processed_results[release_label] = transposed_df
+        releases_df_pivot.to_csv(release_path, index=False)
+        processed_results[release_label] = releases_df_pivot
 
-        # 16) Update processed record
+        # 12) Update processed record
         processed_files.append(csv_label)
         _write_records_2(record_folder, record_txt, processed_files)
 
-        print(f"💾 Saved transposed release dataset → {release_path}")
-        print(f"   Rows: {len(transposed_df)}, Columns: {len(transposed_df.columns)}")
+        print(f"💾 Saved release dataset → {release_path}")
+        print(f"   🧱 Rows: {len(releases_df_pivot)}, Industries: {releases_df_pivot['target_period'].nunique()}")
 
-    # 17) Summary
+    # 13) Summary
     elapsed_time = round(time.time() - start_time)
-    print(f"\n📊 Summary (Conversion to Releases Dataset and Transpose):")
+    print(f"\n📊 Summary (Conversion to Releases Dataset):")
     print(f"📂 {len(csv_file_labels)} files processed")
     print(f"🗃️ Records updated: {record_txt}")
     print(f"⏱️ Total elapsed time: {elapsed_time} seconds")
 
-    return processed_results
+    return processed_results  # Returning dictionary of processed results (DataFrames)
