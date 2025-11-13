@@ -288,7 +288,7 @@ def download_pdf(
         driver.close(); driver.switch_to.window(windows[0])                     # Close child tab and return focus
         return success
 
-    # Update the record log in chronological order (year → issue)
+    # Update the record log in chronological order (year -> issue)
     record_path = os.path.join(download_record_folder, download_record_txt)
     records: list[str] = []
     if os.path.exists(record_path):
@@ -302,7 +302,7 @@ def download_pdf(
         base = os.path.splitext(os.path.basename(s))[0]                         # Strip extension
         m = re.search(r"ns-(\d{2})-(\d{4})", base, re.I)                        # Expect ns-<issue>-<year>
         if not m:
-            return (9999, 9999, base)                                           # Unknown pattern → sort last
+            return (9999, 9999, base)                                           # Unknown pattern -> sort last
         issue, year = int(m.group(1)), int(m.group(2))
         return (year, issue)
 
@@ -338,7 +338,7 @@ def pdf_downloader(
 
     What this function does:
       1) Opens the WR listing page and locates one anchor per month (the first/“latest”).
-      2) Reverses the order to download from oldest → newest for stable local numbering.
+      2) Reverses the order to download from oldest -> newest for stable local numbering.
       3) Skips any file already present in the record file (no re-download).
       4) Streams each PDF to disk and appends its filename to the record (chronological).
       5) Optionally pauses after each batch with a short alert track and user prompt.
@@ -404,7 +404,7 @@ def pdf_downloader(
                 continue
             pdf_links.append(anchors[0])                                    # Keep only the first anchor (latest monthly WR)
 
-        pdf_links = pdf_links[::-1]                                         # Oldest → newest for stable local ordering
+        pdf_links = pdf_links[::-1]                                         # Oldest -> newest for stable local ordering
 
         # Build a work queue, skipping any file already recorded
         for link in pdf_links:
@@ -415,7 +415,7 @@ def pdf_downloader(
                 continue                                                    # Defensive skip if attributes are momentarily unavailable
 
             if file_name in downloaded_files:
-                skipped_files.append(file_name)                             # Already captured in prior runs → skip
+                skipped_files.append(file_name)                             # Already captured in prior runs -> skip
             else:
                 new_downloads.append((link, file_name))                     # Will download in chronological pass
 
@@ -558,7 +558,7 @@ def replace_defective_pdfs(
         m = pat.match(os.path.basename(c).lower())                          # Validate and extract (issue, year)
         if not m:
             raise ValueError(f"Bad NS code: {c}")
-        return f"ns-{int(m.group(1)):02d}-{m.group(2)}"                     # Zero-pad issue (e.g., 7 → 07)
+        return f"ns-{int(m.group(1)):02d}-{m.group(2)}"                     # Zero-pad issue (e.g., 7 -> 07)
 
     def url(c: str) -> str:
         cc = norm(c)                                                        # Normalized 'ns-xx-yyyy'
@@ -570,7 +570,7 @@ def replace_defective_pdfs(
         if not m:
             return (9999, 9999, base)                                       # Unknowns last, stable by base
         issue, year = int(m.group(1)), int(m.group(2))
-        return (year, issue, base)                                          # Sort by (year → issue → name)
+        return (year, issue, base)                                          # Sort by (year -> issue -> name)
 
     def update_record(add: str | None = None, remove: str | None = None) -> None:
         p = os.path.join(record_folder, download_record_txt)                # Record file path
@@ -580,7 +580,7 @@ def replace_defective_pdfs(
                 s = {x.strip() for x in f if x.strip()}                     # Read, trim, de-duplicate
         if add:
             s.add(add)                                                      # Append replacement filename
-        records = sorted(s, key=_ns_key)                                    # Chronological order (year → issue)
+        records = sorted(s, key=_ns_key)                                    # Chronological order (year -> issue)
         os.makedirs(record_folder, exist_ok=True)
         with open(p, "w", encoding="utf-8") as f:
             f.write("\n".join(records) + ("\n" if records else ""))         # Trailing newline if non-empty
@@ -612,7 +612,7 @@ def replace_defective_pdfs(
         try:
             os.makedirs(ydir, exist_ok=True)
             with requests.get(url(repl_code), stream=True, timeout=60) as r:
-                r.raise_for_status()                                        # Non-2xx → raise HTTPError
+                r.raise_for_status()                                        # Non-2xx -> raise HTTPError
                 with open(new_path, "wb") as fh:
                     for ch in r.iter_content(131072):                       # Stream in 128 KiB chunks
                         if ch:
@@ -734,7 +734,7 @@ def shortened_pdf(pdf_file, pages, output_folder):
         int: Number of pages in the shortened PDF (0 if no pages were selected).
     """
     if not pages:
-        return 0                                                           # Nothing to keep → skip
+        return 0                                                           # Nothing to keep -> skip
 
     os.makedirs(output_folder, exist_ok=True)                              # Ensure target folder exists
     new_pdf_file = os.path.join(output_folder, os.path.basename(pdf_file)) # Output path mirrors source filename
@@ -824,7 +824,7 @@ def pdf_input_generator(
     start_time = time.time()
 
     input_pdf_files = read_input_pdf_files(input_pdf_record_folder, input_pdf_record_txt)   # Previously processed set
-    skipped_years = {}                                                                      # Map year → count already processed
+    skipped_years = {}                                                                      # Map year -> count already processed
     new_counter = 0
     skipped_counter = 0
 
@@ -967,7 +967,7 @@ def remove_rare_characters_first_row(texto):
     Remove spaces around hyphens and drop non-alphanumeric characters (except hyphens).
     Intended for first-row cleanups where headers are later derived.
     """
-    texto = re.sub(r'\s*-\s*', '-', texto)                           # Normalize "a - b" → "a-b"
+    texto = re.sub(r'\s*-\s*', '-', texto)                           # Normalize "a - b" -> "a-b"
     texto = re.sub(r'[^a-zA-Z0-9\s-]', '', texto)                    # Keep letters/digits/spaces/hyphens
     return texto
 
@@ -1108,7 +1108,7 @@ def first_row_columns(df):
 # Function to clean column names and string values across the DataFrame
 def clean_columns_values(df):
     """
-    Normalize headers to lowercase ASCII with underscores and replace 'ano'→'year'.
+    Normalize headers to lowercase ASCII with underscores and replace 'ano'->'year'.
     Convert string numeric commas to dots across textual and numeric columns.
     Lowercase and sanitize the sector label columns.
     """
@@ -1153,7 +1153,7 @@ def relocate_last_column(df):
 def clean_first_row(df):
     """
     Lowercase, remove tildes and rare characters for first-row cells,
-    and translate 'ano'→'year' in-place.
+    and translate 'ano'->'year' in-place.
     """
     for col in df.columns:
         if df[col].dtype == 'object':                                               # Only process string columns
@@ -1165,7 +1165,7 @@ def clean_first_row(df):
     return df
 
 # _________________________________________________________________________
-# Function to rename month 'set'→'sep' in headings
+# Function to rename month 'set'->'sep' in headings
 def replace_set_sep(df):
     """Rename any column containing 'set' to use 'sep' instead."""
     columns = df.columns
@@ -1186,7 +1186,7 @@ def spaces_se_es(df):
 # _________________________________________________________________________
 # Function to unify 'services' naming across ES/EN sector labels
 def replace_services(df):
-    """Replace 'servicios'→'otros servicios' and 'services'→'other services' when both columns contain those tokens."""
+    """Replace 'servicios'->'otros servicios' and 'services'->'other services' when both columns contain those tokens."""
     if ('servicios' in df['sectores_economicos'].values) and ('services' in df['economic_sectors'].values):
         df['sectores_economicos'].replace({'servicios': 'otros servicios'}, inplace=True)   # Replace 'servicios' with 'otros servicios'
         df['economic_sectors'].replace({'services': 'other services'}, inplace=True)        # Replace 'services' with 'other services'
@@ -1196,7 +1196,7 @@ def replace_services(df):
 # Function to unify 'mineria' naming in ES sector labels
 def replace_mineria(df):
     """
-    Replace 'mineria'→'mineria e hidrocarburos' when the latter is otherwise absent.
+    Replace 'mineria'->'mineria e hidrocarburos' when the latter is otherwise absent.
     This function ensures that the label 'mineria' is standardized to 'mineria e hidrocarburos'
     for consistency in sector labeling in the 'sectores_economicos' column.
     """
@@ -1209,7 +1209,7 @@ def replace_mineria(df):
 # Function to unify 'mining and fuels' naming in EN sector labels
 def replace_mining(df):
     """
-    Replace 'mining and fuels'→'mining and fuel' in EN sector labels.
+    Replace 'mining and fuels'->'mining and fuel' in EN sector labels.
     This function standardizes the sector name 'mining and fuels' to 'mining and fuel' 
     in the 'economic_sectors' column for consistency.
     """
@@ -2414,7 +2414,7 @@ class new_tables_cleaner:
 class vintages_preparator:
     """
     Helpers to:
-      - Infer month order within a year from WR issue number (ns-dd-yyyy.pdf → dd → month 1..12).
+      - Infer month order within a year from WR issue number (ns-dd-yyyy.pdf -> dd -> month 1..12).
       - Reshape cleaned tables into tidy 'vintages' ready for concatenation across years/frequencies.
     """
     
@@ -2430,7 +2430,7 @@ class vintages_preparator:
                 Defaults to (".pdf", ".csv").
 
         Returns:
-            dict[str, int]: filename → month_order (1..12) inferred from filenames matching
+            dict[str, int]: filename -> month_order (1..12) inferred from filenames matching
                 pattern 'ns-dd-yyyy.<ext>', where <ext> is one of the allowed extensions.
         """
         files = [
@@ -2534,8 +2534,8 @@ class vintages_preparator:
         d_out = d[final_cols].reset_index(drop=True)
 
         # 9) 🔒 enforce dtypes:
-        #    - 'industry' and 'vintage' → str
-        #    - everything else (tp_...) → float
+        #    - 'industry' and 'vintage' -> str
+        #    - everything else (tp_...) -> float
         d_out["industry"] = d_out["industry"].astype(str)
         d_out["vintage"]  = d_out["vintage"].astype(str)
 
@@ -2714,7 +2714,7 @@ def old_table_1_cleaner(
         csv_files = sorted([f for f in os.listdir(folder_path) if f.endswith(".csv")],
                            key=_ns_sort_key)                                        # Sort CSV files by NS code
         
-        month_order_map = prep.build_month_order_map(folder_path)                   # Map filename → month (1..12)
+        month_order_map = prep.build_month_order_map(folder_path)                   # Map filename -> month (1..12)
 
         if not csv_files:
             continue                                                                # Skip if no CSVs found
@@ -2858,7 +2858,7 @@ def new_table_1_cleaner(
         pdf_files = sorted([f for f in os.listdir(folder_path) if f.endswith(".pdf")],
                            key=_ns_sort_key)                                        # Sort PDF files by NS code
         
-        month_order_map = prep.build_month_order_map(folder_path)                   # Map filename → month (1..12)
+        month_order_map = prep.build_month_order_map(folder_path)                   # Map filename -> month (1..12)
 
         if not pdf_files:
             continue                                                                # Skip if no PDFs found
@@ -3008,7 +3008,7 @@ def new_table_2_cleaner(
         folder_path = os.path.join(input_pdf_folder, year)                      # Full path to current year folder
         pdf_files = sorted([f for f in os.listdir(folder_path) if f.endswith(".pdf")],
                            key=_ns_sort_key)                                    # Sort PDFs by NS code order
-        month_order_map = prep.build_month_order_map(folder_path)               # Map filename → month (1..12)
+        month_order_map = prep.build_month_order_map(folder_path)               # Map filename -> month (1..12)
 
         if not pdf_files:
             continue                                                            # Skip if no PDFs present
@@ -3153,7 +3153,7 @@ def old_table_2_cleaner(
         csv_files = sorted([f for f in os.listdir(folder_path) if f.endswith(".csv")],
                            key=_ns_sort_key)                                        # Sort CSV files by NS code
         
-        month_order_map = prep.build_month_order_map(folder_path)                   # Map filename → month (1..12)
+        month_order_map = prep.build_month_order_map(folder_path)                   # Map filename -> month (1..12)
 
         if not csv_files:
             continue                                                                # Skip if no CSVs found
@@ -3957,6 +3957,169 @@ def apply_base_year_sentinel(
 
 
 
+# _________________________________________________________________________
+# Function to generate benchmark datasets from real-time GDP releases
+def convert_to_benchmark_dataset(
+    output_data_subfolder: str,
+    csv_file_labels: list[str],
+    metadata_folder: str,
+    wr_metadata_csv: str,
+    record_folder: str,
+    record_txt: str,
+    benchmark_dataset_csv: list[str],
+) -> dict:
+    """
+    Generates benchmark datasets by applying the benchmark revision mapping
+    to existing real-time GDP releases.
+
+    - Reads filtered metadata to identify benchmark vintages
+    - Normalizes vintage identifiers to ensure matching consistency
+    - Replaces non-NaN growth rate values with:
+        * 1.0 for vintages identified as benchmark
+        * 0.0 for all other vintages
+    - Ensures all target-period columns are of float type
+    - Saves the resulting benchmark dataset(s) to CSV
+    - Updates record files for processed datasets
+
+    Args:
+        output_data_subfolder: Folder where the input and output CSV files are stored
+        csv_file_labels: List of base dataset file labels (without .csv extension)
+        metadata_folder: Folder where the metadata CSV file is located
+        wr_metadata_csv: File name of the metadata CSV
+        record_folder: Folder where processed file records are stored
+        record_txt: Record file name tracking processed datasets
+        benchmark_dataset_csv: List of output file labels for benchmark datasets
+
+    Returns:
+        Dictionary where keys are benchmark dataset labels
+        and values are the corresponding processed pandas DataFrames.
+    """
+
+    start_time = time.time()
+    print("\n🔄📊 Starting benchmark dataset generation...")
+
+    # 1) Validate input length
+    if len(csv_file_labels) != len(benchmark_dataset_csv):
+        raise ValueError("csv_file_labels and benchmark_dataset_csv must have the same length.")
+
+    processed_files = _read_records_2(record_folder, record_txt)
+    processed_results = {}
+
+    # 2) Load and filter metadata
+    metadata_path = os.path.join(metadata_folder, wr_metadata_csv)
+    if not os.path.exists(metadata_path):
+        raise FileNotFoundError(f"Metadata file not found: {metadata_path}")
+
+    metadata = pd.read_csv(metadata_path)
+    metadata_filtered = metadata[metadata["benchmark_revision"] == 1]
+
+    # 3) Build benchmark mapping dictionary
+    benchmark_map = {
+        f"{str(year)}m{str(month).zfill(2)}": True
+        for year, month in zip(
+            metadata_filtered["year"].astype(str),
+            metadata_filtered["month"].astype(int),
+        )
+    }
+
+    # 4) Normalize benchmark keys (e.g., 1997m02 → 1997m2)
+    def normalize_key(v):
+        match = re.match(r"^(\d{4})m0?(\d{1,2})$", v)
+        if match:
+            y, m = match.groups()
+            return f"{y}m{int(m)}"
+        return v
+
+    benchmark_map = {normalize_key(k): v for k, v in benchmark_map.items()}
+
+    # 5) Process each dataset
+    for csv_label, benchmark_label in zip(csv_file_labels, benchmark_dataset_csv):
+        csv_path = os.path.join(output_data_subfolder, f"{csv_label}.csv")
+
+        if csv_label in processed_files:
+            print(f"⏭️ Skipping already processed file: {csv_label}.csv")
+            continue
+
+        if not os.path.exists(csv_path):
+            raise FileNotFoundError(f"File not found: {csv_path}")
+
+        print(f"\n🔹 Processing dataset: {csv_label}.csv")
+        df = pd.read_csv(csv_path)
+
+        if "vintage" not in df.columns:
+            raise ValueError(f"The file '{csv_label}.csv' must contain a 'vintage' column.")
+
+        # 5.1 Normalize vintage identifiers
+        df["vintage"] = (
+            df["vintage"]
+            .astype(str)
+            .str.strip()
+            .str.lower()
+            .str.replace(r"[^0-9m]", "", regex=True)
+        )
+
+        # 5.2 Identify columns to process
+        tp_cols = [c for c in df.columns if c.startswith("tp_")]
+        if not tp_cols:
+            tp_cols = [c for c in df.columns if c not in ["industry", "vintage"]]
+
+        # Ensure numeric type
+        df[tp_cols] = df[tp_cols].astype(float)
+
+        # 5.3 Diagnostic report: vintage matching
+        vintages_df = set(df["vintage"].unique())
+        vintages_map = set(benchmark_map.keys())
+        matched = vintages_map.intersection(vintages_df)
+        unmatched = vintages_map - vintages_df
+
+        print(f"🔍 Matching diagnostics for {csv_label}.csv")
+        print(f"   Total vintages in data: {len(vintages_df)}")
+        print(f"   Total benchmark vintages: {len(vintages_map)}")
+        print(f"   ✅ Matched vintages: {len(matched)} / {len(vintages_map)}")
+        print(f"   ⚠️ Unmatched vintages: {len(unmatched)}")
+        if unmatched:
+            print(f"   Example unmatched vintages: {list(sorted(unmatched))[:10]}")
+
+        # 5.4 Apply vectorized replacement logic
+        mask_benchmark = df["vintage"].isin(vintages_map)
+
+        # Replace all non-NaN values with 0.0
+        df[tp_cols] = df[tp_cols].where(df[tp_cols].isna(), 0.0)
+
+        # Replace benchmark vintages with 1.0
+        if mask_benchmark.any():
+            df.loc[mask_benchmark, tp_cols] = df.loc[mask_benchmark, tp_cols].where(
+                df.loc[mask_benchmark, tp_cols].isna(), 1.0
+            )
+
+        # Enforce float type
+        df[tp_cols] = df[tp_cols].astype(float)
+
+        # 5.5 Save processed dataset
+        output_path = os.path.join(output_data_subfolder, f"{benchmark_label}.csv")
+        df.to_csv(output_path, index=False)
+        processed_results[benchmark_label] = df
+
+        processed_files.append(csv_label)
+        print(f"💾 Saved benchmark dataset: {output_path}")
+        print(f"   Rows: {len(df)}, Columns: {len(df.columns)}")
+
+    # 6) Update records and summarize
+    _write_records_2(record_folder, record_txt, processed_files)
+
+    elapsed_time = round(time.time() - start_time)
+    print(f"\n📊 Summary (Benchmark Dataset Generation):")
+    print(f"📂 {len(csv_file_labels)} files processed")
+    print(f"🗃️ Record updated: {record_txt}")
+    print(f"⏱️ Total elapsed time: {elapsed_time} seconds")
+
+    return processed_results
+
+
+
+
+
+
 
 
 
@@ -4099,7 +4262,7 @@ def convert_to_releases_dataset(
         processed_files.append(csv_label)
         _write_records_2(record_folder, record_txt, processed_files)
 
-        print(f"💾 Saved release dataset → {release_path}")
+        print(f"💾 Saved release dataset: {release_path}")
         print(f"   🧱 Rows: {len(releases_df_pivot)}, Industries: {releases_df_pivot['target_period'].nunique()}")
 
     # 13) Summary
