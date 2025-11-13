@@ -1,0 +1,18 @@
+﻿sectores_economicos;economic_sectors;2005_1;2005_2;2005_3;2005_4;2005_year;2006_1;2006_2;2006_3;2006_4;2006_year;2007_1;2007_2;2007_3
+agropecuario;agriculture and livestock;1.8;6;4.9;5.8;4.8;4.4;5.9;11.6;8.2;7.4;5.7;1.8;-1.9
+agrícola;agriculture;0.9;6.6;4.5;1.8;4;2.3;5.3;15.3;13.3;8.3;6.7;1.7;-6
+pecuario;livestock;4.6;4.1;6;11.8;6.6;7.8;9.5;8.7;4.5;7.6;4.6;2.2;2.8
+pesca;fishing;11;3.5;-6.1;4;3.2;29.7;-11.6;17.2;-7.3;2.4;15;4.9;-6.3
+minería e hidrocarburos;mining and fuel;0.9;5.1;11.3;16;8.4;6.4;7.6;0;-6.8;1.4;-1.6;-1.9;4.6
+minería metálica;metals;-1.1;2.9;10.3;17;7.3;6.9;8;-0.9;-7.9;1.1;-2.7;-2.7;5
+hidrocarburos;fuels;33.9;37.7;23.6;4.4;23.4;0.4;2.7;10;9.1;5.7;10.6;5.8;0.6
+manufactura;manufacturing;7.5;8.6;7.3;5.6;7.2;8;3.7;8.8;9.1;7.4;8.8;11.4;10.1
+procesadores de recursos primarios;based on raw materials;3.9;5.4;2;3.8;3.9;9.6;0.1;6.5;2;4.1;-2.5;2.8;-3.4
+industria no primaria;non primary industries;8.5;9.7;8.7;6.1;8.2;7.6;4.8;9.4;11.2;8.3;11.2;13.6;12.8
+electricidad y agua;electricity and water;4;6.2;5.6;6.5;5.6;7.5;4.7;7.5;7.9;6.9;8.3;10.1;8.2
+construcción;construction;2.5;7;10.6;13;8.4;16.2;13;16.1;13.7;14.8;9;20.1;16.4
+comercio;commerce;7;6.6;4.9;6.5;6.3;11.1;8.4;13.1;12.5;11.1;12.1;6.7;11.7
+otros servicios;other services;7;6.2;6.1;7.8;6.8;6.6;5;7.2;8.4;6.8;8.3;8.8;8.3
+pbi;gdp;6;6.6;6.5;7.9;6.7;7.9;5.8;8.6;8.1;7.6;8.1;8;8.4
+sectores primarios;primary sectors;2;5.5;6.4;9.1;5.8;6.6;4.7;6.4;0.6;4.5;1.9;1;0
+sectores no primarios;non-primary sectors;6.6;6.4;6.3;7.7;6.8;8.3;6.4;9.4;10;8.5;9.9;10;10.8

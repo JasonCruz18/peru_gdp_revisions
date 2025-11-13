@@ -1,0 +1,22 @@
+﻿sectores_economicos;economic_sectors;2006_ago;2006_set;2006_oct;2006_nov;2006_dic;2006_year;2007_ene;2007_feb;2007_mar;2007_abr;2007_may;2007_jun;2007_jul;2007_ago;2007_ene_ago
+agropecuario;agriculture and livestock;16;9.8;10.3;10.2;4.5;7.4;6.1;6.8;3.1;-1.2;3.4;2.6;-3.9;-4.2;1.4
+agricola;agriculture;23.8;13;15.1;17.5;7.5;8.3;8.7;8.6;2.9;-3.2;4;2.5;-8.8;-9.9;0.3
+pecuario;livestock;9.5;7.3;5.3;4.5;3.8;7.6;3.5;4.8;3.4;2.7;2.1;2.8;3;2.2;3.1
+pesca;fishing;27.2;43.5;18.2;-34.2;29.6;2.4;19.5;23.2;-2.3;5.7;8.6;-12.2;-6.7;-5.6;3.2
+mineria e hidrocarburos;mining and fuel;-0.5;-2.6;-7.7;-6.1;-6.6;1.4;-4.5;-2.8;2.3;-1.1;-0.9;-4.2;1.9;3.5;-0.7
+mineria;metals;-1.3;-3.8;-8.4;-7.4;-7.9;1.1;-6;-3.8;1.3;-1.6;-1.7;-4.9;1.8;4.4;-1.3
+hidrocarburos;fuel;9.7;13.9;2.7;13.2;11.6;5.7;10.4;5.2;16.6;5.1;9.2;3.2;2.3;-4.1;5.5
+manufactura;manufacturing;11.5;9.5;11.3;4.3;12.1;7.4;11.8;7.4;6.9;10.2;12.4;9.7;11.6;6.7;9.6
+procesadores recursos primarios;based on raw materials;8.8;10.5;8.6;-14.1;17.6;4.1;6;-3.4;-11.2;0.5;4.8;-0.6;-1.2;-4.9;-1.1
+industria no primaria;non primary industries;12.1;9.3;11.9;10.9;10.6;8.3;13;9.6;10.9;12.4;14.4;12.3;14.4;9;12
+electricidad y agua;electricity and water;7.2;7.5;7.6;7.7;8.3;6.9;8.4;7.8;8.6;10.2;9.7;10.4;10.4;7.7;9.1
+construcción;construction;21.8;14.6;18.6;15.1;8.1;14.8;11;5.3;10.5;13;24.6;22.2;25.2;14.7;15.8
+comercio;commerce;14;10.8;15.2;11.9;10.4;11.1;14.6;12.9;7.8;7.2;7;3.6;11.5;8.4;8.9
+otros servicios;other services;9.2;5;9.4;7.5;8.6;7;10;8.7;7.6;10.4;8.1;7.6;7.7;8.1;8.5
+Impuestos a los productos y derechos de importación;taxes on products and import duties;7.5;7.7;9.9;5.9;8.3;6.3;6.7;8.6;4.2;7;9.1;6.9;8.9;3.4;6.8
+pbi;gdp;10.5;7.2;9.8;6.6;8.1;7.6;9.4;8.1;6.6;7.7;8.4;6.6;8.4;6.5;7.7
+sectores primarios;primary sectors;8.5;5.4;2.6;-3.5;3.2;4.5;2.4;2;0.1;-0.8;2.6;-0.5;-1.6;-1.6;0.3
+sectores no primarios;non primary sectors;11.5;7.6;11.5;9.5;9.2;8.5;11.5;9.5;8.6;10.2;10;8.7;10.9;8.9;9.8
+pbi desestacionalizado;seasonally adjusted gdp;1.8;0;0.8;0.5;1.7;;-1.1;1.1;1.6;-1.6;0.4;0.6;0.2;0.7;
+demanda interna;domestic demand;13.6;8.6;13.8;8.5;13.5;10.1;14.2;10.7;7.2;11.8;10.7;8;14.2;10.5;10.9
+demanda interna desestacionalizada;seasonally adjusted domestic demand;2.9;-0.6;2.9;-0.6;4.5;;-2.3;0.1;0.3;0.7;0.3;-0.4;2.6;0.4;
