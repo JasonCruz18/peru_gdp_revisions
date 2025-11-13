@@ -1,8 +1,27 @@
-*.csv
-# Ignore old dataset
-pdf/
-old_wr/
-data/
-data/input/
-data/output/
-alert_track/
+# =====================================================================
+# .gitignore
+# =====================================================================
+# This file defines which files and directories should be ignored by Git.
+# The following folders are automatically generated or contain data
+# that should NOT be committed to the repository (e.g., large files,
+# confidential data, or intermediate outputs).
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# Generated datasets and working files
+# ---------------------------------------------------------------------
+/data/          # Stores processed or intermediate datasets (e.g., CSVs)
+/old_wr/        # Historical releases
+/new_wr/        # Newly generated releases or temporary outputs
+
+# ---------------------------------------------------------------------
+# Alerts, sounds, and temporary notifications
+# ---------------------------------------------------------------------
+/alert_track/   # Contains audio files (e.g., MP3 alerts or sound logs)
+
+# ---------------------------------------------------------------------
+# Notes:
+# - All files and subdirectories within these folders are ignored.
+# - The folder paths remain untracked, but if needed, empty placeholder
+#   files (like `.gitkeep`) can be added to keep folder structure visible.
+# ---------------------------------------------------------------------
