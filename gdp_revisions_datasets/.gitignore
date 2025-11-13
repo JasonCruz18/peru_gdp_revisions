@@ -17,6 +17,8 @@
 /old_wr/
 /new_wr/
 
+/_OLD_PROGRAMS/			# Ignored old scripts
+
 # ---------------------------------------------------------------------
 # Alerts, sounds, and temporary notifications
 # ---------------------------------------------------------------------
