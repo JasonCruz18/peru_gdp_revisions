@@ -80,7 +80,7 @@ Rationality tests based on errors
 		* Keep common observations
 		** Set common information using regression for the model with the least observations to keep if !missing(residuals)
 		qui {
-		newey e_1 y_1, lag(6) force
+		reg e_1 y_1, robust
 		predict residuals_aux, resid  // Generate the regression residuals.
 		}
 		keep if !missing(residuals_aux)  // Keep only the observations where the residuals are not missing.
@@ -119,27 +119,27 @@ Rationality tests based on errors
 				if r(N) < 5 continue  // Skip if there are less than 5 observations
 						
 				* Unbiasedness
-				newey e_`h', lag(6) force					
+				reg e_`h', robust					
 				eststo e_bias_`h'
 				
 				* Mincer-Zarnowitz
-				newey e_`h' y_h, lag(6) force	
+				reg e_`h' y_h, robust	
 				eststo e_mz_`h'
 
 				* Encompassing
-				newey e_`h' r_h, lag(6) force	
+				reg e_`h' r_h, robust	
 				eststo e_enco_`h'
 				
 				* Augmented Mincer-Zarnowitz
-				newey e_`h' y_h r_h, lag(6) force	
+				reg e_`h' y_h r_h, robust	
 				eststo e_amz_`h'	
 				
 				* Omnibus
-				newey e_`h' y_h r_h r_h_lag, lag(6) force	
+				reg e_`h' y_h r_h r_h_lag, robust	
 				eststo e_omni_`h'
 				
 				* Omnibus with benchmark revisions	
-				newey e_`h' y_h r_h r_h_lag D_h Dy_h Dr_h Dr_h_lag, lag(6) force
+				reg e_`h' y_h r_h r_h_lag D_h Dy_h Dr_h Dr_h_lag, robust
 				eststo e_bench_omni_`h'
 			}				
 		}			
@@ -153,24 +153,19 @@ Rationality tests based on errors
 			replace e_h_lag    	= L1.e_`f'
 
 			if `f' == 1 {
-				newey e_`f' y_h e_h_lag, lag(6) force
+				reg e_`f' y_h e_h_lag, robust
 			}
 			else if `f' == 2 {
-				newey e_`f' r_h y_h e_h_lag, lag(6) force
+				reg e_`f' r_h y_h e_h_lag, robust
 			}
 			else {
-				newey e_`f' y_h r_h r_h_lag e_h_lag, lag(6) force
+				reg e_`f' y_h r_h r_h_lag e_h_lag, robust
 			}
 
 			eststo e_fore_`f'
-			predict res, residuals
-			regress res L.res if e(sample)
-			scalar BG = e(F)
-			scalar BG_2 = e(r2)*e(N)
+			predict e_hat_`f' if e(sample), xb
 			
-			estadd scalar BG:e_fore_`f'
-			estadd scalar BG_2:e_fore_`f'
-			drop res
+			gen y_hat_`f' = y_`f' + e_hat_`f'
 		}
 		
 
@@ -190,7 +185,7 @@ Rationality tests based on errors
 	esttab e_amz_*, order(_cons y_h r_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N)  
 	esttab e_omni_*, order(_cons y_h r_h r_h_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
 	esttab e_bench_omni_*, order(_cons y_h r_h r_h_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
-	esttab e_fore_*, order(_cons) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N BG BG_2) 
+	esttab e_fore_*, order(_cons) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) 
 	}
 	
 	* Exportable results (.txt)
@@ -200,7 +195,7 @@ Rationality tests based on errors
 	esttab e_amz* using errors.txt, order(_cons y_h r_h) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 	esttab e_omni_* using errors.txt, order(_cons y_h r_h r_h_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 	esttab e_bench_omni_* using errors.txt, order(_cons y_h r_h r_h_lag) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
-	noisily esttab e_fore_* using errors.txt, order(_cons) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N BG BG_2) append
+	noisily esttab e_fore_* using errors.txt, order(_cons) se b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) compress nogaps scalar(N) append
 
 	* Exportable results (.xls)
 	estout e_bias_* using errors.xls, cells(b(fmt(4)) t(fmt(4) abs)) stats(N) replace
@@ -209,7 +204,7 @@ Rationality tests based on errors
 	estout e_amz* using errors.xls, order(_cons y_h r_h) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
 	estout e_omni* using errors.xls, order(_cons y_h r_h) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
 	estout e_bench_omni* using errors.xls, order(_cons y_h r_h r_h_lag) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
-	noisily estout e_fore_* using errors.xls, order(_cons) cells(b(fmt(4)) t(fmt(4) abs)) stats(N BG BG_2) append
+	noisily estout e_fore_* using errors.xls, order(_cons) cells(b(fmt(4)) t(fmt(4) abs)) stats(N) append
 
 	cd "$path"
 
