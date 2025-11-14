@@ -66,7 +66,7 @@ merged_df <- df %>%
   filter(!is.na(horizon) & !is.na(vintages_date) & horizon >= 1 & horizon < 11)
 
 merged_df <- merged_df %>%
-  filter(vintages_date > as.Date("1992-12-31") & vintages_date < as.Date("2023-11-01"))
+  filter(vintages_date >= as.Date("2001-01-01") & vintages_date < as.Date("2023-11-01"))
 
 merged_df$horizon <- factor(merged_df$horizon, levels = as.character(1:11))
 
