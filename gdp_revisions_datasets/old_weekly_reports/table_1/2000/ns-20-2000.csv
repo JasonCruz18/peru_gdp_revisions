@@ -1,0 +1,21 @@
+﻿sectores_economicos;economic_sectors;1999_mar;1999_abr;1999_may;1999_jun;1999_jul;1999_ago;1999_sep;1999_oct;1999_nov;1999_dic;1999_year;2000_ene;2000_feb;2000_mar;2000_ene_mar
+agropecuario;agriculture and livestock;9;7.1;24.8;14.3;26.8;13.8;10.2;8.2;3.9;-8.7;12.1;-2.1;5.8;5;3
+agricola;agriculture;5.8;4.9;28.5;16.9;38.1;21.2;16.2;12.1;2.7;-16.9;14;-6.2;7.2;6.5;2.7
+pecuario;livestock;16.2;14.3;12.9;5.4;2.9;2.9;2.5;2.7;5.6;5;7.9;5.3;3.5;1.9;3.6
+pesca;fishing;129.8;252.2;80.9;96.3;-25.9;-32.5;-17.7;60;37.2;91.7;66.4;-4.3;-15;255.2;67.4
+mineria e hidrocarburos;mining and fuel;15.7;14.2;12.9;18.2;7.7;7;3.5;5.4;11.4;0.8;10.1;0.5;5.4;-1.5;1.3
+mineria;mining;22.9;22.3;23.2;29.3;16.1;16.4;11.2;14.5;19.7;6.6;18.4;6.3;10.4;1;5.8
+petroleo y gas;fuels;-0.4;-3.3;-7.9;-5.1;-9.9;-12.7;-13.2;-14.5;-7.3;-12.8;-7.8;-14.6;-8.2;-8.6;-10.6
+manufactura;manufacturing;6.6;9.3;6.6;8;-3.6;-2.3;5.6;13.8;18.9;29.7;7.6;16.2;18.5;26.7;20.6
+procesadores recursos primarios;based on raw materials;33.9;59.4;30.2;26.5;-9.1;-7.4;0.2;17.5;22.1;41.8;22.2;8.7;7.5;58.1;25.3
+resto industria;non primary;-1.4;-6.4;-0.7;1;-1.3;-0.5;7.5;12.3;17.4;23.5;2.3;19.5;22.7;14.2;18.7
+construccion;construction;-11.8;-14.7;-14.7;-19.3;-19.2;-20.6;-14.8;-2.3;1.4;2.6;-12.2;4;8.4;0.1;4
+comercio;commerce;-4.9;-4.8;0.7;0.6;-4.4;-4.1;3;7.8;8.9;10.1;-0.6;7.1;8.8;12.3;9.3
+otros servicios;other services;1.3;1.5;3.6;1.1;0;-1.9;1.4;3.6;4;4.4;1.5;2.9;4.3;5.4;4.1
+pbi;gdp;3.2;3.7;7.1;5.1;0.8;-1.8;1.8;6.8;8.9;9.3;3.8;6.6;8.6;11.4;8.5
+pbi sectores primarios;gdp primary sectors;15.7;18.7;21.8;18.5;11.5;5.4;4.7;10.3;11.5;9.1;13.7;0.7;4.6;17.2;7.7
+pbi sectores no primarios;gdp non primary sectors;-5.1;-7.5;-4.8;-6.2;-6.9;-6.4;0.1;4.6;7.1;9.4;-3;9.6;11.7;6.7;9.1
+pbi desestacionalizado;seasonally adjusted gdp;2.3;0.9;-0.1;1.2;-2;-1.5;3.4;2.4;1.9;0.1;;-2.8;2.9;4.8;
+pbi promedio de ultimos doce meses;average gdp for the last twelve months;-0.1;0.6;1.7;2.2;2.1;1.6;1.7;2.4;3;3.8;;4.2;4.9;5.6;
+pbi promedio de ultimos tres meses;average gdp for the last three months;1.3;2.2;4.7;5.3;4.4;1.5;0.3;2.3;5.8;8.3;;7.9;7.8;8.5;
+demanda interna promedio de ultimos tres meses;average domestic demand for the last three months;-10;-7;-4.1;-3.1;-3.7;-5.9;-5.5;-1;4.1;7.5;;9.2;9.3;9.4;
