@@ -7,22 +7,18 @@
 # confidential data, or intermediate outputs).
 # =====================================================================
 
+
 # ---------------------------------------------------------------------
 # Generated datasets and working files
 # ---------------------------------------------------------------------
-/data/          		# Stores processed or intermediate datasets (e.g., CSVs)
-/old_weekly_reports/        	# Historical releases
-/new_weekly_reports/        	# Newly generated releases or temporary outputs
-/pdf/
-/old_wr/
-/new_wr/
+/gdp_revisions_datasets/data/
+/gdp_revisions_datasets/new_wr/
+/gdp_revisions_datasets/old_wr/
+/gdp_revisions_datasets/pdf/
+/gdp_revisions_datasets/new_weekly_reports/
+/gdp_revisions_datasets/old_weekly_reports/
+/gdp_revisions_datasets/alert_track/
 
-/_OLD_PROGRAMS/			# Ignored old scripts
-
-# ---------------------------------------------------------------------
-# Alerts, sounds, and temporary notifications
-# ---------------------------------------------------------------------
-/alert_track/   # Contains audio files (e.g., MP3 alerts or sound logs)
 
 # ---------------------------------------------------------------------
 # Notes:
