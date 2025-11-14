@@ -9,16 +9,15 @@
 
 
 # ---------------------------------------------------------------------
-# Generated datasets and working files
+# Ignore all CSV and PDF files in the gdp_revisions_datasets subfolder
 # ---------------------------------------------------------------------
-/gdp_revisions_datasets/data/
-/gdp_revisions_datasets/new_wr/
-/gdp_revisions_datasets/old_wr/
-/gdp_revisions_datasets/pdf/
-/gdp_revisions_datasets/new_weekly_reports/
-/gdp_revisions_datasets/old_weekly_reports/
-/gdp_revisions_datasets/alert_track/
 
+/gdp_revisions_datasets/*.csv
+/gdp_revisions_datasets/*.pdf
+/gdp_revisions_datasets/*.txt
+
+# But track the CSV file in the metadata subfolder
+!gdp_revisions_datasets/metadata/*.csv
 
 # ---------------------------------------------------------------------
 # Notes:
