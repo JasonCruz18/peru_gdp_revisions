@@ -151,6 +151,21 @@ df_adjusted <- df_filtered_with_smooth %>%
   mutate(gdp_release_adjusted = gdp_release + adjustment)
 
 #*******************************************************************************
+# NUEVO: Missing values (2013–2014 base-year adjustment)
+#*******************************************************************************
+
+xmin <- as.Date("2013-01-01")
+xmax <- as.Date("2014-01-01")
+
+df_adjusted <- df_adjusted %>%
+  mutate(
+    gdp_release_adjusted = ifelse(
+      vintages_date >= xmin & vintages_date <= xmax,
+      NA, gdp_release_adjusted
+    )
+  )
+
+#*******************************************************************************
 # NUEVO: Extraer últimos puntos para cada línea roja
 #*******************************************************************************
 
@@ -168,23 +183,23 @@ df_adjusted_last_points <- df_adjusted %>%
 plot <- ggplot() +
   
   # Regiones sombreadas
-  geom_rect(aes(xmin = as.Date("2013-01-01"), xmax = as.Date("2014-01-01"),
-                ymin = -Inf, ymax = Inf, fill = "2007 base year"), alpha = 0.70) +
-  geom_rect(aes(xmin = as.Date("2020-03-01"), xmax = as.Date("2021-10-01"),
-                ymin = -Inf, ymax = Inf, fill = "COVID-19"), alpha = 0.70) +
+  #  geom_rect(aes(xmin = as.Date("2013-01-01"), xmax = as.Date("2014-01-01"),
+  #                ymin = -Inf, ymax = Inf, fill = "2007 base year"), alpha = 0.70) +
+  #  geom_rect(aes(xmin = as.Date("2020-03-01"), xmax = as.Date("2021-10-01"),
+  #                ymin = -Inf, ymax = Inf, fill = "COVID-19"), alpha = 0.70) +
   
   # Línea principal: 1st release suavizado (línea negra)
   geom_line(
     data = df_h1,
     aes(x = release_date, y = gdp_release_smooth, color = "1st release"),
-    linewidth = 0.5
+    linewidth = 1.0
   ) +
   geom_point(
     data = df_h1,
     aes(x = release_date, y = gdp_release_smooth, color = "1st release"),
-    shape = 21,          # círculo con borde
-    size = 0.85,            # tamaño visual del punto
-    stroke = 0.85,          # grosor del borde
+    shape = 21,          
+    size = 2.25,         
+    stroke = 0.85,       
     fill = NA
   ) +
   
@@ -194,7 +209,7 @@ plot <- ggplot() +
     aes(x = release_date, y = gdp_release_adjusted, group = vintages_date,
         color = "Ongoing releases"),
     linewidth = 0.85,
-    alpha = 0.70
+    alpha = 0.85
   ) +
   
   # NUEVO: Puntos finales huecos para cada línea roja
@@ -202,7 +217,7 @@ plot <- ggplot() +
     data = df_adjusted_last_points,
     aes(x = release_date, y = gdp_release_adjusted, color = "Last release"),
     shape = 15,          
-    size = 1.70
+    size = 2.25
   ) +
   
   labs(
@@ -220,51 +235,72 @@ plot <- ggplot() +
     expand = c(0.02, 0.02)
   ) +
   scale_y_continuous(
-    breaks = scales::pretty_breaks(n = 5),
-    labels = scales::number_format(accuracy = 0.1)
+    breaks = seq(-2, 12, by = 2),
+    labels = scales::number_format(accuracy = 1)
   ) +
   
   scale_color_manual(
-    values = c("1st release" = "#3366FF", "Ongoing releases" = "#3366FF", "Last release" = "#3366FF"),
-    breaks = c("1st release", "Ongoing releases", "Last release")  # Explicitly setting legend order
+    values = c("1st release" = "#E6004C",
+               "Ongoing releases" = "#3366FF",
+               "Last release" = "#3366FF"),
+    breaks = c("1st release", "Ongoing releases", "Last release")
   ) +
   
-  scale_fill_manual(
-    values = c("COVID-19" = "#FFF183", "2007 base year" = "#00DFA2")
-  ) +
-  
-  # Adjusting legend order
   guides(
-    color = guide_legend(order = 1),  # First legend for line colors
-    fill = guide_legend(order = 2)    # Second legend for fill colors
+    color = guide_legend(
+      order = 1,
+      override.aes = list(size = 3.5)
+    )
   ) +
   
   theme_minimal() +
   theme(
-    panel.grid.major = element_line(color = "#F5F5F5", linewidth = 0.8),
-    panel.grid.minor.x = element_line(color = "#F5F5F5", linewidth = 0.8),
+    panel.grid.major = element_blank(),
+    panel.grid.minor.x = element_blank(),
     panel.grid.minor.y = element_blank(),
-    axis.text = element_text(color = "black", size = 16),
+    axis.text = element_text(color = "black", size = 28),
     axis.text.x = element_text(color = "black", angle = 0, hjust = 0.5, vjust = 0.5),
     axis.text.y = element_text(color = "black", angle = 0, hjust = 0.5),
     axis.ticks = element_line(color = "black"),
     axis.ticks.length = unit(0.1, "inches"),
     axis.title.x = element_blank(),
-    axis.title.y = element_text(size = 16, color = "black"),
+    axis.title.y = element_text(size = 28, color = "black"),
     plot.title = element_blank(),
-    legend.position = "bottom",
+    legend.position = c(0.985, 0.97),
+    legend.justification = c("right", "top"),
     legend.title = element_blank(),
-    legend.text = element_text(size = 16, color = "black"),
+    legend.text = element_text(size = 28, color = "black"),
     legend.background = element_rect(fill = "white", color = "black", linewidth = 0.45),
     axis.line = element_line(color = "black", linewidth = 0.45),
     panel.border = element_rect(color = "black", linewidth = 0.45, fill = NA),
-    plot.margin = margin(9, 5, 9, 4)
+    plot.margin = margin(9, 10, 9, 4)
   ) +
   coord_cartesian(ylim = c(-3.0, 12.3), clip = "off")
 
 print(plot)
 
 
-# Guardar
-ggsave(filename = file.path(output_dir, "gdp_revisions_by_horizon_events_1.png"), plot = plot, width = 12, height = 8, bg = "white")
+# Save high-resolution PNG (300 DPI)
+ggsave(filename = file.path(output_dir, "Fig_Noodles.png"), 
+       plot = plot, 
+       width = 16, 
+       height = 9, 
+       dpi = 300,
+       bg = "white")
+
+
+# Save as high-resolution PDF
+ggsave(filename = file.path(output_dir, "Fig_Noodles.pdf"), 
+       plot = plot, 
+       width = 16, 
+       height = 9)
+
+    # Save plot as EPS file
+ggsave(filename = file.path(output_dir, "Fig_Noodles.eps"), 
+       plot = plot, 
+       width = 16, 
+       height = 9, 
+       device = "eps",      # Set device to EPS
+       dpi = 300,           # Ensure high resolution (300 DPI)
+       bg = "white")        # White background
 

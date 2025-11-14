@@ -92,16 +92,21 @@ dbDisconnect(con)
 #             "electricity", "construction", "commerce", "services")
 sectors <- c("gdp")
 
-# vintages_date aAs Date
+# start aAs Date
 
-# df$vintages_date <- dmy_hms(df$vintages_date) # for imported csv
+# df$start <- dmy_hms(df$start) # for imported csv
 
 # Verificar el resultado
 head(df$start)
 
-# Ensure that the 'vintages_date' column is of type Date
+# Ensure that the 'start' column is of type Date
 df$start <- as.Date(df$start)
 
+
+
+#*******************************************************************************
+# Suavizando
+#*******************************************************************************
 
 # Filter the dataframe for the desired date range
 df_filtered <- df[df$start >= as.Date("1993-01-01") & df$start <= as.Date("2023-10-31"), ]
@@ -118,26 +123,32 @@ date_label_format <- function(date) {
 }
 
 # Generate a sequence of dates for the first month of each year
-breaks_dates <- seq(from = as.Date("2001-01-01"), 
-                    to = as.Date("2023-10-31"), 
+breaks_dates <- seq(from = as.Date("1993-01-01"), 
+                    to = as.Date("2017-10-31"), 
                     by = "2 years")
 
 # Create the graph
-time_plot <- ggplot(df_filtered, aes(x = vintages_date)) +
-  # Agregar regiones sombreadas con leyenda
-  geom_rect(aes(xmin = as.Date("2013-01-01"), xmax = as.Date("2014-01-01"),
-                ymin = -Inf, ymax = Inf, fill = "Cambio de año base"), alpha = 0.85) +
-  geom_rect(aes(xmin = as.Date("2020-03-01"), xmax = as.Date("2021-10-01"),
-                ymin = -Inf, ymax = Inf, fill = "COVID-19"), alpha = 0.85) +
-  geom_line(aes(y = gdp_most_recent_smooth, color = "Publicación más reciente"), linewidth = 0.5) +
-  geom_line(aes(y = gdp_release_1_smooth, color = "Publicación inicial"), linewidth = 0.85) +
-  geom_bar(aes(y = e_1_gdp * 2.0, fill = "Error de predicción inicial"), 
-           stat = "identity", alpha = 0.45, color = "black", linewidth = 0.35) +
-  geom_hline(yintercept = 0, color = "black", linewidth = 0.45) +
-  geom_point(aes(y = gdp_most_recent_smooth, color = "Publicación más reciente"), size = 0.85) +
+time_plot <- ggplot(df_filtered, aes(x = start)) +
+  # Agregar líneas principales
+  geom_line(aes(y = sd_e1, color = "Rolling SD"), linewidth = 1.25) +
+  geom_line(aes(y = sd_e1_affected, color = "Rolling SD (base year)"),
+            linewidth = 0.65, alpha = 0.65, linetype = "dashed") +
+  
+  # Línea vertical en 2001-01-01
+  geom_vline(xintercept = as.Date("2001-01-01"), 
+             color = "#F5F5F5", 
+             #linetype = "dashed", 
+             linewidth = 3, 
+             alpha = 0.85) +
+  geom_vline(xintercept = as.Date("2001-01-01"), 
+             color = "black", 
+             linetype = "dashed", 
+             linewidth = 0.3, 
+             alpha = 1) +
+  
   labs(
     x = NULL,
-    y = "Publicaciones del PIB",
+    y = NULL,
     title = NULL,
     color = NULL,
     fill = NULL
@@ -163,29 +174,20 @@ time_plot <- ggplot(df_filtered, aes(x = vintages_date)) +
     panel.border = element_rect(color = "black", linewidth = 0.45, fill = NA),
     plot.margin = margin(9, 5, 9, 4)
   ) +
-  scale_color_manual(values = c("Publicación inicial" = "#0079FF", 
-                                "Publicación más reciente" = "#FF0060")) +  
-  scale_fill_manual(values = c("Error de predicción inicial" = "#F5F5F5", 
-                               "Cambio de año base" = "#00DFA2", 
-                               "COVID-19" = "#F6FA70")) +  
-  scale_y_continuous(
-    breaks = scales::pretty_breaks(n = 5),
-    labels = scales::number_format(accuracy = 0.1),
-    sec.axis = sec_axis(~ . / 2.0, 
-                        name = "Error de predicción inicial (escalado)", 
-                        labels = scales::number_format(accuracy = 0.1))
-  ) +
+  scale_color_manual(values = c("Rolling SD" = "#E6004C", 
+                                "Rolling SD (base year)" = "#E6004C")) +
   scale_x_date(
-    breaks = breaks_dates,
-    labels = date_label_format,
+    breaks = seq(as.Date("1993-01-01"), as.Date("2017-01-01"), by = "2 years"),
+    date_labels = "%Y",
+    limits = c(as.Date("1993-01-01"), as.Date("2017-01-01")),
     expand = c(0.02, 0.02)
-  ) +
-  coord_cartesian(ylim = c(-3.5, 11.5), clip = "off")  # Restrict Y-axis range
+  )
 
 # Mostrar el gráfico
 print(time_plot)
 
 
+
 # Guardar el gráfico
-plot_output_file <- file.path(output_dir, "e_releses_time_plot.png")
-ggsave(filename = plot_output_file, plot = time_plot, width = 10, height = 6, dpi = 300, bg = "transparent")
+plot_output_file <- file.path(output_dir, "rolling_sd.png")
+ggsave(filename = plot_output_file, plot = time_plot, width = 10, height = 6, dpi = 300, bg = "white")
