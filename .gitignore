@@ -1,27 +1,3 @@
-# =====================================================================
-# .gitignore
-# =====================================================================
-# This file defines which files and directories should be ignored by Git.
-# The following folders are automatically generated or contain data
-# that should NOT be committed to the repository (e.g., large files,
-# confidential data, or intermediate outputs).
-# =====================================================================
-
-
-# ---------------------------------------------------------------------
-# Ignore all CSV and PDF files in the gdp_revisions_datasets subfolder
-# ---------------------------------------------------------------------
-
-/gdp_revisions_datasets/*.csv
-/gdp_revisions_datasets/*.pdf
-/gdp_revisions_datasets/*.txt
-
-# But track the CSV file in the metadata subfolder
-!gdp_revisions_datasets/metadata/*.csv
-
-# ---------------------------------------------------------------------
-# Notes:
-# - All files and subdirectories within these folders are ignored.
-# - The folder paths remain untracked, but if needed, empty placeholder
-#   files (like `.gitkeep`) can be added to keep folder structure visible.
-# ---------------------------------------------------------------------
+*.csv
+*.pdf
+*.txt
