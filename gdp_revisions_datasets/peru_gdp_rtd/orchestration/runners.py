@@ -21,7 +21,14 @@ import pandas as pd
 from tqdm import tqdm
 
 from peru_gdp_rtd.cleaners import NewTableCleaner, OldTableCleaner
-from peru_gdp_rtd.processors.metadata import extract_table, ns_sort_key, parse_ns_meta, read_records, save_df, write_records
+from peru_gdp_rtd.processors.metadata import (
+    extract_table,
+    ns_sort_key,
+    parse_ns_meta,
+    read_records,
+    save_df,
+    write_records,
+)
 from peru_gdp_rtd.transformers import VintagesPreparator
 
 
@@ -32,7 +39,7 @@ def old_table_1_runner(
     persist: bool = False,
     persist_folder: Optional[str] = None,
     pipeline_version: str = "v1.0.0",
-    sep: str = ';',
+    sep: str = ";",
 ) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
     """
     Process all OLD WR CSV files for Table 1 (monthly GDP).
@@ -62,7 +69,7 @@ def old_table_1_runner(
         >>> print(f"Processed {len(vintages)} tables")
     """
     start_time = time.time()
-    print("\n>ù Starting OLD Table 1 processing...\n")
+    print("\n>u Starting OLD Table 1 processing...\n")
 
     cleaner = OldTableCleaner()
     prep = VintagesPreparator()
@@ -78,7 +85,8 @@ def old_table_1_runner(
     skipped_years: Dict[str, int] = {}
 
     years = [
-        d for d in sorted(os.listdir(input_csv_folder))
+        d
+        for d in sorted(os.listdir(input_csv_folder))
         if os.path.isdir(os.path.join(input_csv_folder, d)) and d != "_quarantine"
     ]
     total_year_folders = len(years)
@@ -106,13 +114,13 @@ def old_table_1_runner(
             skipped_counter += len(already)
             continue
 
-        print(f"\n=Â Processing Table 1 in {year}\n")
+        print(f"\n=Ã‚ Processing Table 1 in {year}\n")
         folder_new_count = 0
         folder_skipped_count = 0
 
         pbar = tqdm(
             csv_files,
-            desc=f">ù {year}",
+            desc=f">u {year}",
             unit="CSV",
             bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}",
             colour="#E6004C",
@@ -159,7 +167,7 @@ def old_table_1_runner(
                 processed.add(filename)
                 folder_new_count += 1
             except Exception as e:
-                print(f"   {filename}: {e}")
+                print(f"Â   {filename}: {e}")
                 folder_skipped_count += 1
 
         pbar.clear()
@@ -183,14 +191,14 @@ def old_table_1_runner(
     if skipped_years:
         years_summary = ", ".join(skipped_years.keys())
         total_skipped = sum(skipped_years.values())
-        print(f"\né {total_skipped} tables already processed for years: {years_summary}")
+        print(f"\nÃ© {total_skipped} tables already processed for years: {years_summary}")
 
     elapsed_time = round(time.time() - start_time)
-    print(f"\n=Ê Summary:\n")
-    print(f"=Â {total_year_folders} year folders found")
-    print(f"=Ã  Already processed: {skipped_counter}")
+    print(f"\n=ÃŠ Summary:\n")
+    print(f"=Ã‚ {total_year_folders} year folders found")
+    print(f"=Ãƒ  Already processed: {skipped_counter}")
     print(f"( Newly processed: {new_counter}")
-    print(f"ñ  {elapsed_time} seconds")
+    print(f"Ã±  {elapsed_time} seconds")
 
     return raw_tables, clean_tables, vintages
 
@@ -202,7 +210,7 @@ def old_table_2_runner(
     persist: bool = False,
     persist_folder: Optional[str] = None,
     pipeline_version: str = "v1.0.0",
-    sep: str = ';',
+    sep: str = ";",
 ) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
     """
     Process all OLD WR CSV files for Table 2 (quarterly/annual GDP).
@@ -222,7 +230,7 @@ def old_table_2_runner(
         Tuple of (raw_tables_dict, clean_tables_dict, vintages_dict).
     """
     start_time = time.time()
-    print("\n>ù Starting OLD Table 2 processing...\n")
+    print("\n>u Starting OLD Table 2 processing...\n")
 
     cleaner = OldTableCleaner()
     prep = VintagesPreparator()
@@ -238,7 +246,8 @@ def old_table_2_runner(
     skipped_years: Dict[str, int] = {}
 
     years = [
-        d for d in sorted(os.listdir(input_csv_folder))
+        d
+        for d in sorted(os.listdir(input_csv_folder))
         if os.path.isdir(os.path.join(input_csv_folder, d)) and d != "_quarantine"
     ]
     total_year_folders = len(years)
@@ -266,13 +275,13 @@ def old_table_2_runner(
             skipped_counter += len(already)
             continue
 
-        print(f"\n=Â Processing Table 2 in {year}\n")
+        print(f"\n=Ã‚ Processing Table 2 in {year}\n")
         folder_new_count = 0
         folder_skipped_count = 0
 
         pbar = tqdm(
             csv_files,
-            desc=f">ù {year}",
+            desc=f">u {year}",
             unit="CSV",
             bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}",
             colour="#E6004C",
@@ -319,7 +328,7 @@ def old_table_2_runner(
                 processed.add(filename)
                 folder_new_count += 1
             except Exception as e:
-                print(f"   {filename}: {e}")
+                print(f"Â   {filename}: {e}")
                 folder_skipped_count += 1
 
         pbar.clear()
@@ -343,14 +352,14 @@ def old_table_2_runner(
     if skipped_years:
         years_summary = ", ".join(skipped_years.keys())
         total_skipped = sum(skipped_years.values())
-        print(f"\né {total_skipped} tables already processed for years: {years_summary}")
+        print(f"\nÃ© {total_skipped} tables already processed for years: {years_summary}")
 
     elapsed_time = round(time.time() - start_time)
-    print(f"\n=Ê Summary:\n")
-    print(f"=Â {total_year_folders} year folders found")
-    print(f"=Ã  Already processed: {skipped_counter}")
+    print(f"\n=ÃŠ Summary:\n")
+    print(f"=Ã‚ {total_year_folders} year folders found")
+    print(f"=Ãƒ  Already processed: {skipped_counter}")
     print(f"( Newly processed: {new_counter}")
-    print(f"ñ  {elapsed_time} seconds")
+    print(f"Ã±  {elapsed_time} seconds")
 
     return raw_tables, clean_tables, vintages
 
@@ -389,7 +398,7 @@ def new_table_1_runner(
         ... )
     """
     start_time = time.time()
-    print("\n>ù Starting NEW Table 1 processing...\n")
+    print("\n>u Starting NEW Table 1 processing...\n")
 
     cleaner = NewTableCleaner()
     prep = VintagesPreparator()
@@ -405,7 +414,8 @@ def new_table_1_runner(
     skipped_years: Dict[str, int] = {}
 
     years = [
-        d for d in sorted(os.listdir(input_pdf_folder))
+        d
+        for d in sorted(os.listdir(input_pdf_folder))
         if os.path.isdir(os.path.join(input_pdf_folder, d)) and d != "_quarantine"
     ]
     total_year_folders = len(years)
@@ -433,13 +443,13 @@ def new_table_1_runner(
             skipped_counter += len(already)
             continue
 
-        print(f"\n=Â Processing Table 1 in {year}\n")
+        print(f"\n=Ã‚ Processing Table 1 in {year}\n")
         folder_new_count = 0
         folder_skipped_count = 0
 
         pbar = tqdm(
             pdf_files,
-            desc=f">ù {year}",
+            desc=f">u {year}",
             unit="PDF",
             bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}",
             colour="#E6004C",
@@ -486,7 +496,7 @@ def new_table_1_runner(
                 processed.add(filename)
                 folder_new_count += 1
             except Exception as e:
-                print(f"   {filename}: {e}")
+                print(f"Â   {filename}: {e}")
                 folder_skipped_count += 1
 
         pbar.clear()
@@ -510,14 +520,14 @@ def new_table_1_runner(
     if skipped_years:
         years_summary = ", ".join(skipped_years.keys())
         total_skipped = sum(skipped_years.values())
-        print(f"\né {total_skipped} tables already processed for years: {years_summary}")
+        print(f"\nÃ© {total_skipped} tables already processed for years: {years_summary}")
 
     elapsed_time = round(time.time() - start_time)
-    print(f"\n=Ê Summary:\n")
-    print(f"=Â {total_year_folders} year folders found")
-    print(f"=Ã  Already processed: {skipped_counter}")
+    print(f"\n=ÃŠ Summary:\n")
+    print(f"=Ã‚ {total_year_folders} year folders found")
+    print(f"=Ãƒ  Already processed: {skipped_counter}")
     print(f"( Newly processed: {new_counter}")
-    print(f"ñ  {elapsed_time} seconds")
+    print(f"Ã±  {elapsed_time} seconds")
 
     return raw_tables, clean_tables, vintages
 
@@ -547,7 +557,7 @@ def new_table_2_runner(
         Tuple of (raw_tables_dict, clean_tables_dict, vintages_dict).
     """
     start_time = time.time()
-    print("\n>ù Starting NEW Table 2 processing...\n")
+    print("\n>u Starting NEW Table 2 processing...\n")
 
     cleaner = NewTableCleaner()
     prep = VintagesPreparator()
@@ -563,7 +573,8 @@ def new_table_2_runner(
     skipped_years: Dict[str, int] = {}
 
     years = [
-        d for d in sorted(os.listdir(input_pdf_folder))
+        d
+        for d in sorted(os.listdir(input_pdf_folder))
         if os.path.isdir(os.path.join(input_pdf_folder, d)) and d != "_quarantine"
     ]
     total_year_folders = len(years)
@@ -591,13 +602,13 @@ def new_table_2_runner(
             skipped_counter += len(already)
             continue
 
-        print(f"\n=Â Processing Table 2 in {year}\n")
+        print(f"\n=Ã‚ Processing Table 2 in {year}\n")
         folder_new_count = 0
         folder_skipped_count = 0
 
         pbar = tqdm(
             pdf_files,
-            desc=f">ù {year}",
+            desc=f">u {year}",
             unit="PDF",
             bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}",
             colour="#E6004C",
@@ -644,7 +655,7 @@ def new_table_2_runner(
                 processed.add(filename)
                 folder_new_count += 1
             except Exception as e:
-                print(f"   {filename}: {e}")
+                print(f"Â   {filename}: {e}")
                 folder_skipped_count += 1
 
         pbar.clear()
@@ -668,13 +679,13 @@ def new_table_2_runner(
     if skipped_years:
         years_summary = ", ".join(skipped_years.keys())
         total_skipped = sum(skipped_years.values())
-        print(f"\né {total_skipped} tables already processed for years: {years_summary}")
+        print(f"\nÃ© {total_skipped} tables already processed for years: {years_summary}")
 
     elapsed_time = round(time.time() - start_time)
-    print(f"\n=Ê Summary:\n")
-    print(f"=Â {total_year_folders} year folders found")
-    print(f"=Ã  Already processed: {skipped_counter}")
+    print(f"\n=ÃŠ Summary:\n")
+    print(f"=Ã‚ {total_year_folders} year folders found")
+    print(f"=Ãƒ  Already processed: {skipped_counter}")
     print(f"( Newly processed: {new_counter}")
-    print(f"ñ  {elapsed_time} seconds")
+    print(f"Ã±  {elapsed_time} seconds")
 
     return raw_tables, clean_tables, vintages

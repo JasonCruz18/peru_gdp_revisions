@@ -255,9 +255,7 @@ class Settings:
         # Parse metadata config
         metadata_dict = config["metadata"]
         base_years = [BaseYearInfo(**by) for by in metadata_dict["base_years"]]
-        metadata_config = MetadataConfig(
-            filename=metadata_dict["filename"], base_years=base_years
-        )
+        metadata_config = MetadataConfig(filename=metadata_dict["filename"], base_years=base_years)
 
         # Parse benchmark config
         benchmark_config = BenchmarkConfig(**config["benchmark"])

@@ -29,7 +29,7 @@ def replace_total_with_year(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with 'TOTAL' replaced by 'YEAR'.
     """
-    df.iloc[0] = df.iloc[0].apply(lambda x: 'YEAR' if "TOTAL" in str(x) else x)
+    df.iloc[0] = df.iloc[0].apply(lambda x: "YEAR" if "TOTAL" in str(x) else x)
     return df
 
 
@@ -52,7 +52,7 @@ def separate_years(df: pd.DataFrame) -> pd.DataFrame:
         if all(len(year) == 4 for year in years):
             second_year = years[1]
             df.iloc[0, -2] = years[0]
-            df.insert(len(df.columns) - 1, 'new_column', [second_year] + [None] * (len(df) - 1))
+            df.insert(len(df.columns) - 1, "new_column", [second_year] + [None] * (len(df) - 1))
     return df
 
 
@@ -73,9 +73,9 @@ def relocate_roman_numerals(df: pd.DataFrame) -> pd.DataFrame:
     if roman_numerals:
         original_text = df.iloc[2, -1]
         for roman_numeral in roman_numerals:
-            original_text = str(original_text).replace(roman_numeral, '').strip()
+            original_text = str(original_text).replace(roman_numeral, "").strip()
         df.iloc[2, -1] = original_text
-        df.at[2, 'new_column'] = ', '.join(roman_numerals)
+        df.at[2, "new_column"] = ", ".join(roman_numerals)
         df.iloc[2, -1] = np.nan
     return df
 
@@ -94,7 +94,7 @@ def extract_mixed_values(df: pd.DataFrame) -> pd.DataFrame:
         DataFrame with mixed values extracted.
     """
     df = df.copy()
-    regex_pattern = r'(-?\d+,\d [a-zA-Z\s]+)'
+    regex_pattern = r"(-?\d+,\d [a-zA-Z\s]+)"
 
     for index, row in df.iterrows():
         third_last_obs = row.iloc[-3]
@@ -106,7 +106,7 @@ def extract_mixed_values(df: pd.DataFrame) -> pd.DataFrame:
                 extracted_part = match.group(0)
                 if pd.isna(second_last_obs) or pd.isnull(second_last_obs):
                     df.iloc[index, -2] = extracted_part
-                    third_last_obs = re.sub(regex_pattern, '', third_last_obs).strip()
+                    third_last_obs = re.sub(regex_pattern, "", third_last_obs).strip()
                     df.iloc[index, -3] = third_last_obs
     return df
 
@@ -219,7 +219,7 @@ def get_quarters_sublist_list(df: pd.DataFrame, year_columns: List[str]) -> pd.D
     for item in first_row:
         if len(str(item)) == 1:  # Single-character quarter label (e.g., '1', '2', '3', '4')
             quarters_sublist.append(item)
-        elif str(item) == 'year':  # Marker for year columns
+        elif str(item) == "year":  # Marker for year columns
             quarters_sublist.append(item)
             quarters_sublist_list.append(quarters_sublist)
             quarters_sublist = []
@@ -280,14 +280,14 @@ def last_column_es(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with header relocated.
     """
-    if df[df.columns[-1]].iloc[0] == 'ECONOMIC SECTORS':
+    if df[df.columns[-1]].iloc[0] == "ECONOMIC SECTORS":
         if pd.notnull(df[df.columns[-1]].iloc[1]):
             new_column_name = f"col_{len(df.columns)}"
             df[new_column_name] = np.nan
 
             insert_value = df.iloc[0, -2]
             insert_value = str(insert_value)
-            df.iloc[:, -1] = df.iloc[:, -1].astype('object')
+            df.iloc[:, -1] = df.iloc[:, -1].astype("object")
             df.iloc[0, -1] = insert_value
 
             df.iloc[0, -2] = np.nan
@@ -311,11 +311,7 @@ def exchange_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     nan_column = None
     for column in df.columns:
-        if (
-            df[column].isnull().all()
-            and len(str(column)) == 4
-            and str(column).isdigit()
-        ):
+        if df[column].isnull().all() and len(str(column)) == 4 and str(column).isdigit():
             nan_column = column
             break
 
@@ -324,9 +320,7 @@ def exchange_columns(df: pd.DataFrame) -> pd.DataFrame:
         if column_index > 0:
             left_column = df.columns[column_index - 1]
             if not (len(str(left_column)) == 4 and str(left_column).isdigit()):
-                df.rename(
-                    columns={nan_column: left_column, left_column: nan_column}, inplace=True
-                )
+                df.rename(columns={nan_column: left_column, left_column: nan_column}, inplace=True)
     return df
 
 
@@ -348,7 +342,7 @@ def exchange_roman_nan(df: pd.DataFrame) -> pd.DataFrame:
     for col_idx, value in enumerate(df.iloc[1]):
         if isinstance(value, str):
             try:
-                is_roman = value.upper() == 'AÑO' or (
+                is_roman = value.upper() == "AÑO" or (
                     value.isalpha() and roman.fromRoman(value.upper())
                 )
             except (roman.InvalidRomanNumeralError, AttributeError):

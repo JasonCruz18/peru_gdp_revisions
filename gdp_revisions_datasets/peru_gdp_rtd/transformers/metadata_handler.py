@@ -86,9 +86,7 @@ def extract_wr_update_from_pdf(pdf_path: str) -> Tuple[str, str]:
 # ==============================================================================================
 
 
-def apply_base_years_block(
-    df: pd.DataFrame, base_year_list: List[Dict[str, int]]
-) -> pd.DataFrame:
+def apply_base_years_block(df: pd.DataFrame, base_year_list: List[Dict[str, int]]) -> pd.DataFrame:
     """
     Apply base-year mapping to DataFrame based on ordered change points.
 
@@ -316,19 +314,11 @@ def update_metadata(
                     "year": year_int,
                     "wr": wr_number,
                     "month": month_idx,
-                    "revision_calendar_tab_1": (
-                        int(rev1) if str(rev1).isdigit() else np.nan
-                    ),
-                    "revision_calendar_tab_2": (
-                        int(rev2) if str(rev2).isdigit() else np.nan
-                    ),
+                    "revision_calendar_tab_1": (int(rev1) if str(rev1).isdigit() else np.nan),
+                    "revision_calendar_tab_2": (int(rev2) if str(rev2).isdigit() else np.nan),
                     "benchmark_revision": (
                         1
-                        if (
-                            str(rev1).isdigit()
-                            and str(rev2).isdigit()
-                            and int(rev1) == int(rev2)
-                        )
+                        if (str(rev1).isdigit() and str(rev2).isdigit() and int(rev1) == int(rev2))
                         else 0
                     ),
                     "base_year": np.nan,
@@ -443,9 +433,7 @@ def apply_base_year_sentinel(
 
     processed_data = {}
 
-    for csv_file_label in tqdm(
-        csv_file_labels, desc="Applying sentinel", colour="yellow"
-    ):
+    for csv_file_label in tqdm(csv_file_labels, desc="Applying sentinel", colour="yellow"):
         # 1) Load CSV
         csv_path = os.path.join(output_data_subfolder, f"{csv_file_label}.csv")
         if not os.path.exists(csv_path):
@@ -456,9 +444,7 @@ def apply_base_year_sentinel(
 
         # 2) Validate required columns
         if "industry" not in df.columns or "vintage" not in df.columns:
-            raise ValueError(
-                f"CSV must have 'industry' and 'vintage' columns: {csv_path}"
-            )
+            raise ValueError(f"CSV must have 'industry' and 'vintage' columns: {csv_path}")
 
         df["industry"] = df["industry"].astype(str)
         df["vintage"] = df["vintage"].astype(str)
@@ -496,9 +482,7 @@ def apply_base_year_sentinel(
 
         # 8) Save adjusted dataset
         adjusted_csv_label = f"by_adjusted_{csv_file_label}"
-        adjusted_csv_path = os.path.join(
-            output_data_subfolder, f"{adjusted_csv_label}.csv"
-        )
+        adjusted_csv_path = os.path.join(output_data_subfolder, f"{adjusted_csv_label}.csv")
         df.to_csv(adjusted_csv_path, index=False)
 
         processed_data[adjusted_csv_label] = df
@@ -568,9 +552,7 @@ def convert_to_benchmark_dataset(
 
     # 1) Validate input lengths
     if len(csv_file_labels) != len(benchmark_dataset_labels):
-        raise ValueError(
-            "csv_file_labels and benchmark_dataset_labels must have same length"
-        )
+        raise ValueError("csv_file_labels and benchmark_dataset_labels must have same length")
 
     # 2) Load processing records
     record_manager = RecordManager(record_folder=record_folder, record_file=record_txt)
@@ -673,9 +655,7 @@ def convert_to_benchmark_dataset(
         df[tp_cols] = df[tp_cols].astype(float)
 
         # 6.5) Save processed dataset
-        output_path = os.path.join(
-            output_data_subfolder, f"{benchmark_label_clean}.csv"
-        )
+        output_path = os.path.join(output_data_subfolder, f"{benchmark_label_clean}.csv")
         df.to_csv(output_path, index=False)
         processed_results[benchmark_label_clean] = df
 

@@ -81,9 +81,7 @@ def convert_to_releases_dataset(
 
     # 1) Validate input lengths
     if len(csv_file_labels) != len(releases_dataset_labels):
-        raise ValueError(
-            "csv_file_labels and releases_dataset_labels must have same length"
-        )
+        raise ValueError("csv_file_labels and releases_dataset_labels must have same length")
 
     # 2) Load processing records
     record_manager = RecordManager(record_folder=record_folder, record_file=record_txt)
@@ -112,9 +110,7 @@ def convert_to_releases_dataset(
 
         # 4) Validate required columns
         if "industry" not in df.columns or "vintage" not in df.columns:
-            raise ValueError(
-                f"CSV must have 'industry' and 'vintage' columns: {csv_label_clean}"
-            )
+            raise ValueError(f"CSV must have 'industry' and 'vintage' columns: {csv_label_clean}")
 
         df["industry"] = df["industry"].astype(str)
         df["vintage"] = df["vintage"].astype(str)
@@ -143,10 +139,7 @@ def convert_to_releases_dataset(
 
             # Determine maximum number of releases (max non-NaN count in any column)
             max_releases = np.max(
-                [
-                    np.count_nonzero(~np.isnan(tp_values[:, i]))
-                    for i in range(tp_values.shape[1])
-                ]
+                [np.count_nonzero(~np.isnan(tp_values[:, i])) for i in range(tp_values.shape[1])]
             )
 
             # Create structure for release-aligned data
@@ -200,21 +193,15 @@ def convert_to_releases_dataset(
             releases_df_pivot["target_period"].str.extract(r"(\d{4})").astype("Int64")
         )
         releases_df_pivot["month"] = (
-            releases_df_pivot["target_period"]
-            .str.extract(r"m(\d{1,2})")
-            .astype("Int64")
+            releases_df_pivot["target_period"].str.extract(r"m(\d{1,2})").astype("Int64")
         )
-        releases_df_pivot = releases_df_pivot.sort_values(
-            ["year", "month"], ignore_index=True
-        )
+        releases_df_pivot = releases_df_pivot.sort_values(["year", "month"], ignore_index=True)
 
         # Drop temporary sorting columns
         releases_df_pivot.drop(columns=["year", "month"], inplace=True)
 
         # 12) Save release dataset
-        release_path = os.path.join(
-            output_data_subfolder, f"{release_label_clean}.csv"
-        )
+        release_path = os.path.join(output_data_subfolder, f"{release_label_clean}.csv")
         releases_df_pivot.to_csv(release_path, index=False)
         processed_results[release_label_clean] = releases_df_pivot
 
@@ -223,8 +210,7 @@ def convert_to_releases_dataset(
 
         print(f"💾 Saved release dataset: {release_label_clean}.csv")
         print(
-            f"   📏 Rows: {len(releases_df_pivot)}, "
-            f"Columns: {len(releases_df_pivot.columns)}"
+            f"   📏 Rows: {len(releases_df_pivot)}, " f"Columns: {len(releases_df_pivot.columns)}"
         )
 
     # 13) Update record file

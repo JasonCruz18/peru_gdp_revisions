@@ -140,10 +140,7 @@ def concatenate_table_1(
     # Load files from each year folder
     for year in year_folders:
         year_folder = os.path.join(table_1_folder, year)
-        files = sorted([
-            f for f in os.listdir(year_folder)
-            if f.endswith(('.csv', '.parquet'))
-        ])
+        files = sorted([f for f in os.listdir(year_folder) if f.endswith((".csv", ".parquet"))])
 
         for file in files:
             if file in processed_files:
@@ -152,7 +149,7 @@ def concatenate_table_1(
 
             full_path = os.path.join(year_folder, file)
             try:
-                if file.endswith('.parquet'):
+                if file.endswith(".parquet"):
                     df = pd.read_parquet(full_path)
                 else:
                     df = pd.read_csv(full_path)
@@ -281,10 +278,7 @@ def concatenate_table_2(
     # Load files from each year folder
     for year in year_folders:
         year_folder = os.path.join(table_2_folder, year)
-        files = sorted([
-            f for f in os.listdir(year_folder)
-            if f.endswith(('.csv', '.parquet'))
-        ])
+        files = sorted([f for f in os.listdir(year_folder) if f.endswith((".csv", ".parquet"))])
 
         for file in files:
             if file in processed_files:
@@ -293,7 +287,7 @@ def concatenate_table_2(
 
             full_path = os.path.join(year_folder, file)
             try:
-                if file.endswith('.parquet'):
+                if file.endswith(".parquet"):
                     df = pd.read_parquet(full_path)
                 else:
                     df = pd.read_csv(full_path)

@@ -26,7 +26,7 @@ def drop_nan_rows(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with all-NaN rows removed.
     """
-    return df.dropna(how='all')
+    return df.dropna(how="all")
 
 
 def drop_nan_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -39,7 +39,7 @@ def drop_nan_columns(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with all-NaN columns removed.
     """
-    return df.dropna(axis=1, how='all')
+    return df.dropna(axis=1, how="all")
 
 
 def swap_first_second_row(df: pd.DataFrame) -> pd.DataFrame:
@@ -92,7 +92,7 @@ def remove_digit_slash(df: pd.DataFrame) -> pd.DataFrame:
         DataFrame with digit-slash patterns removed.
     """
     df.iloc[:, [0, -2, -1]] = df.iloc[:, [0, -2, -1]].apply(
-        lambda x: x.str.replace(r'\d+/', '', regex=True)
+        lambda x: x.str.replace(r"\d+/", "", regex=True)
     )
     return df
 
@@ -116,24 +116,24 @@ def separate_text_digits(df: pd.DataFrame) -> pd.DataFrame:
         if any(char.isdigit() for char in token) and any(char.isalpha() for char in token):
             if pd.isnull(row.iloc[-1]):
                 # Move letters to last column
-                df.loc[index, df.columns[-1]] = ''.join(
-                    filter(lambda x: x.isalpha() or x == ' ', token)
+                df.loc[index, df.columns[-1]] = "".join(
+                    filter(lambda x: x.isalpha() or x == " ", token)
                 )
                 # Keep digits in penultimate column
-                df.loc[index, df.columns[-2]] = ''.join(
-                    filter(lambda x: not (x.isalpha() or x == ' '), token)
+                df.loc[index, df.columns[-2]] = "".join(
+                    filter(lambda x: not (x.isalpha() or x == " "), token)
                 )
 
             # Detect and harmonize decimal separator
-            if ',' in token:
-                parts = token.split(',')
-            elif '.' in token:
-                parts = token.split('.')
+            if "," in token:
+                parts = token.split(",")
+            elif "." in token:
+                parts = token.split(".")
             else:
-                parts = [token, '']
+                parts = [token, ""]
 
-            cleaned_integer = ''.join(filter(lambda x: x.isdigit() or x == '-', parts[0]))
-            cleaned_decimal = ''.join(filter(lambda x: x.isdigit(), parts[1]))
+            cleaned_integer = "".join(filter(lambda x: x.isdigit() or x == "-", parts[0]))
+            cleaned_decimal = "".join(filter(lambda x: x.isdigit(), parts[1]))
             cleaned_numeric = (
                 f"{cleaned_integer},{cleaned_decimal}" if cleaned_decimal else cleaned_integer
             )
@@ -156,7 +156,7 @@ def extract_years(df: pd.DataFrame) -> List[str]:
         >>> extract_years(df)
         ['2020', '2021', '2022']
     """
-    year_columns = [col for col in df.columns if re.match(r'\b\d{4}\b', str(col))]
+    year_columns = [col for col in df.columns if re.match(r"\b\d{4}\b", str(col))]
     return year_columns
 
 
@@ -192,27 +192,27 @@ def clean_columns_values(df: pd.DataFrame) -> pd.DataFrame:
     # Normalize column headers
     df.columns = df.columns.str.lower()
     df.columns = [
-        unicodedata.normalize('NFKD', col).encode('ASCII', 'ignore').decode('utf-8')
-        if isinstance(col, str)
-        else col
+        (
+            unicodedata.normalize("NFKD", col).encode("ASCII", "ignore").decode("utf-8")
+            if isinstance(col, str)
+            else col
+        )
         for col in df.columns
     ]
-    df.columns = (
-        df.columns.str.replace(' ', '_').str.replace('ano', 'year').str.replace('-', '_')
-    )
+    df.columns = df.columns.str.replace(" ", "_").str.replace("ano", "year").str.replace("-", "_")
 
     # Clean values
     for col in df.columns:
         df.loc[:, col] = df[col].apply(lambda x: remove_tildes(x) if isinstance(x, str) else x)
         df.loc[:, col] = df[col].apply(
-            lambda x: str(x).replace(',', '.') if isinstance(x, (int, float, str)) else x
+            lambda x: str(x).replace(",", ".") if isinstance(x, (int, float, str)) else x
         )
 
     # Lowercase and clean sector columns
-    df.loc[:, 'sectores_economicos'] = df['sectores_economicos'].str.lower()
-    df.loc[:, 'economic_sectors'] = df['economic_sectors'].str.lower()
-    df.loc[:, 'sectores_economicos'] = df['sectores_economicos'].apply(remove_rare_characters)
-    df.loc[:, 'economic_sectors'] = df['economic_sectors'].apply(remove_rare_characters)
+    df.loc[:, "sectores_economicos"] = df["sectores_economicos"].str.lower()
+    df.loc[:, "economic_sectors"] = df["economic_sectors"].str.lower()
+    df.loc[:, "sectores_economicos"] = df["sectores_economicos"].apply(remove_rare_characters)
+    df.loc[:, "economic_sectors"] = df["economic_sectors"].apply(remove_rare_characters)
 
     return df
 
@@ -227,9 +227,9 @@ def convert_float(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with numeric columns converted (errors coerced to NaN).
     """
-    excluded_columns = ['sectores_economicos', 'economic_sectors']
+    excluded_columns = ["sectores_economicos", "economic_sectors"]
     columns_to_convert = [col for col in df.columns if col not in excluded_columns]
-    df[columns_to_convert] = df[columns_to_convert].apply(pd.to_numeric, errors='coerce')
+    df[columns_to_convert] = df[columns_to_convert].apply(pd.to_numeric, errors="coerce")
     return df
 
 
@@ -261,12 +261,12 @@ def clean_first_row(df: pd.DataFrame) -> pd.DataFrame:
     from peru_gdp_rtd.cleaners.text_cleaners import remove_rare_characters_first_row
 
     for col in df.columns:
-        if df[col].dtype == 'object':
+        if df[col].dtype == "object":
             if isinstance(df.at[0, col], str):
                 df.at[0, col] = df.at[0, col].lower()
                 df.at[0, col] = remove_tildes(df.at[0, col])
                 df.at[0, col] = remove_rare_characters_first_row(df.at[0, col])
-                df.at[0, col] = df.at[0, col].replace('ano', 'year')
+                df.at[0, col] = df.at[0, col].replace("ano", "year")
     return df
 
 
@@ -284,8 +284,8 @@ def replace_set_sep(df: pd.DataFrame) -> pd.DataFrame:
     """
     columns = df.columns
     for column in columns:
-        if 'set' in str(column):
-            new_column = str(column).replace('set', 'sep')
+        if "set" in str(column):
+            new_column = str(column).replace("set", "sep")
             df.rename(columns={column: new_column}, inplace=True)
     return df
 
@@ -300,8 +300,8 @@ def spaces_se_es(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with trimmed sector labels.
     """
-    df['sectores_economicos'] = df['sectores_economicos'].str.strip()
-    df['economic_sectors'] = df['economic_sectors'].str.strip()
+    df["sectores_economicos"] = df["sectores_economicos"].str.strip()
+    df["economic_sectors"] = df["economic_sectors"].str.strip()
     return df
 
 
@@ -318,11 +318,11 @@ def replace_services(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with unified service sector names.
     """
-    if ('servicios' in df['sectores_economicos'].values) and (
-        'services' in df['economic_sectors'].values
+    if ("servicios" in df["sectores_economicos"].values) and (
+        "services" in df["economic_sectors"].values
     ):
-        df['sectores_economicos'].replace({'servicios': 'otros servicios'}, inplace=True)
-        df['economic_sectors'].replace({'services': 'other services'}, inplace=True)
+        df["sectores_economicos"].replace({"servicios": "otros servicios"}, inplace=True)
+        df["economic_sectors"].replace({"services": "other services"}, inplace=True)
     return df
 
 
@@ -338,10 +338,10 @@ def replace_mineria(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with standardized mining sector name.
     """
-    if ('mineria' in df['sectores_economicos'].values) and (
-        'mineria e hidrocarburos' not in df['sectores_economicos'].values
+    if ("mineria" in df["sectores_economicos"].values) and (
+        "mineria e hidrocarburos" not in df["sectores_economicos"].values
     ):
-        df['sectores_economicos'].replace({'mineria': 'mineria e hidrocarburos'}, inplace=True)
+        df["sectores_economicos"].replace({"mineria": "mineria e hidrocarburos"}, inplace=True)
     return df
 
 
@@ -357,8 +357,8 @@ def replace_mining(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with standardized mining sector name.
     """
-    if 'mining and fuels' in df['economic_sectors'].values:
-        df['economic_sectors'].replace({'mining and fuels': 'mining and fuel'}, inplace=True)
+    if "mining and fuels" in df["economic_sectors"].values:
+        df["economic_sectors"].replace({"mining and fuels": "mining and fuel"}, inplace=True)
     return df
 
 
@@ -374,7 +374,7 @@ def rounding_values(df: pd.DataFrame, decimals: int = 1) -> pd.DataFrame:
         DataFrame with rounded values.
     """
     for col in df.columns:
-        if df[col].dtype == 'float64':
+        if df[col].dtype == "float64":
             df[col] = df[col].round(decimals)
     return df
 
@@ -389,6 +389,6 @@ def drop_rare_caracter_row(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with rare character rows removed.
     """
-    rare_caracter_row = df.apply(lambda row: '}' in row.values, axis=1)
+    rare_caracter_row = df.apply(lambda row: "}" in row.values, axis=1)
     df = df[~rare_caracter_row]
     return df

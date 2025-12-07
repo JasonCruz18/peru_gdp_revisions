@@ -38,7 +38,12 @@ from webdriver_manager.microsoft import EdgeChromiumDriverManager
 
 # Local imports
 from peru_gdp_rtd.scrapers.utils import get_http_session, random_wait
-from peru_gdp_rtd.utils.alerts import init_audio, load_alert_track, play_alert_track, stop_alert_track
+from peru_gdp_rtd.utils.alerts import (
+    init_audio,
+    load_alert_track,
+    play_alert_track,
+    stop_alert_track,
+)
 from peru_gdp_rtd.config import Settings
 
 

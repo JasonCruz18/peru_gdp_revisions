@@ -271,7 +271,7 @@ def run_pipeline(args: argparse.Namespace, logger: logging.Logger) -> int:
                     persist=True,
                     persist_folder=str(settings.paths.data_output / "vintages" / "old"),
                     pipeline_version=settings.project["version"],
-                    sep=';',
+                    sep=";",
                 )
 
                 logger.info("Processing OLD CSV Table 2 (quarterly/annual GDP)...")
@@ -282,7 +282,7 @@ def run_pipeline(args: argparse.Namespace, logger: logging.Logger) -> int:
                     persist=True,
                     persist_folder=str(settings.paths.data_output / "vintages" / "old"),
                     pipeline_version=settings.project["version"],
-                    sep=';',
+                    sep=";",
                 )
 
                 # NEW PDF Tables (2021+)
@@ -330,7 +330,9 @@ def run_pipeline(args: argparse.Namespace, logger: logging.Logger) -> int:
                     record_txt=settings.record_files["concatenated_tab_2"],
                     persist=True,
                     persist_folder=str(settings.paths.data_output),
-                    csv_file_label=settings.output_files["quarterly_annual_rtd"].replace(".csv", ""),
+                    csv_file_label=settings.output_files["quarterly_annual_rtd"].replace(
+                        ".csv", ""
+                    ),
                 )
 
             # STEP 5: Update metadata and create adjusted datasets
@@ -343,11 +345,7 @@ def run_pipeline(args: argparse.Namespace, logger: logging.Logger) -> int:
 
                 # Convert base_years to dict format for update_metadata
                 base_year_list = [
-                    {
-                        "year": by.year,
-                        "wr": by.wr,
-                        "base_year": by.base_year
-                    }
+                    {"year": by.year, "wr": by.wr, "base_year": by.base_year}
                     for by in settings.metadata.base_years
                 ]
 

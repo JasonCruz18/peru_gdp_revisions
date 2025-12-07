@@ -18,7 +18,7 @@ class VintagesPreparator:
     Reshape cleaned OLD/NEW tables into tidy vintage format.
 
     This class provides methods to:
-    1. Infer month order within a year from WR issue numbers (ns-DD-YYYY ’ month 1..12)
+    1. Infer month order within a year from WR issue numbers (ns-DD-YYYY ' month 1..12)
     2. Reshape cleaned tables into row-based vintages with industry/vintage/target-period columns
 
     A vintage DataFrame contains:
@@ -141,9 +141,7 @@ class VintagesPreparator:
         d = d[d["industry"].notna()].copy()
 
         # Build vintage identifier: year + 'm' + WR month index
-        d["vintage"] = (
-            d["year"].astype(int).astype(str) + "m" + d["month"].astype(int).astype(str)
-        )
+        d["vintage"] = d["year"].astype(int).astype(str) + "m" + d["month"].astype(int).astype(str)
 
         # Detect monthly target-period columns like '2015_ene', '2015_jul'
         pat = re.compile(
@@ -232,9 +230,7 @@ class VintagesPreparator:
         # Build vintage identifier from year and WR month index
         wr_month = month_order_map.get(filename)
         d["month"] = wr_month
-        d["vintage"] = (
-            d["year"].astype(int).astype(str) + "m" + d["month"].astype(int).astype(str)
-        )
+        d["vintage"] = d["year"].astype(int).astype(str) + "m" + d["month"].astype(int).astype(str)
 
         # Detect quarterly/annual period columns: '2020_1', '2020_2', '2020_3', '2020_4', '2020_year'
         pat = re.compile(r"^\d{4}_(1|2|3|4|year)$", re.IGNORECASE)

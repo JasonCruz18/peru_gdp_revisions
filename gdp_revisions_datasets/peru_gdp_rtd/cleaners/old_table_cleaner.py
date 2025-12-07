@@ -92,7 +92,7 @@ class OldTableCleaner:
         d = df.copy()
 
         # Branch A — header already has sector columns in expected position
-        if d.columns[1] == 'economic_sectors':
+        if d.columns[1] == "economic_sectors":
             d = drop_nan_rows(d)  # 1. Drop rows where all entries are NaN
             d = drop_nan_columns(d)  # 2. Drop columns where all entries are NaN
             d = clean_columns_values(d)  # 3. Normalize column names and textual values
@@ -154,7 +154,7 @@ class OldTableCleaner:
         d = df.copy()
 
         # Branch A — header already has sector columns in expected position
-        if d.columns[1] == 'economic_sectors':
+        if d.columns[1] == "economic_sectors":
             d = drop_nan_rows(d)  # 1. Drop rows where all entries are NaN
             d = drop_nan_columns(d)  # 2. Drop columns where all entries are NaN
             d = clean_columns_values(d)  # 3. Normalize column names and textual values

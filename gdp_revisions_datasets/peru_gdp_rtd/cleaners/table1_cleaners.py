@@ -30,9 +30,11 @@ def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
     """
     df.columns = df.columns.str.lower()
     df.columns = [
-        unicodedata.normalize('NFKD', col).encode('ASCII', 'ignore').decode('utf-8')
-        if isinstance(col, str)
-        else col
+        (
+            unicodedata.normalize("NFKD", col).encode("ASCII", "ignore").decode("utf-8")
+            if isinstance(col, str)
+            else col
+        )
         for col in df.columns
     ]
     return df
@@ -74,12 +76,12 @@ def relocate_last_columns(df: pd.DataFrame) -> pd.DataFrame:
         DataFrame with relocated columns.
     """
     if not pd.isna(df.iloc[1, -1]):
-        new_column = 'col_' + ''.join(map(str, np.random.randint(1, 5, size=1)))
+        new_column = "col_" + "".join(map(str, np.random.randint(1, 5, size=1)))
         df[new_column] = np.nan
 
         insert_value_1 = df.iloc[0, -2]
         insert_value_1 = str(insert_value_1)
-        df.iloc[:, -1] = df.iloc[:, -1].astype('object')
+        df.iloc[:, -1] = df.iloc[:, -1].astype("object")
         df.iloc[0, -1] = insert_value_1
 
         df.iloc[0, -2] = np.nan
@@ -107,7 +109,7 @@ def get_months_sublist_list(df: pd.DataFrame, year_columns: List[str]) -> pd.Dat
     for item in first_row:
         if len(str(item)) == 3:  # Month abbreviations (e.g., 'jan')
             months_sublist.append(item)
-        elif '-' in str(item) or str(item) == 'year':  # Boundary markers
+        elif "-" in str(item) or str(item) == "year":  # Boundary markers
             months_sublist.append(item)
             months_sublist_list.append(months_sublist)
             months_sublist = []
@@ -158,7 +160,7 @@ def find_year_column(df: pd.DataFrame) -> pd.DataFrame:
         year_name = found_years[0]
         first_row = df.iloc[0]
 
-        column_contains_year = first_row[first_row.astype(str).str.contains(r'\byear\b')]
+        column_contains_year = first_row[first_row.astype(str).str.contains(r"\byear\b")]
 
         if not column_contains_year.empty:
             column_contains_year_name = column_contains_year.index[0]
@@ -187,7 +189,7 @@ def replace_var_perc_first_column(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with standardized variation labels.
     """
-    regex = re.compile(r'Var\. ?%')
+    regex = re.compile(r"Var\. ?%")
 
     for index, row in df.iterrows():
         value = str(row.iloc[0])
@@ -196,7 +198,9 @@ def replace_var_perc_first_column(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def replace_number_moving_average(df: pd.DataFrame, number_moving_average: str = 'three') -> pd.DataFrame:
+def replace_number_moving_average(
+    df: pd.DataFrame, number_moving_average: str = "three"
+) -> pd.DataFrame:
     """
     Normalize moving-average descriptors in last column.
 
@@ -210,9 +214,9 @@ def replace_number_moving_average(df: pd.DataFrame, number_moving_average: str =
         DataFrame with normalized moving average labels.
     """
     for index, row in df.iterrows():
-        if pd.notnull(row.iloc[-1]) and re.search(r'(\d\s*-)', str(row.iloc[-1])):
+        if pd.notnull(row.iloc[-1]) and re.search(r"(\d\s*-)", str(row.iloc[-1])):
             df.at[index, df.columns[-1]] = re.sub(
-                r'(\d\s*-)', f'{number_moving_average}-', str(row.iloc[-1])
+                r"(\d\s*-)", f"{number_moving_average}-", str(row.iloc[-1])
             )
     return df
 
@@ -229,15 +233,15 @@ def replace_var_perc_last_columns(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with standardized variation labels.
     """
-    regex = re.compile(r'(Var\. ?%)(.*)')
+    regex = re.compile(r"(Var\. ?%)(.*)")
 
     for index, row in df.iterrows():
         if isinstance(row.iloc[-2], str) and regex.search(row.iloc[-2]):
-            replaced_text = regex.sub(r'\2 percent change', row.iloc[-2])
+            replaced_text = regex.sub(r"\2 percent change", row.iloc[-2])
             df.at[index, df.columns[-2]] = replaced_text.strip()
 
         if isinstance(row.iloc[-1], str) and regex.search(row.iloc[-1]):
-            replaced_text = regex.sub(r'\2 percent change', row.iloc[-1])
+            replaced_text = regex.sub(r"\2 percent change", row.iloc[-1])
             df.at[index, df.columns[-1]] = replaced_text.strip()
     return df
 
@@ -256,11 +260,11 @@ def replace_first_dot(df: pd.DataFrame) -> pd.DataFrame:
     """
     second_row = df.iloc[1]
 
-    if any(isinstance(cell, str) and re.match(r'^\w+\.\s?\w+', cell) for cell in second_row):
+    if any(isinstance(cell, str) and re.match(r"^\w+\.\s?\w+", cell) for cell in second_row):
         for col in df.columns:
             if isinstance(second_row[col], str):
-                if re.match(r'^\w+\.\s?\w+', second_row[col]):
-                    df.at[1, col] = re.sub(r'(\w+)\.(\s?\w+)', r'\1-\2', second_row[col], count=1)
+                if re.match(r"^\w+\.\s?\w+", second_row[col]):
+                    df.at[1, col] = re.sub(r"(\w+)\.(\s?\w+)", r"\1-\2", second_row[col], count=1)
     return df
 
 
@@ -301,7 +305,10 @@ def replace_first_row_with_columns(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with synthetic column names promoted to header.
     """
-    if any(isinstance(element, str) and element.isdigit() and len(element) == 4 for element in df.iloc[0]):
+    if any(
+        isinstance(element, str) and element.isdigit() and len(element) == 4
+        for element in df.iloc[0]
+    ):
         for col_index, value in enumerate(df.iloc[0]):
             if pd.isna(value):
                 df.iloc[0, col_index] = f"column_{col_index + 1}"
@@ -328,12 +335,12 @@ def check_first_row(df: pd.DataFrame) -> pd.DataFrame:
     first_row = df.iloc[0]
 
     for i, (col, value) in enumerate(first_row.items()):
-        if re.search(r'\b\d{4}\s\d{4}\b', str(value)):
+        if re.search(r"\b\d{4}\s\d{4}\b", str(value)):
             years = value.split()
             first_year = years[0]
             second_year = years[1]
 
-            original_column_name = f'col_{i}'
+            original_column_name = f"col_{i}"
             df.at[0, col] = original_column_name
 
             if pd.isna(df.iloc[0, 0]):
@@ -362,7 +369,11 @@ def check_first_row_1(df: pd.DataFrame) -> pd.DataFrame:
     """
     if pd.isnull(df.iloc[0, 0]):
         penultimate_column = df.iloc[0, -2]
-        if isinstance(penultimate_column, str) and len(penultimate_column) == 4 and penultimate_column.isdigit():
+        if (
+            isinstance(penultimate_column, str)
+            and len(penultimate_column) == 4
+            and penultimate_column.isdigit()
+        ):
             df.iloc[0, 0] = penultimate_column
             df.iloc[0, -2] = np.nan
 

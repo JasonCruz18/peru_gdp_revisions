@@ -27,8 +27,8 @@ def remove_rare_characters_first_row(text: str) -> str:
         >>> remove_rare_characters_first_row("GDP - Total  #value")
         'GDP-Total value'
     """
-    text = re.sub(r'\s*-\s*', '-', text)  # Normalize "a - b" -> "a-b"
-    text = re.sub(r'[^a-zA-Z0-9\s-]', '', text)  # Keep letters/digits/spaces/hyphens
+    text = re.sub(r"\s*-\s*", "-", text)  # Normalize "a - b" -> "a-b"
+    text = re.sub(r"[^a-zA-Z0-9\s-]", "", text)  # Keep letters/digits/spaces/hyphens
     return text
 
 
@@ -46,7 +46,7 @@ def remove_rare_characters(text: str) -> str:
         >>> remove_rare_characters("GDP123 @total")
         'GDP total'
     """
-    return re.sub(r'[^a-zA-Z\s]', '', text)
+    return re.sub(r"[^a-zA-Z\s]", "", text)
 
 
 def remove_tildes(text: str) -> str:
@@ -63,9 +63,8 @@ def remove_tildes(text: str) -> str:
         >>> remove_tildes("año económico")
         'ano economico'
     """
-    return ''.join(
-        char for char in unicodedata.normalize('NFD', text)
-        if unicodedata.category(char) != 'Mn'
+    return "".join(
+        char for char in unicodedata.normalize("NFD", text) if unicodedata.category(char) != "Mn"
     )
 
 
@@ -83,6 +82,6 @@ def find_roman_numerals(text: str) -> List[str]:
         >>> find_roman_numerals("Section III and IV details")
         ['III', 'IV']
     """
-    pattern = r'\b(?:I{1,3}|IV|V|VI{0,3}|IX|X)\b'
+    pattern = r"\b(?:I{1,3}|IV|V|VI{0,3}|IX|X)\b"
     matches = re.findall(pattern, text)
     return matches

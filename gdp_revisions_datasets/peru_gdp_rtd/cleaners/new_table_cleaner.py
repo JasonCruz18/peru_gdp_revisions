@@ -179,9 +179,15 @@ class NewTableCleaner:
         d = first_row_columns(d)  # 28. Promote first row to header row
         d = clean_columns_values(d)  # 29. Normalize column names and values
         d = convert_float(d)  # 30. Convert non-label columns to numeric
-        d = replace_nan_with_previous_column_1(d)  # 31. Fill NaNs using neighboring columns (variant 1)
-        d = replace_nan_with_previous_column_2(d)  # 32. Fill NaNs using neighboring columns (variant 2)
-        d = replace_nan_with_previous_column_3(d)  # 33. Fill NaNs using neighboring columns (variant 3)
+        d = replace_nan_with_previous_column_1(
+            d
+        )  # 31. Fill NaNs using neighboring columns (variant 1)
+        d = replace_nan_with_previous_column_2(
+            d
+        )  # 32. Fill NaNs using neighboring columns (variant 2)
+        d = replace_nan_with_previous_column_3(
+            d
+        )  # 33. Fill NaNs using neighboring columns (variant 3)
         d = replace_set_sep(d)  # 34. Standardize 'set' into 'sep'
         d = spaces_se_es(d)  # 35. Strip spaces in ES/EN sector label columns
         d = replace_services(d)  # 36. Harmonize 'services' naming
@@ -218,7 +224,9 @@ class NewTableCleaner:
             d = drop_nan_columns(d)  # 1. Drop fully-NaN columns
             d = separate_years(d)  # 2. Split 'YYYY YYYY' combined header into two columns
             d = relocate_roman_numerals(d)  # 3. Move Roman numerals into dedicated column
-            d = extract_mixed_values(d)  # 4. Extract mixed numeric/text tokens from third-last column
+            d = extract_mixed_values(
+                d
+            )  # 4. Extract mixed numeric/text tokens from third-last column
             d = replace_first_row_nan(d)  # 5. Replace NaNs in row 0 with their column names
             d = first_row_columns(d)  # 6. Promote first row to column headers
             d = swap_first_second_row(d)  # 7. Swap first/second rows at first and last columns
@@ -231,7 +239,9 @@ class NewTableCleaner:
             d = fix_duplicates(d)  # 14. Fix duplicated numeric header tokens
             d = relocate_last_column(d)  # 15. Move last column into position 1
             d = clean_first_row(d)  # 16. Normalize header row text
-            d = get_quarters_sublist_list(d, years)  # 17. Build '<year>_<quarter>' composite headers
+            d = get_quarters_sublist_list(
+                d, years
+            )  # 17. Build '<year>_<quarter>' composite headers
             d = first_row_columns(d)  # 18. Promote first row to column headers again
             d = clean_columns_values(d)  # 19. Normalize column names and values
             d = reset_index(d)  # 20. Reset index after additional cleaning
