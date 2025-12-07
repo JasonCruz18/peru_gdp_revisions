@@ -1,0 +1,34 @@
+# Peru GDP Real-Time Dataset - Dependencies
+# ==========================================
+
+# Core data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Configuration
+pyyaml>=6.0
+
+# HTTP and web scraping
+requests>=2.31.0
+urllib3>=2.0.0
+selenium>=4.0.0
+webdriver-manager>=4.0.0
+
+# PDF processing
+PyMuPDF>=1.23.0
+PyPDF2>=3.0.0
+tabula-py>=2.8.0
+# Note: tabula-py requires Java Runtime Environment (JRE) to be installed
+
+# Utilities
+pygame>=2.5.0
+python-roman>=4.0
+tqdm>=4.65.0
+
+# Jupyter support (optional for notebooks)
+ipywidgets>=8.0.0
+jupyter>=1.0.0
+notebook>=7.0.0
+
+# Optional: Progress bars and UI
+colorama>=0.4.6

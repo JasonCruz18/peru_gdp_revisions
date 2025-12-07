@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(cat:*)",
+      "Bash(tree:*)",
+      "Bash(python3:*)",
+      "Bash(wc:*)",
+      "Bash(python -c:*)",
+      "Bash(python scripts/update_rtd.py:*)",
+      "Bash(python tests/test_smoke.py:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

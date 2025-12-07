@@ -1,0 +1,230 @@
+# Peru GDP Real-Time Dataset Configuration
+# =========================================
+# This file controls all pipeline settings and eliminates hardcoding
+
+project:
+  name: "Peru GDP RTD"
+  version: "1.0.0"
+  root_dir: "."  # Relative to this config file
+
+# ====================
+# PATH CONFIGURATION
+# ====================
+paths:
+  # Data directories
+  data_root: "data"
+  data_input: "data/input"
+  data_output: "data/output"
+
+  # PDF directories
+  pdf_root: "new_weekly_reports"
+  pdf_raw: "new_weekly_reports/raw"
+  pdf_input: "new_weekly_reports/input"
+
+  # Old weekly reports (legacy data)
+  old_weekly_reports: "old_weekly_reports"
+
+  # Metadata and tracking
+  metadata: "metadata"
+  record: "record"
+  alert_track: "alert_track"
+
+# ====================
+# SCRAPER CONFIGURATION
+# ====================
+scraper:
+  # BCRP website configuration
+  bcrp_url: "https://www.bcrp.gob.pe/publicaciones/nota-semanal.html"
+
+  # Browser settings
+  browser: "chrome"  # Options: chrome, firefox, edge
+  headless: false     # Set to true for background execution
+
+  # Download limits
+  max_downloads: 60
+  downloads_per_batch: 6
+
+  # Rate limiting (mimics human behavior)
+  min_wait: 5.0   # Minimum seconds between downloads
+  max_wait: 10.0  # Maximum seconds between downloads
+
+  # CSS selectors (IMPORTANT: Update if BCRP website changes)
+  css_selectors:
+    report_list: "#rightside ul.listado-bot-std-claros"
+
+  # HTTP Configuration
+  http:
+    chunk_size: 128
+    timeout: 60
+    retries: 3
+    backoff_factor: 0.5
+    retry_statuses: [429, 500, 502, 503, 504]
+
+  # Selenium Configuration
+  selenium:
+    page_load_timeout: 30
+    explicit_wait_timeout: 60
+
+# ====================
+# PDF PROCESSING CONFIGURATION
+# ====================
+pdf_processing:
+  # Keywords to identify relevant PDF pages
+  keywords:
+    - "ECONOMIC SECTORS"
+    - "SECTORES ECONÓMICOS"
+
+  # Pages to extract from 4-page PDFs
+  pages_to_extract: [1, 3]  # Cover page and GDP tables
+
+# ====================
+# DATA CLEANING CONFIGURATION
+# ====================
+cleaning:
+  # Decimal precision for GDP growth rates
+  decimal_places: 1
+
+  # Pipeline version tracking
+  pipeline_version: "s3.0.0"
+
+  # Sector name standardization (Spanish)
+  sector_mappings_spanish:
+    "agropecuario": "agropecuario"
+    "pesca": "pesca"
+    "minería e hidrocarburos": "minería e hidrocarburos"
+    "mineria e hidrocarburos": "minería e hidrocarburos"
+    "minería": "minería e hidrocarburos"
+    "mineria": "minería e hidrocarburos"
+    "manufactura": "manufactura"
+    "electricidad y agua": "electricidad y agua"
+    "construcción": "construcción"
+    "construccion": "construcción"
+    "comercio": "comercio"
+    "otros servicios": "otros servicios"
+    "pbi": "pbi"
+
+  # Sector name standardization (English)
+  sector_mappings_english:
+    "agriculture and livestock": "agriculture"
+    "agriculture": "agriculture"
+    "fishing": "fishing"
+    "mining and fuel": "mining"
+    "mining and fuels": "mining"
+    "mining": "mining"
+    "manufacturing": "manufacturing"
+    "electricity and water": "electricity"
+    "construction": "construction"
+    "commerce": "commerce"
+    "other services": "services"
+    "gdp": "gdp"
+
+  # Month name to number mapping (Spanish)
+  month_mappings:
+    "ene": 1
+    "feb": 2
+    "mar": 3
+    "abr": 4
+    "may": 5
+    "jun": 6
+    "jul": 7
+    "ago": 8
+    "set": 9  # Note: "set" is used instead of "sep" in Spanish
+    "sep": 9
+    "oct": 10
+    "nov": 11
+    "dic": 12
+
+# ====================
+# METADATA CONFIGURATION
+# ====================
+metadata:
+  filename: "wr_metadata.csv"
+
+  # Base year changes (critical for tracking GDP revisions)
+  base_years:
+    - year: 1994
+      wr: 1
+      base_year: 1990
+    - year: 2000
+      wr: 28
+      base_year: 1994
+    - year: 2014
+      wr: 11
+      base_year: 2007
+    - year: 2022
+      wr: 20
+      base_year: 2019
+
+# ====================
+# BENCHMARK CONFIGURATION
+# ====================
+benchmark:
+  # Sentinel value for base-year affected data
+  sentinel_value: -999999.0
+
+  # Periods affected by base year changes
+  base_year_periods:
+    - "2000m7"   # July 2000: 1990 -> 1994 base year change
+    - "2014m3"   # March 2014: 1994 -> 2007 base year change
+
+# ====================
+# RECORD FILES CONFIGURATION
+# ====================
+record_files:
+  downloaded_pdfs: "1_downloaded_pdfs.txt"
+  generated_inputs: "2_generated_input_pdfs.txt"
+  created_new_rtd_tab_1: "3_created_new_rtd_tab_1.txt"
+  created_new_rtd_tab_2: "3_created_new_rtd_tab_2.txt"
+  created_old_rtd_tab_1: "3_created_old_rtd_tab_1.txt"
+  created_old_rtd_tab_2: "3_created_old_rtd_tab_2.txt"
+  concatenated_tab_1: "4_concatenated_rtd_tab_1.txt"
+  concatenated_tab_2: "4_concatenated_rtd_tab_2.txt"
+  metadata_updated: "5_weekly_report_metadata.txt"
+  benchmark_converted: "5_converted_to_benchmark.txt"
+  releases_converted: "6_converted_to_releases.txt"
+
+# ====================
+# OUTPUT FILES CONFIGURATION
+# ====================
+output_files:
+  # Real-time datasets
+  monthly_rtd: "monthly_gdp_rtd.csv"
+  quarterly_annual_rtd: "quarterly_annual_gdp_rtd.csv"
+
+  # Base-year adjusted datasets
+  by_adjusted_monthly: "by_adjusted_monthly_gdp_rtd.csv"
+  by_adjusted_quarterly: "by_adjusted_quarterly_annual_gdp_rtd.csv"
+
+  # Benchmark datasets
+  monthly_benchmark: "monthly_gdp_benchmark.csv"
+  quarterly_benchmark: "quarterly_annual_gdp_benchmark.csv"
+  by_adjusted_monthly_benchmark: "by_adjusted_monthly_gdp_benchmark.csv"
+  by_adjusted_quarterly_benchmark: "by_adjusted_quarterly_annual_gdp_benchmark.csv"
+
+  # Releases datasets
+  monthly_releases: "monthly_gdp_releases.csv"
+  quarterly_releases: "quarterly_annual_gdp_releases.csv"
+  by_adjusted_monthly_releases: "by_adjusted_monthly_gdp_releases.csv"
+  by_adjusted_quarterly_releases: "by_adjusted_quarterly_annual_gdp_releases.csv"
+  monthly_benchmark_releases: "monthly_gdp_benchmark_releases.csv"
+  quarterly_benchmark_releases: "quarterly_annual_gdp_benchmark_releases.csv"
+  by_adjusted_monthly_benchmark_releases: "by_adjusted_monthly_gdp_benchmark_releases.csv"
+  by_adjusted_quarterly_benchmark_releases: "by_adjusted_quarterly_annual_gdp_benchmark_releases.csv"
+
+# ====================
+# LOGGING CONFIGURATION
+# ====================
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/gdp_rtd_pipeline.log"
+  console: true
+
+# ====================
+# FEATURE FLAGS
+# ====================
+features:
+  enable_alerts: true           # Play audio alerts after downloads
+  persist_intermediate: true    # Save intermediate processing results
+  persist_format: "csv"         # Options: csv, parquet
+  validate_data: true           # Run data validation checks
