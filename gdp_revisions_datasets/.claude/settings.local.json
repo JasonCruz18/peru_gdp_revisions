@@ -9,7 +9,9 @@
       "Bash(python -c:*)",
       "Bash(python scripts/update_rtd.py:*)",
       "Bash(python tests/test_smoke.py:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
